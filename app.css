@@ -1,0 +1,103 @@
+/* Yhteisikkuna — yhteinen ulkoasu kaikille sivuille.
+   Sivut lataavat tämän ennen omaa <style>-lohkoaan:
+   <link rel="stylesheet" href="/app.css" />
+   Fontit (IBM Plex Sans + Mono) ladataan sivun <head>:ssä Google Fontsista. */
+
+:root {
+  --nav-bg: #0F1B2D;
+  --page-bg: #F4F5F7;
+  --surface: #FFFFFF;
+  --surface-muted: #F7F8FA;
+  --line: #E3E6EA;
+  --line-soft: #EEF0F3;
+  --text: #161B22;
+  --text-muted: #5B6472;
+  --text-faint: #8A93A3;
+  --primary: #1F3B63;
+  --primary-hover: #172E4D;
+  --primary-soft: #E4E9F1;
+  --busy: #E8A39B;
+  --busy-strong: #C9665B;
+  --free-bg: #D8EFF1;
+  --free-line: #4FA3AE;
+  --free-text: #1F5F68;
+  --ok: #1F7A7A;
+  --ok-soft: #DDF0EF;
+  --warn: #C2611F;
+  --danger: #C0453A;
+  --danger-soft: #FBE4E1;
+  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+
+body { font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif; background: var(--page-bg); color: var(--text); margin: 0; }
+h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+a.back { font-size: 13px; color: var(--text-muted); text-decoration: none; }
+a.back:hover { color: var(--text); }
+
+button { font-family: inherit; background: var(--primary); color: #fff; border: 1px solid var(--primary); padding: 9px 16px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer; margin-right: 8px; }
+button:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+button:disabled { opacity: 0.4; cursor: default; }
+button.secondary { background: var(--surface); color: var(--text); border: 1px solid #D0D5DD; }
+button.secondary:hover { background: var(--surface-muted); }
+button.danger { background: #fff; color: var(--danger); border: 1px solid var(--danger); }
+button.danger:hover { background: var(--danger-soft); }
+
+/* Napin näköinen linkki */
+a.btn { display: inline-flex; align-items: center; gap: 6px; background: var(--primary); color: #fff; border: 1px solid var(--primary); padding: 12px 16px; border-radius: 8px; font-size: 14px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+a.btn:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+a.btn.secondary { background: var(--surface); color: var(--text); border-color: #D0D5DD; }
+a.btn.secondary:hover { background: var(--surface-muted); }
+
+/* ---------- Yläpalkki (nav.js) ---------- */
+.app-nav { background: var(--nav-bg); color: #fff; }
+.app-nav-inner { max-width: 1360px; margin: 0 auto; padding: 0 40px; height: 64px; display: flex; align-items: center; gap: 40px; }
+.brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 700; font-size: 17px; }
+.nav-links { display: flex; align-items: stretch; height: 100%; gap: 8px; }
+.nav-links a { display: flex; align-items: center; padding: 0 14px; color: #C9D1DC; text-decoration: none; font-size: 14px; font-weight: 500; border-bottom: 3px solid transparent; border-top: 3px solid transparent; }
+.nav-links a:hover { color: #fff; }
+.nav-links a.active { color: #fff; font-weight: 600; border-bottom-color: #7DA2D6; }
+.nav-user { margin-left: auto; display: flex; align-items: center; gap: 16px; position: relative; }
+.nav-user-btn { background: none; border: none; color: #fff; display: flex; align-items: center; gap: 10px; padding: 0; margin: 0; font-size: 14px; font-weight: 500; }
+.nav-user-btn:hover { background: none; border: none; }
+.nav-avatar { width: 32px; height: 32px; border-radius: 50%; background: #2C3E57; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.nav-logout { background: none; border: none; color: #C9D1DC; text-decoration: underline; padding: 0; margin: 0; font-size: 13px; font-weight: 400; }
+.nav-logout:hover { background: none; border: none; color: #fff; }
+
+.profile-panel { display: none; position: absolute; top: 48px; right: 0; width: 260px; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 16px; box-shadow: 0 8px 24px rgba(15,27,45,0.14); z-index: 20; text-align: left; }
+.profile-panel.open { display: block; }
+.profile-panel .pp-name { font-weight: 600; font-size: 14px; }
+.profile-panel .pp-sub { color: var(--text-muted); font-size: 12.5px; margin-top: 2px; }
+.profile-panel .pp-team { font-size: 11.5px; color: var(--text-faint); }
+.profile-panel .pp-role { display: inline-block; margin-top: 8px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--primary-soft); color: var(--primary); }
+.profile-panel .pp-link { display: inline-block; margin-top: 14px; color: var(--primary); font-size: 13px; text-decoration: underline; }
+.lang-picker { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line-soft); font-size: 12.5px; color: var(--text-muted); }
+.lang-btn { background: none; border: 1px solid var(--line); color: var(--primary); padding: 4px 10px; font-size: 12px; margin: 6px 4px 0 0; border-radius: 999px; cursor: pointer; }
+.lang-btn:hover { background: var(--surface-muted); border-color: var(--line); }
+.lang-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* ---------- Sivupohja ---------- */
+.page { max-width: 1360px; margin: 0 auto; padding: 28px 40px 60px; }
+.page-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin: 12px 0 24px; flex-wrap: wrap; }
+.page-sub { margin: 8px 0 0; font-size: 14px; color: var(--text-muted); }
+.head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.head-actions button { margin: 0; padding: 12px 16px; font-weight: 600; white-space: nowrap; }
+.role-badge { font-size: 12px; font-weight: 600; color: var(--primary); background: var(--primary-soft); padding: 3px 10px; border-radius: 999px; }
+
+.section-title { display: flex; align-items: baseline; gap: 8px; font-size: 15px; font-weight: 600; margin: 32px 0 12px; }
+.section-title:first-child { margin-top: 0; }
+.section-title .count { color: var(--text-faint); font-weight: 400; font-size: 14px; }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+
+@media (max-width: 900px) {
+  .app-nav-inner, .page { padding-left: 16px; padding-right: 16px; }
+  .app-nav-inner { gap: 16px; }
+  .nav-links a { padding: 0 8px; }
+  .nav-user-name { display: none; }
+  h1 { font-size: 22px; }
+  .head-actions button, a.btn { padding: 10px 12px; }
+}
+@media (max-width: 600px) {
+  .nav-links { display: none; }
+  .brand { font-size: 15px; }
+}

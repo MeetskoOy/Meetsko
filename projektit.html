@@ -4,54 +4,48 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Yhteisikkuna — Omat projektit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/app.css" />
 <style>
-  body { font-family: -apple-system, Segoe UI, Inter, sans-serif; background: #EDF0F3; color: #161B22; max-width: 680px; margin: 40px auto; padding: 0 20px; }
-  h1 { font-size: 20px; margin-bottom: 16px; }
-  h3 { font-size: 14px; margin: 26px 0 10px; }
-  button { background: #2A4B7C; color: #fff; border: none; padding: 9px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; margin-bottom: 20px; }
-  button:hover { background: #1D3559; }
-  button.secondary { background: #fff; color: #2A4B7C; border: 1px solid #2A4B7C; }
-  a.back { font-size: 13px; color: #2A4B7C; text-decoration: none; }
-  a.newproj-link { display: inline-block; background: #2A4B7C; color: #fff; padding: 9px 16px; border-radius: 8px; font-size: 14px; text-decoration: none; margin-bottom: 10px; }
-  .card { background: #fff; border: 1px solid #DBDFE5; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; text-decoration: none; display: block; color: inherit; position: relative; }
-  .card:hover { border-color: #2A4B7C; }
-  .card .name { font-weight: 600; font-size: 15px; }
-  .card .meta { color: #8A93A3; font-size: 12px; margin-top: 4px; }
-  .involved-badge { position: absolute; top: 12px; right: 14px; background: #DCF3E4; color: #1E6B3C; font-size: 10.5px; padding: 2px 9px; border-radius: 999px; }
-  #empty { color: #586174; font-size: 14px; }
-  .empty-note { color: #8A93A3; font-size: 13.5px; margin-bottom: 10px; }
-  #adminLinkWrap { margin-bottom: 10px; }
+  .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .project-card { position: relative; display: flex; flex-direction: column; gap: 14px; min-height: 132px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; color: inherit; text-decoration: none; box-sizing: border-box; transition: border-color 0.15s, box-shadow 0.15s; }
+  .project-card:hover { border-color: var(--primary); box-shadow: 0 4px 14px rgba(15,27,45,0.08); }
+  .project-card .pc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .project-card .pc-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--primary-soft); color: var(--primary); display: flex; align-items: center; justify-content: center; flex: 0 0 36px; }
+  .project-card .pc-icon svg { width: 18px; height: 18px; }
+  .project-card .pc-name { font-size: 16px; font-weight: 600; line-height: 1.3; word-break: break-word; }
+  .project-card .pc-foot { margin-top: auto; display: flex; align-items: center; justify-content: space-between; }
+  .project-card .pc-meta { font-family: var(--mono); font-size: 12px; color: var(--text-muted); }
+  .project-card .pc-arrow { color: var(--text-faint); transition: transform 0.15s, color 0.15s; }
+  .project-card:hover .pc-arrow { color: var(--primary); transform: translateX(3px); }
+  .involved-badge { font-size: 11.5px; font-weight: 600; color: var(--ok); background: var(--ok-soft); padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
 
-  .lang-picker { margin-top: 14px; padding-top: 12px; border-top: 1px solid #EEF1F4; font-size: 12.5px; color: #586174; }
-  .lang-btn { background: none; border: 1px solid #DBDFE5; color: #2A4B7C; padding: 4px 10px; font-size: 12px; margin: 6px 4px 0 0; border-radius: 999px; cursor: pointer; }
-  .lang-btn.active { background: #2A4B7C; color: #fff; border-color: #2A4B7C; }
+  .empty-state { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 22px 24px; border: 1px dashed #CDD3DB; border-radius: 12px; background: var(--surface); color: var(--text-muted); font-size: 14px; }
+  .loading-note { color: var(--text-faint); font-size: 14px; }
 </style>
 </head>
 <body>
-<div style="float:right; display:flex; align-items:center; gap:8px; position:relative;">
-  <button class="secondary" id="myProfileBtn" onclick="toggleMyProfilePanel()" data-i18n="loading"></button>
-  <button class="secondary" onclick="logout()" data-i18n="logout"></button>
-  <div id="myProfilePanel" style="display:none; position:absolute; top:44px; right:0; width:260px; background:#fff; border:1px solid #DBDFE5; border-radius:10px; padding:16px; box-shadow:0 4px 16px rgba(0,0,0,0.08); z-index:5; text-align:left;">
-    <div style="font-weight:600; font-size:14px;" id="panelName"></div>
-    <div style="color:#586174; font-size:12.5px; margin-top:2px;" id="panelEmail"></div>
-    <div style="color:#586174; font-size:12.5px; margin-top:2px;" id="panelOrg"></div>
-    <div style="display:inline-block; margin-top:8px; padding:3px 10px; border-radius:999px; font-size:11px; background:#E1E6EF; color:#2A4B7C;" id="panelRole"></div>
-    <div style="margin-top:14px;">
-      <a href="/oma-profiili.html" style="color:#2A4B7C; font-size:13px; text-decoration:underline;" data-i18n="my_settings"></a>
+
+<div id="appNav"></div>
+
+<main class="page">
+  <div class="page-head">
+    <div>
+      <h1 data-i18n="nav_projects"></h1>
+      <p class="page-sub" id="pageSub"></p>
     </div>
-    <div class="lang-picker">
-      <span data-i18n="language_label"></span>
-      <div id="langButtons"></div>
+    <div class="head-actions">
+      <a class="btn" href="/uusiprojekti.html" data-i18n="new_project_link"></a>
     </div>
   </div>
-</div>
-<h1 data-i18n="heading_my_projects"></h1>
-<div id="adminLinkWrap"></div>
-<a class="newproj-link" href="/uusiprojekti.html" data-i18n="new_project_link"></a>
 
-<div id="content"></div>
+  <div id="content"><p class="loading-note" data-i18n="loading"></p></div>
+</main>
 
 <script src="/translations.js"></script>
+<script src="/nav.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = "https://nrrhvbxvkizvkcwwglck.supabase.co";
@@ -59,6 +53,8 @@
   const client = supabase.createClient(SUPABASE_URL, ANON_KEY);
   let currentAccessToken = null;
   let myProfileData = null;
+
+  AppNav.mount('projects');
 
   async function ensureLoggedIn() {
     const { data: { session } } = await client.auth.getSession();
@@ -83,21 +79,40 @@
     window.location.href = '/login.html';
   }
 
+  function escapeHtml(str) {
+    return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  const PROJECT_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.8v2.4M10.5 1.8v2.4"/></svg>';
+  const ARROW_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>';
+
   function projectCardHtml(p, showBadge) {
     const created = new Date(p.created_at).toLocaleDateString(getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI');
     const badge = showBadge && p.involved ? `<span class="involved-badge">${t('involved_badge')}</span>` : '';
     return `
-      <a class="card" href="/projekti.html?id=${p.id}">
-        ${badge}
-        <div class="name">${p.name}</div>
-        <div class="meta">${t('created_label')} ${created}</div>
+      <a class="project-card" href="/projekti.html?id=${encodeURIComponent(p.id)}">
+        <div class="pc-top">
+          <span class="pc-icon">${PROJECT_ICON}</span>
+          ${badge}
+        </div>
+        <div class="pc-name">${escapeHtml(p.name)}</div>
+        <div class="pc-foot">
+          <span class="pc-meta">${t('created_label')} ${created}</span>
+          <span class="pc-arrow">${ARROW_ICON}</span>
+        </div>
       </a>
     `;
   }
 
-  function emptyBlock(text, showButton) {
-    const btn = showButton ? `<a class="newproj-link" href="/uusiprojekti.html">${t('new_project_link')}</a>` : '';
-    return `<p class="empty-note">${text}</p>${btn}`;
+  function sectionHtml(title, projects, showBadge, emptyText, emptyWithButton) {
+    let html = `<h2 class="section-title">${title}<span class="count">${projects.length}</span></h2>`;
+    if (projects.length === 0) {
+      const btn = emptyWithButton ? `<a class="btn secondary" href="/uusiprojekti.html">${t('new_project_link')}</a>` : '';
+      html += `<div class="empty-state"><span>${emptyText}</span>${btn}</div>`;
+    } else {
+      html += `<div class="project-grid">${projects.map((p) => projectCardHtml(p, showBadge)).join('')}</div>`;
+    }
+    return html;
   }
 
   async function loadProjects() {
@@ -106,55 +121,33 @@
       headers: authHeaders(),
     });
     const data = await res.json();
-
     const content = document.getElementById('content');
 
-    if (data.isSuperadmin) {
-      document.getElementById('adminLinkWrap').innerHTML =
-        `<a class="back" href="/asiakkaat.html">&rarr; ${t('admin_link_clients')}</a>` +
-        ' &nbsp;|&nbsp; ' +
-        `<a class="back" href="/henkilot.html">&rarr; ${t('admin_link_people')}</a>`;
-
-      if (!data.projects || data.projects.length === 0) {
-        content.innerHTML = `<p id="empty">${t('empty_no_projects')}</p>`;
-      } else {
-        content.innerHTML = data.projects.map((p) => projectCardHtml(p, false)).join('');
-      }
+    if (data.error) {
+      content.innerHTML = `<div class="empty-state">${t('error_prefix')}: ${escapeHtml(data.error)}</div>`;
       return;
     }
 
-    let html = '';
-
-    html += `<h3>${t('section_own_projects')}</h3>`;
-    if (data.groupOwnInvolved.length === 0) {
-      html += emptyBlock(t('empty_not_involved'), true);
-    } else {
-      html += data.groupOwnInvolved.map((p) => projectCardHtml(p, false)).join('');
+    if (data.isSuperadmin) {
+      const all = data.projects || [];
+      document.getElementById('pageSub').textContent = t('meta_projects_count', { count: all.length });
+      content.innerHTML = sectionHtml(t('back_all_projects'), all, false, t('empty_no_projects'), false);
+      return;
     }
 
+    const own = data.groupOwnInvolved || [];
+    const orgAll = data.groupOwnOrgAll || [];
+    const others = data.groupOtherOrgsInvolved || [];
+    document.getElementById('pageSub').textContent = t('meta_projects_count', { count: own.length + others.length });
+
+    let html = sectionHtml(t('section_own_projects'), own, false, t('empty_not_involved'), true);
     if (data.isOrgSuperuser && data.ownOrganizationName) {
-      html += `<h3>${data.ownOrganizationName} — ${t('section_org_all_projects')}</h3>`;
-      if (data.groupOwnOrgAll.length === 0) {
-        html += emptyBlock(t('empty_org_no_projects'), false);
-      } else {
-        html += data.groupOwnOrgAll.map((p) => projectCardHtml(p, true)).join('');
-      }
+      html += sectionHtml(`${escapeHtml(data.ownOrganizationName)} — ${t('section_org_all_projects')}`, orgAll, true, t('empty_org_no_projects'), false);
     }
-
-    if (data.groupOtherOrgsInvolved.length > 0) {
-      html += `<h3>${t('section_other_orgs_projects')}</h3>`;
-      html += data.groupOtherOrgsInvolved.map((p) => projectCardHtml(p, false)).join('');
+    if (others.length > 0) {
+      html += sectionHtml(t('section_other_orgs_projects'), others, false, '', false);
     }
-
     content.innerHTML = html;
-  }
-
-  function renderLangButtons() {
-    const current = getCurrentLanguage();
-    document.getElementById('langButtons').innerHTML = `
-      <button class="lang-btn ${current === 'fi' ? 'active' : ''}" onclick="setLanguagePref('fi')">${t('language_fi')}</button>
-      <button class="lang-btn ${current === 'en' ? 'active' : ''}" onclick="setLanguagePref('en')">${t('language_en')}</button>
-    `;
   }
 
   async function setLanguagePref(lang) {
@@ -189,21 +182,7 @@
     myProfileData = data;
     setCurrentLanguage(data.language || 'fi');
     applyStaticTranslations();
-    renderLangButtons();
-
-    const name = (data.firstName || data.lastName) ? `${data.firstName} ${data.lastName}`.trim() : data.email;
-    document.getElementById('myProfileBtn').textContent = name;
-    document.getElementById('panelName').textContent = name;
-    document.getElementById('panelEmail').textContent = data.email;
-     document.getElementById('panelOrg').innerHTML = data.organization
-      ? data.organization + (data.team ? '<br><span style="font-size:11.5px; color:#8A93A3;">' + data.team + '</span>' : '')
-      : '';
-    document.getElementById('panelRole').textContent = t(data.roleKey);
-  }
-
-  function toggleMyProfilePanel() {
-    const panel = document.getElementById('myProfilePanel');
-    panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    AppNav.setProfile(data);
   }
 
   (async () => {
