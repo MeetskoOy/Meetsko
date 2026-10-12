@@ -4,52 +4,60 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Yhteisikkuna — Oma profiili</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/app.css" />
 <style>
-  body { font-family: -apple-system, Segoe UI, Inter, sans-serif; background: #EDF0F3; color: #161B22; max-width: 640px; margin: 40px auto; padding: 0 20px 60px; }
-  h1 { font-size: 20px; margin-bottom: 4px; }
-  h3 { font-size: 14px; margin: 24px 0 10px; }
-  p.sub { color: #586174; font-size: 14px; margin-top: 0; }
-  a.back { font-size: 13px; color: #2A4B7C; text-decoration: none; }
-  button { background: #2A4B7C; color: #fff; border: none; padding: 9px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; margin-right: 8px; }
-  button:hover { background: #1D3559; }
-  button.secondary { background: #fff; color: #2A4B7C; border: 1px solid #2A4B7C; }
-  button.danger { background: #fff; color: #C0453A; border: 1px solid #C0453A; padding: 6px 12px; font-size: 12.5px; margin: 0; }
-  button.danger:hover { background: #FBE4E1; }
-  button.small { padding: 6px 12px; font-size: 12.5px; margin: 0; }
+  .profile-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 20px; align-items: start; }
+  .profile-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .profile-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: 16px; flex: 0 0 48px; }
+  .profile-head .ph-name { font-size: 16px; font-weight: 600; }
+  .profile-head .ph-email { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+  .field-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 16px; }
+  .field-grid .full { grid-column: 1 / -1; }
+  .field-grid input { width: 100%; }
 
-  .card { background: #fff; border: 1px solid #DBDFE5; border-radius: 12px; padding: 18px 20px; margin-bottom: 20px; }
-  .role-badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; background: #E1E6EF; color: #2A4B7C; margin-bottom: 12px; }
+  .project-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line-soft); }
+  .project-row:first-child { border-top: none; padding-top: 0; }
+  .project-row:last-child { padding-bottom: 0; }
+  .project-row .info { font-size: 14px; font-weight: 500; }
+  .project-row .meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12.5px; color: var(--text-muted); }
+  .project-row button { white-space: nowrap; }
+  .empty-note { color: var(--text-faint); font-size: 13.5px; margin: 0; }
 
-  label { display: block; font-size: 13px; color: #586174; margin: 10px 0 4px; }
-  input[type=text] { width: 100%; padding: 8px; border: 1px solid #DBDFE5; border-radius: 7px; font-size: 14px; box-sizing: border-box; }
-
-  .project-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; border-top: 1px solid #EEF1F4; }
-  .project-row:first-child { border-top: none; }
-  .project-row .info { font-size: 13.5px; }
-  .project-row .meta { color: #8A93A3; font-size: 12px; margin-top: 2px; }
-  .status-ok { color: #1E6B3C; font-size: 12px; }
-  .status-warn { color: #C0453A; font-size: 12px; font-weight: 600; }
-  .status-pending { color: #91600C; font-size: 12px; }
-
-  .empty-note { color: #8A93A3; font-size: 13px; }
-
-  .banner { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
-  .banner.ok { background: #DCF3E4; color: #1E6B3C; }
-  .banner.error { background: #FBE4E1; color: #9C2C22; }
+  @media (max-width: 900px) {
+    .profile-layout { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 600px) {
+    .field-grid { grid-template-columns: 1fr; }
+  }
 </style>
 </head>
 <body>
 
-<a class="back" href="/projektit.html">&larr; <span data-i18n="heading_my_projects"></span></a>
-<h1 data-i18n="heading_my_profile"></h1>
+<div id="appNav"></div>
 
-<div class="card" id="profileCard" data-i18n="loading"></div>
+<main class="page form-scope">
+  <a class="back" href="/projektit.html">&larr; <span data-i18n="back_all_projects"></span></a>
+  <div class="page-head">
+    <h1 data-i18n="heading_my_profile"></h1>
+  </div>
 
-<h3 data-i18n="heading_calendar_by_project"></h3>
-<div id="authReturnBanner"></div>
-<div class="card" id="projectsCard" data-i18n="loading"></div>
+  <div class="profile-layout">
+    <section class="card-section" id="profileCard"><p class="empty-note" data-i18n="loading"></p></section>
+    <section>
+      <div id="authReturnBanner"></div>
+      <div class="card-section">
+        <h2 data-i18n="heading_calendar_by_project"></h2>
+        <div id="projectsCard"><p class="empty-note" data-i18n="loading"></p></div>
+      </div>
+    </section>
+  </div>
+</main>
 
 <script src="/translations.js"></script>
+<script src="/nav.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = "https://nrrhvbxvkizvkcwwglck.supabase.co";
@@ -61,6 +69,36 @@
 
   let currentAccessToken = null;
   let loadedProfile = null;
+
+  AppNav.mount('settings');
+
+  function escapeHtml(str) {
+    return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  async function logout() {
+    await client.auth.signOut();
+    window.location.href = '/login.html';
+  }
+
+  async function setLanguagePref(lang) {
+    setCurrentLanguage(lang);
+    if (loadedProfile) {
+      await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          firstName: loadedProfile.firstName,
+          lastName: loadedProfile.lastName,
+          title: loadedProfile.title,
+          organization: loadedProfile.organization,
+          team: loadedProfile.team,
+          language: lang,
+        }),
+      });
+    }
+    window.location.reload();
+  }
 
   function authHeaders() {
     return {
@@ -95,22 +133,45 @@
     loadedProfile = data;
     setCurrentLanguage(data.language || 'fi');
     applyStaticTranslations();
+    AppNav.setProfile(data);
 
+    const displayName = (data.firstName || data.lastName) ? `${data.firstName || ''} ${data.lastName || ''}`.trim() : data.email;
     document.getElementById('profileCard').innerHTML = `
-      <div class="role-badge">${t(data.roleKey)}</div>
-      <label style="margin-top:0;">${t('first_name_label')}</label>
-      <input type="text" id="firstNameInput" value="${data.firstName}" />
-      <label>${t('last_name_label')}</label>
-      <input type="text" id="lastNameInput" value="${data.lastName}" />
-      <label>${t('title_label')}</label>
-      <input type="text" id="titleInput" value="${data.title}" />
-      <label>${t('organization_label')}</label>
-      <input type="text" id="organizationInput" value="${data.organization}" ${data.orgLocked ? 'disabled style="background:#EEF1F4; color:#586174;"' : ''} />
-      <label>${t('team_label')}</label>
-      <input type="text" id="teamInput" value="${data.team || ''}" />
-      <label>${t('email_label')}</label>
-      <input type="text" value="${data.email}" disabled />
-      <div style="margin-top:16px;">
+      <div class="profile-head">
+        <div class="profile-avatar">${escapeHtml(AppNav.initials(displayName))}</div>
+        <div>
+          <div class="ph-name">${escapeHtml(displayName)}</div>
+          <div class="ph-email">${escapeHtml(data.email)}</div>
+        </div>
+        <span class="role-badge" style="margin-left:auto;">${t(data.roleKey)}</span>
+      </div>
+      <div class="field-grid">
+        <div>
+          <label for="firstNameInput">${t('first_name_label')}</label>
+          <input type="text" id="firstNameInput" value="${escapeHtml(data.firstName)}" />
+        </div>
+        <div>
+          <label for="lastNameInput">${t('last_name_label')}</label>
+          <input type="text" id="lastNameInput" value="${escapeHtml(data.lastName)}" />
+        </div>
+        <div class="full">
+          <label for="titleInput">${t('title_label')}</label>
+          <input type="text" id="titleInput" value="${escapeHtml(data.title)}" />
+        </div>
+        <div>
+          <label for="organizationInput">${t('organization_label')}</label>
+          <input type="text" id="organizationInput" value="${escapeHtml(data.organization)}" ${data.orgLocked ? 'disabled' : ''} />
+        </div>
+        <div>
+          <label for="teamInput">${t('team_label')}</label>
+          <input type="text" id="teamInput" value="${escapeHtml(data.team)}" />
+        </div>
+        <div class="full">
+          <label>${t('email_label')}</label>
+          <input type="text" value="${escapeHtml(data.email)}" disabled />
+        </div>
+      </div>
+      <div class="btn-row">
         <button onclick="saveProfile()">${t('save_btn')}</button>
       </div>
     `;
@@ -144,9 +205,9 @@
   }
 
   function statusLabel(status) {
-    if (status === 'authorized') return { text: t('cal_status_authorized'), cls: 'status-ok' };
-    if (status === 'expired') return { text: t('cal_status_expired'), cls: 'status-warn' };
-    return { text: t('cal_status_not_authorized'), cls: 'status-pending' };
+    if (status === 'authorized') return { text: t('cal_status_authorized'), cls: 'ok' };
+    if (status === 'expired') return { text: t('cal_status_expired'), cls: 'warn' };
+    return { text: t('cal_status_not_authorized'), cls: 'pending' };
   }
 
   async function loadProjects() {
@@ -170,12 +231,12 @@
 
     card.innerHTML = data.projects.map((p) => {
       const st = statusLabel(p.status);
-      const orgPart = p.organizationName ? `${p.organizationName} / ` : '';
+      const orgPart = p.organizationName ? `${escapeHtml(p.organizationName)} / ` : '';
       const roleLabel = p.role === 'admin' ? t('role_admin') : t('role_guest');
 
       let actionHtml = '';
       if (p.status === 'authorized') {
-        actionHtml = `<button class="danger" onclick="revokeAuth('${p.projectId}')">${t('revoke_auth_btn')}</button>`;
+        actionHtml = `<button class="danger small" onclick="revokeAuth('${p.projectId}')">${t('revoke_auth_btn')}</button>`;
       } else if (p.status === 'expired') {
         actionHtml = `<button class="small" onclick="startAuth('${p.participantId}', ${!!p.calendarWrite})">${t('retry_auth_btn')}</button>`;
       } else {
@@ -185,8 +246,8 @@
       return `
         <div class="project-row">
           <div>
-            <div class="info">${orgPart}${p.projectName} — ${roleLabel}</div>
-            <div class="meta ${st.cls}">${st.text}</div>
+            <div class="info">${orgPart}${escapeHtml(p.projectName)}</div>
+            <div class="meta"><span class="status-pill ${st.cls}">${st.text}</span><span>${roleLabel}</span></div>
           </div>
           ${actionHtml}
         </div>

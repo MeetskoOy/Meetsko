@@ -89,6 +89,36 @@ a.btn.secondary:hover { background: var(--surface-muted); }
 
 .panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
 
+/* ---------- Lomakkeet ja sisältöosiot ----------
+   Kenttätyylit koskevat vain .form-scope-elementin sisältöä, jotta ne eivät
+   sotke sivujen omia modaaleja. */
+.page.narrow { max-width: 920px; }
+.card-section { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 24px; margin-bottom: 16px; }
+.card-section > h2 { font-size: 15px; font-weight: 600; margin: 0 0 14px; }
+.form-scope label { display: block; font-size: 13px; font-weight: 500; color: var(--text-muted); margin: 0 0 6px; }
+.form-scope input[type=text], .form-scope input[type=email], .form-scope input[type=password], .form-scope input[type=date], .form-scope input[type=time],
+.form-scope input[type=datetime-local], .form-scope input[type=number], .form-scope select, .form-scope textarea {
+  font-family: inherit; padding: 9px 11px; border: 1px solid #D0D5DD; border-radius: 8px; font-size: 14px; background: #fff; color: var(--text); box-sizing: border-box; }
+.form-scope input:focus, .form-scope select:focus, .form-scope textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(31,59,99,0.12); }
+.form-scope input:disabled, .form-scope select:disabled { background: var(--surface-muted); color: var(--text-muted); }
+.form-scope .check-row { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--text); }
+.form-scope .check-row label { margin: 0; color: var(--text); font-weight: 400; font-size: 14px; }
+.note { font-size: 12.5px; color: var(--text-faint); margin: 6px 0 0; }
+.error-text { color: var(--danger); font-size: 13px; margin-top: 10px; }
+.error-text:empty { display: none; }
+button.small { padding: 7px 14px; font-size: 13px; margin: 0; }
+button.icon-remove { background: none; border: none; color: var(--danger); padding: 0 6px; margin: 0; font-size: 15px; line-height: 1; }
+button.icon-remove:hover { background: none; border: none; color: #9C2C22; }
+.btn-row { display: flex; gap: 10px; justify-content: flex-end; align-items: center; margin-top: 20px; flex-wrap: wrap; }
+.btn-row button { margin: 0; }
+.status-pill { display: inline-block; font-size: 11.5px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.status-pill.ok { color: var(--ok); background: var(--ok-soft); }
+.status-pill.warn { color: var(--danger); background: var(--danger-soft); }
+.status-pill.pending { color: #91600C; background: #FBF0D9; }
+.banner { padding: 12px 14px; border-radius: 10px; font-size: 13.5px; margin-bottom: 16px; }
+.banner.ok { background: var(--ok-soft); color: #165C5C; }
+.banner.error { background: var(--danger-soft); color: #9C2C22; }
+
 @media (max-width: 900px) {
   .app-nav-inner, .page { padding-left: 16px; padding-right: 16px; }
   .app-nav-inner { gap: 16px; }

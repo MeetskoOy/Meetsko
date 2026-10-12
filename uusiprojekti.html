@@ -4,102 +4,103 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Yhteisikkuna — Uusi projekti</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/app.css" />
 <style>
-  body { font-family: -apple-system, Segoe UI, Inter, sans-serif; background: #EDF0F3; color: #161B22; max-width: 780px; margin: 40px auto; padding: 0 20px 60px; }
-  h1 { font-size: 20px; margin-bottom: 4px; }
-  h2 { font-size: 15px; margin: 28px 0 10px; }
-  a.back { font-size: 13px; color: #2A4B7C; text-decoration: none; }
-  label { display: block; font-size: 13px; color: #586174; margin-bottom: 4px; }
-  input[type=text], input[type=email] { width: 100%; padding: 8px 10px; border: 1px solid #DBDFE5; border-radius: 7px; font-size: 14px; box-sizing: border-box; }
-  select { padding: 8px 6px; border: 1px solid #DBDFE5; border-radius: 7px; font-size: 13px; background: #fff; }
-  .section { background: #fff; border: 1px solid #DBDFE5; border-radius: 12px; padding: 18px; margin-bottom: 16px; }
-
-  .client-row { display: flex; gap: 8px; margin-bottom: 8px; }
+  .form-scope input[type=text], .form-scope input[type=email] { width: 100%; }
+  .client-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
   .client-row input { flex: 1; }
-  .client-row button { background: none; border: none; color: #C0453A; cursor: pointer; font-size: 13px; padding: 0 6px; }
 
-  .member-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr 120px 30px; gap: 8px; margin-bottom: 8px; align-items: center; }
-  .member-header { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr 120px 30px; gap: 8px; font-size: 12px; color: #8A93A3; margin-bottom: 6px; }
-  .member-row button.remove { background: none; border: none; color: #C0453A; cursor: pointer; font-size: 16px; }
+  .member-header, .member-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr 130px 28px; gap: 8px; align-items: center; }
+  .member-header { font-size: 12px; font-weight: 500; color: var(--text-faint); margin-bottom: 6px; }
+  .member-row { margin-bottom: 8px; }
+  .member-row select { width: 100%; }
 
-  button.add { background: #fff; color: #2A4B7C; border: 1px solid #2A4B7C; padding: 7px 14px; border-radius: 7px; font-size: 13px; cursor: pointer; margin-top: 4px; }
-  button.submit { background: #2A4B7C; color: #fff; border: none; padding: 11px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 10px; }
-  button.submit:hover { background: #1D3559; }
-  button.submit:disabled { opacity: 0.5; cursor: default; }
-  button.secondary { background: #fff; color: #2A4B7C; border: 1px solid #2A4B7C; padding: 11px 20px; border-radius: 8px; font-size: 14px; cursor: pointer; margin-top: 10px; margin-right: 8px; }
+  .add-row { margin-top: 6px; }
+  .myself-row { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
 
-  #result { margin-top: 20px; }
-  .invite-card { background: #fff; border: 1px solid #DBDFE5; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; font-size: 13px; }
+  .invite-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .invite-card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font-size: 13.5px; display: flex; flex-direction: column; gap: 6px; }
   .invite-card .email { font-weight: 600; }
-  .invite-card a { display: block; margin-top: 4px; word-break: break-all; color: #2A4B7C; }
-  .invite-card .email-status { font-size: 11.5px; margin-top: 4px; }
-  .invite-card .email-status.ok { color: #1E6B3C; }
-  .invite-card .email-status.fail { color: #C0453A; }
-  #formError { color: #C0453A; font-size: 13px; margin-top: 10px; }
-  .note { font-size: 12px; color: #8A93A3; margin-top: 6px; }
+  .invite-card a { word-break: break-all; color: var(--primary); font-family: var(--mono); font-size: 12px; }
 
-  .domain-row { border-top: 1px solid #EEF1F4; padding: 12px 0; }
-  .domain-row:first-child { border-top: none; }
-  .domain-row .domain-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
+  .domain-row { border-top: 1px solid var(--line-soft); padding: 14px 0; }
+  .domain-row:first-of-type { border-top: none; padding-top: 4px; }
+  .domain-row .domain-name { font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+
+  @media (max-width: 760px) {
+    .member-header { display: none; }
+    .member-row { grid-template-columns: 1fr 1fr; padding-bottom: 10px; border-bottom: 1px solid var(--line-soft); }
+  }
 </style>
 </head>
 <body>
 
-<a class="back" href="/projektit.html">&larr; <span data-i18n="heading_my_projects"></span></a>
-<h1 data-i18n="heading_new_project"></h1>
+<div id="appNav"></div>
 
-<div id="formStep">
-  <div class="section">
-    <label for="projectName" data-i18n="project_name_label"></label>
-    <input type="text" id="projectName" data-i18n-placeholder="project_name_placeholder" />
+<main class="page narrow form-scope">
+  <a class="back" href="/projektit.html">&larr; <span data-i18n="back_all_projects"></span></a>
+  <div class="page-head">
+    <h1 data-i18n="heading_new_project"></h1>
   </div>
 
-  <div class="section">
-    <h2 style="margin-top:0;" data-i18n="heading_client_orgs"></h2>
-    <div id="clientRows">
-      <div class="client-row">
-        <input type="text" data-i18n-placeholder="client_name_placeholder" />
-        <button type="button" onclick="removeClientRow(this)">✕</button>
+  <div id="formStep">
+    <div class="card-section">
+      <label for="projectName" data-i18n="project_name_label"></label>
+      <input type="text" id="projectName" data-i18n-placeholder="project_name_placeholder" />
+    </div>
+
+    <div class="card-section">
+      <h2 data-i18n="heading_client_orgs"></h2>
+      <div id="clientRows">
+        <div class="client-row">
+          <input type="text" data-i18n-placeholder="client_name_placeholder" />
+          <button type="button" class="icon-remove" onclick="removeClientRow(this)">✕</button>
+        </div>
+      </div>
+      <button class="secondary small add-row" type="button" onclick="addClientRow()" data-i18n="add_new_btn"></button>
+    </div>
+
+    <div class="card-section">
+      <h2 data-i18n="heading_project_members"></h2>
+      <div class="member-header">
+        <span data-i18n="col_first_name"></span><span data-i18n="col_last_name"></span><span data-i18n="col_title"></span><span data-i18n="col_email"></span><span data-i18n="col_role"></span><span></span>
+      </div>
+      <div id="memberRows">
+        <div class="member-row">
+          <input type="text" data-i18n-placeholder="col_first_name" />
+          <input type="text" data-i18n-placeholder="col_last_name" />
+          <input type="text" data-i18n-placeholder="col_title" />
+          <input type="email" placeholder="sahkoposti@yritys.fi" />
+          <select>
+            <option value="guest" data-i18n="role_guest"></option>
+            <option value="admin" data-i18n="role_admin"></option>
+          </select>
+          <button type="button" class="icon-remove" onclick="removeMemberRow(this)">✕</button>
+        </div>
+      </div>
+      <button class="secondary small add-row" type="button" onclick="addMemberRow()" data-i18n="add_member_btn"></button>
+      <div class="check-row myself-row">
+        <input type="checkbox" id="addMyselfCheckbox" />
+        <label for="addMyselfCheckbox" data-i18n="add_myself_checkbox_label"></label>
       </div>
     </div>
-    <button class="add" type="button" onclick="addClientRow()" data-i18n="add_new_btn"></button>
+
+    <div class="btn-row">
+      <button id="submitBtn" onclick="createProject()" data-i18n="create_project_btn"></button>
+    </div>
+    <div class="error-text" id="formError" style="text-align:right;"></div>
   </div>
 
-  <div class="section">
-    <h2 style="margin-top:0;" data-i18n="heading_project_members"></h2>
-    <div class="member-header">
-      <span data-i18n="col_first_name"></span><span data-i18n="col_last_name"></span><span data-i18n="col_title"></span><span data-i18n="col_email"></span><span data-i18n="col_role"></span><span></span>
-    </div>
-    <div id="memberRows">
-      <div class="member-row">
-        <input type="text" data-i18n-placeholder="col_first_name" />
-        <input type="text" data-i18n-placeholder="col_last_name" />
-        <input type="text" data-i18n-placeholder="col_title" />
-        <input type="email" placeholder="sahkoposti@yritys.fi" />
-        <select>
-          <option value="guest" data-i18n="role_guest"></option>
-          <option value="admin" data-i18n="role_admin"></option>
-        </select>
-        <button type="button" class="remove" onclick="removeMemberRow(this)">✕</button>
-      </div>
-    </div>
-        <button class="add" type="button" onclick="addMemberRow()" data-i18n="add_member_btn"></button>
-    <div style="margin-top:12px; display:flex; align-items:center; gap:6px; font-size:13px;">
-      <input type="checkbox" id="addMyselfCheckbox" />
-      <label for="addMyselfCheckbox" style="margin:0;" data-i18n="add_myself_checkbox_label"></label>
-    </div>
-  </div>
-  </div>
+  <div id="domainStep" style="display:none;"></div>
 
-  <button class="submit" id="submitBtn" onclick="createProject()" data-i18n="create_project_btn"></button>
-  <div id="formError"></div>
-</div>
-
-<div id="domainStep" style="display:none;"></div>
-
-<div id="result"></div>
+  <div id="result"></div>
+</main>
 
 <script src="/translations.js"></script>
+<script src="/nav.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = "https://nrrhvbxvkizvkcwwglck.supabase.co";
@@ -111,6 +112,9 @@
   let myOwnEmail = null;
   let myOwnFirstName = '';
   let myOwnLastName = '';
+  let myProfileData = null;
+
+  AppNav.mount('projects');
 
   async function ensureLoggedIn() {
     const { data: { session } } = await client.auth.getSession();
@@ -123,16 +127,46 @@
     return true;
   }
 
-  async function loadMyProfileForCheckbox() {
+  async function loadMyProfileAndTranslations() {
     const res = await fetch(`${SUPABASE_URL}/functions/v1/get-my-profile`, {
       method: 'POST',
       headers: authHeaders(),
     });
     const data = await res.json();
-    if (!data.error) {
-      myOwnFirstName = data.firstName || '';
-      myOwnLastName = data.lastName || '';
+    if (data.error) {
+      applyStaticTranslations();
+      return;
     }
+    myProfileData = data;
+    myOwnFirstName = data.firstName || '';
+    myOwnLastName = data.lastName || '';
+    setCurrentLanguage(data.language || 'fi');
+    applyStaticTranslations();
+    AppNav.setProfile(data);
+  }
+
+  async function logout() {
+    await client.auth.signOut();
+    window.location.href = '/login.html';
+  }
+
+  async function setLanguagePref(lang) {
+    setCurrentLanguage(lang);
+    if (myProfileData) {
+      await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          firstName: myProfileData.firstName,
+          lastName: myProfileData.lastName,
+          title: myProfileData.title,
+          organization: myProfileData.organization,
+          team: myProfileData.team,
+          language: lang,
+        }),
+      });
+    }
+    window.location.reload();
   }
 
   function authHeaders() {
@@ -148,7 +182,7 @@
     div.className = 'client-row';
     div.innerHTML = `
       <input type="text" placeholder="${t('client_name_placeholder')}" />
-      <button type="button" onclick="removeClientRow(this)">✕</button>
+      <button type="button" class="icon-remove" onclick="removeClientRow(this)">✕</button>
     `;
     document.getElementById('clientRows').appendChild(div);
   }
@@ -170,7 +204,7 @@
         <option value="guest">${t('role_guest')}</option>
         <option value="admin">${t('role_admin')}</option>
       </select>
-      <button type="button" class="remove" onclick="removeMemberRow(this)">✕</button>
+      <button type="button" class="icon-remove" onclick="removeMemberRow(this)">✕</button>
     `;
     document.getElementById('memberRows').appendChild(div);
   }
@@ -260,17 +294,19 @@
       <div class="domain-row" data-domain="${d}">
         <div class="domain-name">${d}</div>
         <label>${t('it_contact_label')}</label>
-        <input type="email" class="it-contact-input" placeholder="it-tuki@${d}" />
+        <input type="email" class="it-contact-input" placeholder="it-tuki@${d}" style="width:100%;" />
       </div>
     `).join('');
 
     document.getElementById('domainStep').innerHTML = `
-      <div class="section">
-        <h2 style="margin-top:0;">${t('new_org_heading')}</h2>
-        <p class="note">${t('new_org_note')}</p>
+      <div class="card-section">
+        <h2>${t('new_org_heading')}</h2>
+        <p class="note" style="margin:0 0 12px;">${t('new_org_note')}</p>
         ${domainRowsHtml}
-        <button class="secondary" type="button" onclick="skipDomainStep()">${t('skip_btn')}</button>
-        <button class="submit" type="button" onclick="submitDomainStep()">${t('save_and_continue_btn')}</button>
+        <div class="btn-row">
+          <button class="secondary" type="button" onclick="skipDomainStep()">${t('skip_btn')}</button>
+          <button type="button" onclick="submitDomainStep()">${t('save_and_continue_btn')}</button>
+        </div>
       </div>
     `;
     document.getElementById('domainStep').style.display = 'block';
@@ -304,27 +340,26 @@
 
   function renderInviteResult(data) {
     const resultEl = document.getElementById('result');
-    let html = `<h2>${t('project_created_heading', { name: data.project.name })}</h2>`;
+    let html = `<div class="banner ok">${t('project_created_heading', { name: data.project.name })}</div><div class="invite-list">`;
 
     data.invites.forEach((inv) => {
       if (inv.error) {
-        html += `<div class="invite-card"><span class="email">${inv.email}</span> — ${t('error_prefix')}: ${inv.error}</div>`;
+        html += `<div class="invite-card"><span class="email">${inv.email}</span><span class="status-pill warn">${t('error_prefix')}: ${inv.error}</span></div>`;
       } else {
         const statusHtml = inv.emailSent
-          ? `<div class="email-status ok">✓ ${t('email_sent_ok')}</div>`
-          : `<div class="email-status fail">${t('email_sent_fail')}</div>`;
-        html += `<div class="invite-card"><span class="email">${inv.email}</span><a href="${inv.inviteLink}" target="_blank">${inv.inviteLink}</a>${statusHtml}</div>`;
+          ? `<span class="status-pill ok">✓ ${t('email_sent_ok')}</span>`
+          : `<span class="status-pill warn">${t('email_sent_fail')}</span>`;
+        html += `<div class="invite-card"><span class="email">${inv.email}</span><a href="${inv.inviteLink}" target="_blank">${inv.inviteLink}</a><div>${statusHtml}</div></div>`;
       }
     });
 
-    html += `<button class="submit" onclick="window.location.href='/projekti.html?id=${data.project.id}'">${t('go_to_project_btn')}</button>`;
+    html += `</div><div class="btn-row"><button onclick="window.location.href='/projekti.html?id=${data.project.id}'">${t('go_to_project_btn')}</button></div>`;
     resultEl.innerHTML = html;
   }
 
   (async () => {
     const ok = await ensureLoggedIn();
-    applyStaticTranslations();
-    if (ok) loadMyProfileForCheckbox();
+    if (ok) await loadMyProfileAndTranslations();
   })();
 </script>
 

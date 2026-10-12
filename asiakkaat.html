@@ -4,53 +4,61 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Yhteisikkuna — Asiakkaat</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/app.css" />
 <style>
-  body { font-family: -apple-system, Segoe UI, Inter, sans-serif; background: #EDF0F3; color: #161B22; max-width: 720px; margin: 40px auto; padding: 0 20px 60px; }
-  h1 { font-size: 20px; margin-bottom: 4px; }
-  h3 { font-size: 14px; margin: 0 0 10px; }
-  p.sub { color: #586174; font-size: 14px; margin-top: 0; }
-  a.back { font-size: 13px; color: #2A4B7C; text-decoration: none; }
-  button { background: #2A4B7C; color: #fff; border: none; padding: 9px 16px; border-radius: 8px; font-size: 14px; cursor: pointer; margin-right: 8px; }
-  button:hover { background: #1D3559; }
-  button.secondary { background: #fff; color: #2A4B7C; border: 1px solid #2A4B7C; }
-  button.danger { background: #fff; color: #C0453A; border: 1px solid #C0453A; }
-  button.danger:hover { background: #FBE4E1; }
-  .toolbar { margin: 16px 0; display: flex; justify-content: space-between; align-items: center; }
-  .card { background: #fff; border: 1px solid #DBDFE5; border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; cursor: pointer; }
-  .card:hover { border-color: #2A4B7C; }
-  .card .name { font-weight: 600; font-size: 15px; }
-  .card .meta { color: #8A93A3; font-size: 12px; margin-top: 4px; }
-  .badge { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 10.5px; margin-left: 6px; }
-  .badge.domain { background: #DCF3E4; color: #1E6B3C; }
-  .badge.restricted { background: #E1E6EF; color: #2A4B7C; }
-  .empty-note { color: #8A93A3; font-size: 13px; }
+  .list-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .list-row { display: flex; align-items: center; gap: 14px; padding: 16px 20px; border-top: 1px solid var(--line-soft); cursor: pointer; transition: background 0.12s; }
+  .list-row:first-child { border-top: none; }
+  .list-row:hover { background: var(--surface-muted); }
+  .list-row .lr-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--primary-soft); color: var(--primary); display: flex; align-items: center; justify-content: center; flex: 0 0 36px; }
+  .list-row .lr-icon svg { width: 18px; height: 18px; }
+  .list-row .lr-main { flex: 1; min-width: 0; }
+  .list-row .lr-name { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .list-row .lr-meta { font-size: 13px; color: var(--text-muted); margin-top: 3px; }
+  .list-row .lr-arrow { color: var(--text-faint); }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+  .badge.domain { background: var(--ok-soft); color: var(--ok); }
+  .badge.restricted { background: var(--primary-soft); color: var(--primary); }
+  .empty-state { padding: 22px 24px; border: 1px dashed #CDD3DB; border-radius: 12px; background: var(--surface); color: var(--text-muted); font-size: 14px; }
 
-  .form-section { background: #fff; border: 1px solid #DBDFE5; border-radius: 12px; padding: 18px; margin-bottom: 20px; }
-  label { display: block; font-size: 13px; color: #586174; margin: 10px 0 4px; }
-  input[type=text], input[type=email] { width: 100%; padding: 8px; border: 1px solid #DBDFE5; border-radius: 7px; font-size: 14px; box-sizing: border-box; }
-  .radio-row { display: flex; gap: 16px; font-size: 13px; margin-top: 4px; }
-  .repeat-row { display: flex; gap: 6px; margin-bottom: 6px; }
+  .form-scope input[type=text], .form-scope input[type=email] { width: 100%; }
+  .field { margin-bottom: 18px; }
+  .radio-row { display: flex; gap: 20px; flex-wrap: wrap; }
+  .radio-row label { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--text); font-weight: 400; font-size: 14px; }
+  .repeat-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
   .repeat-row input { flex: 1; }
-  .repeat-row button { background: none; border: none; color: #C0453A; cursor: pointer; padding: 0 6px; margin: 0; }
-  .add-btn { background: #fff; color: #2A4B7C; border: 1px solid #2A4B7C; padding: 6px 12px; font-size: 12.5px; margin-top: 2px; }
+  .danger-zone { border-top: 1px solid var(--line-soft); margin-top: 24px; padding-top: 18px; }
 
-  .project-card { background: #fff; border: 1px solid #DBDFE5; border-radius: 10px; padding: 12px 14px; margin-bottom: 8px; text-decoration: none; display: block; color: inherit; }
-  .project-card:hover { border-color: #2A4B7C; }
-  .project-card .name { font-weight: 600; font-size: 14px; }
-  .project-card .meta { color: #8A93A3; font-size: 12px; margin-top: 3px; }
-
-  .danger-zone { border-top: 1px solid #EEF1F4; margin-top: 20px; padding-top: 16px; }
+  .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+  .project-card { display: flex; flex-direction: column; gap: 8px; padding: 18px 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; color: inherit; text-decoration: none; transition: border-color 0.15s, box-shadow 0.15s; }
+  .project-card:hover { border-color: var(--primary); box-shadow: 0 4px 14px rgba(15,27,45,0.08); }
+  .project-card .name { font-weight: 600; font-size: 15px; }
+  .project-card .meta { color: var(--text-muted); font-size: 12.5px; }
+  .project-card .meta.mono { font-family: var(--mono); font-size: 12px; }
 </style>
 </head>
 <body>
 
-<a class="back" href="/projektit.html">&larr; <span data-i18n="heading_my_projects"></span></a>
-<h1 data-i18n="heading_clients"></h1>
-<p class="sub" data-i18n="sub_clients"></p>
+<div id="appNav"></div>
 
-<div id="app" data-i18n="loading"></div>
+<main class="page form-scope">
+  <a class="back" id="backLink" href="/projektit.html">&larr; <span data-i18n="back_all_projects"></span></a>
+  <div class="page-head">
+    <div>
+      <h1 id="pageTitle" data-i18n="heading_clients"></h1>
+      <p class="page-sub" id="pageSub" data-i18n="sub_clients"></p>
+    </div>
+    <div class="head-actions" id="pageActions"></div>
+  </div>
+
+  <div id="app"><p class="note" data-i18n="loading"></p></div>
+</main>
 
 <script src="/translations.js"></script>
+<script src="/nav.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = "https://nrrhvbxvkizvkcwwglck.supabase.co";
@@ -62,6 +70,73 @@
   let superuserEmails = [''];
   let memberEmails = [''];
   let editingOrgId = null;
+  let myProfileData = null;
+
+  AppNav.mount('clients');
+
+  const ORG_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M2.5 14V3.5l5-2v12.5M7.5 6h6v8M2 14h12M4.5 5.5h1M4.5 8h1M4.5 10.5h1M10 8.5h1M10 11h1"/></svg>';
+  const ARROW_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>';
+
+  function escapeHtml(str) {
+    return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  // Sivun otsikkoalue vaihtuu näkymän mukaan (lista / lomake / asiakkaan tiedot).
+  function setHeader({ title, sub = '', actionsHtml = '', backToList = false }) {
+    document.getElementById('pageTitle').textContent = title;
+    const subEl = document.getElementById('pageSub');
+    subEl.textContent = sub;
+    subEl.style.display = sub ? '' : 'none';
+    document.getElementById('pageActions').innerHTML = actionsHtml;
+    const back = document.getElementById('backLink');
+    if (backToList) {
+      back.href = '#';
+      back.onclick = (e) => { e.preventDefault(); renderList(); };
+      back.innerHTML = `&larr; ${t('all_clients_back')}`;
+    } else {
+      back.href = '/projektit.html';
+      back.onclick = null;
+      back.innerHTML = `&larr; ${t('back_all_projects')}`;
+    }
+  }
+
+  async function logout() {
+    await client.auth.signOut();
+    window.location.href = '/login.html';
+  }
+
+  async function setLanguagePref(lang) {
+    setCurrentLanguage(lang);
+    if (myProfileData) {
+      await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          firstName: myProfileData.firstName,
+          lastName: myProfileData.lastName,
+          title: myProfileData.title,
+          organization: myProfileData.organization,
+          team: myProfileData.team,
+          language: lang,
+        }),
+      });
+    }
+    window.location.reload();
+  }
+
+  async function loadMyProfileAndTranslations() {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-my-profile`, {
+      method: 'POST',
+      headers: authHeaders(),
+    });
+    const data = await res.json();
+    if (!data.error) {
+      myProfileData = data;
+      setCurrentLanguage(data.language || 'fi');
+    }
+    applyStaticTranslations();
+    if (!data.error) AppNav.setProfile(data);
+  }
 
   function authHeaders() {
     return {
@@ -89,7 +164,7 @@
     const data = await res.json();
 
     if (data.error) {
-      document.getElementById('app').innerHTML = `<p class="empty-note">${t('error_prefix')}: ${data.error}</p>`;
+      document.getElementById('app').innerHTML = `<div class="empty-state">${t('error_prefix')}: ${escapeHtml(data.error)}</div>`;
       return;
     }
 
@@ -101,31 +176,33 @@
     editingOrgId = null;
     const app = document.getElementById('app');
 
-    let listHtml = '';
+    setHeader({
+      title: t('heading_clients'),
+      sub: t('sub_clients'),
+      actionsHtml: `<button onclick="showCreateForm()">${t('new_client_link')}</button>`,
+    });
+
     if (organizations.length === 0) {
-      listHtml = `<p class="empty-note">${t('empty_no_clients')}</p>`;
-    } else {
-      listHtml = organizations.map((o) => {
-        const badge = o.access_mode === 'domain'
-          ? `<span class="badge domain">${t('badge_domain')}: ${o.email_domain}</span>`
-          : `<span class="badge restricted">${t('badge_restricted')}</span>`;
-        const superuserCount = o.members.filter((m) => m.role === 'superuser').length;
-        return `
-          <div class="card" onclick="openOrganization('${o.id}')">
-            <div class="name">${o.name}${badge}</div>
-            <div class="meta">${superuserCount} ${t('superusers_count_label')} · ${o.members.length} ${t('members_listed_label')}</div>
-          </div>
-        `;
-      }).join('');
+      app.innerHTML = `<div class="empty-state">${t('empty_no_clients')}</div>`;
+      return;
     }
 
-    app.innerHTML = `
-      <div class="toolbar">
-        <span></span>
-        <button class="secondary" onclick="showCreateForm()">${t('new_client_link')}</button>
-      </div>
-      <div id="orgList">${listHtml}</div>
-    `;
+    app.innerHTML = `<div class="list-panel">${organizations.map((o) => {
+      const badge = o.access_mode === 'domain'
+        ? `<span class="badge domain">${t('badge_domain')}: ${escapeHtml(o.email_domain)}</span>`
+        : `<span class="badge restricted">${t('badge_restricted')}</span>`;
+      const superuserCount = o.members.filter((m) => m.role === 'superuser').length;
+      return `
+        <div class="list-row" onclick="openOrganization('${o.id}')">
+          <span class="lr-icon">${ORG_ICON}</span>
+          <div class="lr-main">
+            <div class="lr-name">${escapeHtml(o.name)}${badge}</div>
+            <div class="lr-meta">${superuserCount} ${t('superusers_count_label')} · ${o.members.length} ${t('members_listed_label')}</div>
+          </div>
+          <span class="lr-arrow">${ARROW_ICON}</span>
+        </div>
+      `;
+    }).join('')}</div>`;
   }
 
   function showCreateForm() {
@@ -141,45 +218,53 @@
 
     const superuserRows = superuserEmails.map((val, idx) => `
       <div class="repeat-row">
-        <input type="email" value="${val}" placeholder="paakayttaja@yritys.fi" onchange="updateSuperuser(${idx}, this.value)" />
-        <button type="button" onclick="removeSuperuser(${idx})">✕</button>
+        <input type="email" value="${escapeHtml(val)}" placeholder="paakayttaja@yritys.fi" onchange="updateSuperuser(${idx}, this.value)" />
+        <button type="button" class="icon-remove" onclick="removeSuperuser(${idx})">✕</button>
       </div>
     `).join('');
 
     const memberRows = memberEmails.map((val, idx) => `
       <div class="repeat-row">
-        <input type="email" value="${val}" placeholder="kayttaja@yritys.fi" onchange="updateMember(${idx}, this.value)" />
-        <button type="button" onclick="removeMember(${idx})">✕</button>
+        <input type="email" value="${escapeHtml(val)}" placeholder="kayttaja@yritys.fi" onchange="updateMember(${idx}, this.value)" />
+        <button type="button" class="icon-remove" onclick="removeMember(${idx})">✕</button>
       </div>
     `).join('');
 
+    setHeader({ title: isEdit ? t('edit_client_heading') : t('new_client_heading'), backToList: true });
+
     app.innerHTML = `
-      <div class="form-section">
-        <h3 style="margin-top:0;">${isEdit ? t('edit_client_heading') : t('new_client_heading')}</h3>
-
-        <label>${t('client_name_label')}</label>
-        <input type="text" id="orgName" value="${org.name}" />
-
-        <label>${t('access_scope_label')}</label>
-        <div class="radio-row">
-          <label><input type="radio" name="accessMode" value="restricted" ${org.access_mode !== 'domain' ? 'checked' : ''} onchange="toggleDomainField()" /> ${t('restricted_option')}</label>
-          <label><input type="radio" name="accessMode" value="domain" ${org.access_mode === 'domain' ? 'checked' : ''} onchange="toggleDomainField()" /> ${t('domain_option')}</label>
+      <div class="card-section" style="max-width:720px;">
+        <div class="field">
+          <label for="orgName">${t('client_name_label')}</label>
+          <input type="text" id="orgName" value="${escapeHtml(org.name)}" />
         </div>
 
-        <div id="domainFieldWrap" style="display:${org.access_mode === 'domain' ? 'block' : 'none'};">
-          <label>${t('email_domain_label')}</label>
-          <input type="text" id="emailDomain" value="${org.email_domain || ''}" />
+        <div class="field">
+          <label>${t('access_scope_label')}</label>
+          <div class="radio-row">
+            <label><input type="radio" name="accessMode" value="restricted" ${org.access_mode !== 'domain' ? 'checked' : ''} onchange="toggleDomainField()" /> ${t('restricted_option')}</label>
+            <label><input type="radio" name="accessMode" value="domain" ${org.access_mode === 'domain' ? 'checked' : ''} onchange="toggleDomainField()" /> ${t('domain_option')}</label>
+          </div>
         </div>
 
-        <label>${t('superusers_label')}</label>
-        <div id="superuserRows">${superuserRows}</div>
-        <button type="button" class="add-btn" onclick="addSuperuser()">${t('add_superuser_btn')}</button>
+        <div class="field" id="domainFieldWrap" style="display:${org.access_mode === 'domain' ? 'block' : 'none'};">
+          <label for="emailDomain">${t('email_domain_label')}</label>
+          <input type="text" id="emailDomain" value="${escapeHtml(org.email_domain || '')}" />
+        </div>
 
-        <label>${t('other_members_label')}</label>
-        <div id="memberRows">${memberRows}</div>
-        <button type="button" class="add-btn" onclick="addMember()">${t('add_member_btn')}</button>
+        <div class="field">
+          <label>${t('superusers_label')}</label>
+          <div id="superuserRows">${superuserRows}</div>
+          <button type="button" class="secondary small" onclick="addSuperuser()">${t('add_superuser_btn')}</button>
+        </div>
 
-        <div style="margin-top:20px;">
+        <div class="field">
+          <label>${t('other_members_label')}</label>
+          <div id="memberRows">${memberRows}</div>
+          <button type="button" class="secondary small" onclick="addMember()">${t('add_member_btn')}</button>
+        </div>
+
+        <div class="btn-row">
           <button class="secondary" onclick="renderList()">${t('cancel')}</button>
           <button onclick="${isEdit ? 'submitOrganizationEdit()' : 'submitOrganization()'}">${isEdit ? t('save_changes_btn') : t('create_client_btn')}</button>
         </div>
@@ -327,13 +412,15 @@
     editingOrgId = orgId;
 
     const app = document.getElementById('app');
+    setHeader({
+      title: org.name,
+      sub: `${t('superusers_prefix')}: ${org.members.filter((m) => m.role === 'superuser').map((m) => m.email).join(', ') || '–'}`,
+      actionsHtml: `<button class="secondary" onclick="startEditOrganization()">${t('edit_client_btn')}</button>`,
+      backToList: true,
+    });
     app.innerHTML = `
-      <a class="back" href="#" onclick="renderList(); return false;">&larr; ${t('all_clients_back')}</a>
-      <h1 style="margin-top:10px;">${org.name}</h1>
-      <p class="sub">${t('superusers_prefix')}: ${org.members.filter((m) => m.role === 'superuser').map((m) => m.email).join(', ') || '–'}</p>
-      <button class="secondary" onclick="startEditOrganization()">${t('edit_client_btn')}</button>
-      <h3 style="margin-top:20px;">${t('projects_label')}</h3>
-      <div id="orgProjects">${t('loading')}</div>
+      <h2 class="section-title">${t('projects_label')}</h2>
+      <div id="orgProjects"><p class="note">${t('loading')}</p></div>
     `;
 
     const res = await fetch(`${SUPABASE_URL}/functions/v1/list-projects`, {
@@ -345,27 +432,28 @@
 
     const projList = document.getElementById('orgProjects');
     if (data.error) {
-      projList.innerHTML = `<p class="empty-note">${t('error_prefix')}: ${data.error}</p>`;
+      projList.innerHTML = `<div class="empty-state">${t('error_prefix')}: ${escapeHtml(data.error)}</div>`;
       return;
     }
     if (!data.projects || data.projects.length === 0) {
-      projList.innerHTML = `<p class="empty-note">${t('empty_no_client_projects')}</p>`;
+      projList.innerHTML = `<div class="empty-state">${t('empty_no_client_projects')}</div>`;
       return;
     }
 
     const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
-    projList.innerHTML = data.projects.map((p) => `
-      <a class="project-card" href="/projekti.html?id=${p.id}">
-        <div class="name">${p.name}</div>
-        <div class="meta">${t('responsible_person')}: ${p.owner_email} · ${t('created_label')} ${new Date(p.created_at).toLocaleDateString(locale)}</div>
+    projList.innerHTML = `<div class="project-grid">${data.projects.map((p) => `
+      <a class="project-card" href="/projekti.html?id=${encodeURIComponent(p.id)}">
+        <div class="name">${escapeHtml(p.name)}</div>
+        <div class="meta">${t('responsible_person')} ${escapeHtml(p.owner_email)}</div>
+        <div class="meta mono">${t('created_label')} ${new Date(p.created_at).toLocaleDateString(locale)}</div>
       </a>
-    `).join('');
+    `).join('')}</div>`;
   }
 
   (async () => {
     const ok = await ensureLoggedIn();
     if (ok) {
-      applyStaticTranslations();
+      await loadMyProfileAndTranslations();
       loadOrganizations();
     }
   })();

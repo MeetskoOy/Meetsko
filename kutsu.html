@@ -4,37 +4,49 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Yhteisikkuna — Kutsu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="/app.css" />
 <style>
-  body { font-family: -apple-system, Segoe UI, Inter, sans-serif; background: #EDF0F3; color: #161B22; max-width: 480px; margin: 60px auto; padding: 0 20px 60px; }
-  h1 { font-size: 20px; }
-  p.sub { color: #586174; font-size: 14px; }
-  .card { background: #fff; border: 1px solid #DBDFE5; border-radius: 12px; padding: 22px; }
-  button { background: #2A4B7C; color: #fff; border: none; padding: 10px 18px; border-radius: 8px; font-size: 14px; cursor: pointer; width: 100%; margin-top: 6px; }
-  button:hover { background: #1D3559; }
-  button.secondary { background: #fff; color: #2A4B7C; border: 1px solid #2A4B7C; }
-  label { display: block; font-size: 13px; color: #586174; margin: 12px 0 4px; }
-  input[type=text] { width: 100%; padding: 8px; border: 1px solid #DBDFE5; border-radius: 7px; font-size: 14px; box-sizing: border-box; }
-  .banner { padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; }
-  .banner.ok { background: #DCF3E4; color: #1E6B3C; }
-  .banner.error { background: #FBE4E1; color: #9C2C22; }
-  .checkmark { color: #1E6B3C; font-size: 13.5px; margin: 6px 0; }
-  .day-block { border-top: 1px solid #EEF1F4; padding: 8px 0; }
-  .day-toggle { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; margin: 0; }
+  .invite-wrap { display: flex; justify-content: center; padding: 56px 16px 60px; }
+  #app { width: 520px; max-width: 100%; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 32px; box-shadow: 0 8px 30px rgba(15,27,45,0.06); box-sizing: border-box; }
+  .card h1 { font-size: 24px; margin-bottom: 8px; }
+  p.sub { color: var(--text-muted); font-size: 14px; line-height: 1.5; margin: 0 0 18px; }
+  .card button { width: 100%; margin: 8px 0 0; padding: 11px; font-weight: 600; }
+  .form-scope .card input[type=text] { width: 100%; }
+  .card label { margin-top: 14px; }
+  .checkmark { color: var(--ok); font-size: 14px; font-weight: 500; margin: 8px 0; }
+
+  h3 { font-size: 14px; font-weight: 600; margin: 22px 0 8px; }
+  .day-block { border-top: 1px solid var(--line-soft); padding: 10px 0; }
+  .day-toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; margin: 0; color: var(--text); }
+  .card .day-toggle { margin-top: 0; }
   .ranges { margin: 8px 0 4px 24px; }
-  .range-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-  .range-row input[type=time] { padding: 5px; border: 1px solid #DBDFE5; border-radius: 6px; font-size: 12.5px; }
-  .remove-x { color: #C0453A; background: none; border: none; cursor: pointer; padding: 0 4px; width: auto; margin: 0; }
-  .add-range-btn { width: auto; padding: 5px 10px; font-size: 12px; margin: 2px 0 0; }
-  .blackout-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-  .blackout-row input[type=datetime-local] { padding: 5px; border: 1px solid #DBDFE5; border-radius: 6px; font-size: 12.5px; }
-  .fully-hidden-row { display: flex; align-items: center; gap: 6px; font-weight: 600; margin-top: 16px; }
-  .empty-note { color: #8A93A3; font-size: 12px; }
-  h3 { font-size: 13.5px; margin: 18px 0 6px; }
+  .range-row, .blackout-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
+  .form-scope .range-row input[type=time], .form-scope .blackout-row input[type=datetime-local] { padding: 6px 8px; font-size: 13px; }
+  .card .remove-x { color: var(--danger); background: none; border: none; cursor: pointer; padding: 0 4px; width: auto; margin: 0; font-weight: 400; }
+  .card .remove-x:hover { background: none; }
+  .card .add-range-btn { width: auto; padding: 6px 12px; font-size: 12.5px; margin: 4px 0 0; font-weight: 500; }
+  .fully-hidden-row { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-top: 18px; color: var(--text); }
+  .empty-note { color: var(--text-faint); font-size: 12.5px; }
 </style>
 </head>
-<body>
+<body class="form-scope">
 
-<div id="app">…</div>
+<header class="app-nav">
+  <div class="app-nav-inner">
+    <span class="brand">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="1.5" y="1.5" width="8" height="8" rx="1.5"/><rect x="12.5" y="1.5" width="8" height="8" rx="1.5"/><rect x="1.5" y="12.5" width="8" height="8" rx="1.5"/><rect x="12.5" y="12.5" width="8" height="8" rx="1.5"/></svg>
+      Yhteisikkuna
+    </span>
+  </div>
+</header>
+
+<main class="invite-wrap">
+  <div id="app"><div class="card"><p class="sub">…</p></div></div>
+</main>
 
 <script src="/translations.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
