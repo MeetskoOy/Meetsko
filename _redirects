@@ -1,0 +1,10 @@
+# Myyntisivun kieliversiot: suomi osoitteessa /fi/ (sama tiedosto kuin
+# index.html), englanti osoitteessa /en/.
+/fi/   /index.html   200
+
+# Etusivu (/): Suomesta tai suomenkieliseltä selaimelta suomeksi, muuten
+# englanniksi. Kielivalitsin asettaa nf_lang-evästeen, joka ohittaa selaimen
+# kielen. Säännöt käsitellään ylhäältä alas; ensimmäinen osuma voittaa.
+/      /index.html   200!  Country=fi
+/      /index.html   200!  Language=fi
+/      /en/          302!
