@@ -121,8 +121,9 @@ section[id] { scroll-margin-top: 64px; }
 .cmp.after .cmp-foot { color: var(--ok); }
 
 /* Miten toimii */
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin-top: 52px; border-top: 1px solid var(--line); }
-.step { padding: 32px 32px 0 0; }
+.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; align-items: start; margin-top: 52px; border-top: 1px solid var(--line); }
+/* Vaiheet jakavat rivit (subgrid), joten leipätekstit alkavat samalta korkeudelta. */
+.step { padding: 32px 32px 0 0; display: grid; grid-row: span 4; grid-template-rows: subgrid; align-content: start; }
 .step + .step { padding-left: 32px; border-left: 1px solid var(--line); }
 .step-n { font-size: 13px; color: var(--mint); font-weight: 800; letter-spacing: 0.04em; }
 .step h3 { font-size: 19px; margin: 12px 0 10px; letter-spacing: -0.01em; }
@@ -139,6 +140,7 @@ section[id] { scroll-margin-top: 64px; }
 .feat .ic svg { width: 20px; height: 20px; }
 .feat h3 { font-size: 16px; margin: 0 0 8px; }
 .feat p { font-size: 14.5px; line-height: 1.6; color: var(--text-muted); margin: 0; }
+.feat p.tech { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line-soft); font-size: 12.5px; color: var(--text-faint); }
 
 /* Tietosuoja */
 .privacy { background: var(--nav-bg); color: #fff; }
@@ -157,6 +159,8 @@ section[id] { scroll-margin-top: 64px; }
 .priv-points li { display: grid; grid-template-columns: 22px 1fr; gap: 12px; font-size: 15px; line-height: 1.55; color: #D9E2EE; }
 .priv-points svg { width: 18px; height: 18px; color: var(--mint); margin-top: 3px; }
 .priv-points b { color: #fff; font-weight: 600; }
+.priv-link { display: inline-block; margin-top: 32px; color: #fff; font-size: 15px; font-weight: 700; text-decoration: none; border-bottom: 1px solid var(--sky); padding-bottom: 2px; }
+.priv-link:hover { color: var(--sky); }
 
 /* Käyttötapaukset */
 .uses { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 48px; }
