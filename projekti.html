@@ -1900,11 +1900,52 @@ function openGroupModal() {
         ${teams}
         <span class="dd-label">${t('event_details_visibility')}</span>
         <div>${e.hidden ? t('draft_visibility_hidden') : t('draft_visibility_all')}</div>
+        ${eventCancelNoteHtml(e)}
         <div class="dd-actions">
+          ${eventCancelButtonsHtml(e)}
           <button type="button" class="secondary" onclick="toggleEventDetails('${e.id}')">${t('collapse_btn')}</button>
         </div>
       </div>
     `;
+  }
+
+  // Peruminen vain järjestäjälle, tuleville tapahtumille ja kirjoitusoikeudella.
+  function canCancelEvent(e) {
+    return e.isOrganizer && e.status === 'scheduled' && e.endMs > Date.now();
+  }
+
+  function eventCancelButtonsHtml(e) {
+    if (!canCancelEvent(e) || !canWriteCalendar || currentAuthProvider === 'google') return '';
+    if (e.series_id) {
+      return `<button type="button" class="danger" onclick="cancelProjectEvent('${e.id}', 'occurrence')">${t('cancel_occurrence_btn')}</button>
+              <button type="button" class="danger" onclick="cancelProjectEvent('${e.id}', 'future')">${t('cancel_future_btn')}</button>`;
+    }
+    return `<button type="button" class="danger" onclick="cancelProjectEvent('${e.id}', 'occurrence')">${t('cancel_event_btn')}</button>`;
+  }
+
+  function eventCancelNoteHtml(e) {
+    if (!canCancelEvent(e) || (canWriteCalendar && currentAuthProvider !== 'google')) return '';
+    return `<span class="dd-label"></span><div class="note" style="margin:0;">${t('cancel_needs_write')}</div>`;
+  }
+
+  async function cancelProjectEvent(eventId, scope) {
+    const e = projectEvents.find((x) => x.id === eventId);
+    if (!e) return;
+    const key = scope === 'future' ? 'confirm_cancel_future' : 'confirm_cancel_event';
+    if (!confirm(t(key, { title: e.title, time: formatDayHeading(e.startMs) + ' ' + formatTimeRange(e.startMs, e.endMs) }))) return;
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/cancel-project-event`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ projectId: PROJECT_ID, eventId, scope }),
+      });
+      const data = await res.json();
+      if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+      if (data.failed && data.failed.length) alert(t('cancel_partial', { cancelled: data.cancelled, failed: data.failed.length }));
+      await loadProjectEvents();
+    } catch (err) {
+      alert(t('error_prefix') + ': ' + err.message);
+    }
   }
 
   function eventDayGroupsHtml(events) {
