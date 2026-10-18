@@ -1,4 +1,4 @@
-// Yhteisikkuna — toistuvien tapahtumien sääntölogiikka.
+// Meetsko — toistuvien tapahtumien sääntölogiikka.
 // Puhdasta logiikkaa ilman DOM-riippuvuuksia, jotta sama koodi voidaan
 // myöhemmin ajaa myös palvelimella (vrt. slot-finding-periaate CLAUDE.md:ssä).
 //

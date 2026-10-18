@@ -1,36 +1,44 @@
-/* Yhteisikkuna — yhteinen ulkoasu kaikille sivuille.
+/* Meetsko — yhteinen ulkoasu kaikille sivuille.
    Sivut lataavat tämän ennen omaa <style>-lohkoaan:
    <link rel="stylesheet" href="/app.css" />
-   Fontit (IBM Plex Sans + Mono) ladataan sivun <head>:ssä Google Fontsista. */
+   Fontti (Manrope: otsikot 800, leipäteksti 500) ladataan sivun <head>:ssä Google Fontsista. */
 
 :root {
-  --nav-bg: #0F1B2D;
-  --page-bg: #F4F5F7;
+  /* Meetsko-brändi: Navy #0E2240, Ink #1B3A6B, Sky #8FB3E8, Mint #2BB39A, Paper #F5F7FA */
+  --navy: #0E2240;
+  --ink: #1B3A6B;
+  --sky: #8FB3E8;
+  --mint: #2BB39A;
+  --paper: #F5F7FA;
+  --nav-bg: var(--navy);
+  --page-bg: var(--paper);
   --surface: #FFFFFF;
-  --surface-muted: #F7F8FA;
-  --line: #E3E6EA;
-  --line-soft: #EEF0F3;
-  --text: #161B22;
-  --text-muted: #5B6472;
-  --text-faint: #8A93A3;
-  --primary: #1F3B63;
-  --primary-hover: #172E4D;
-  --primary-soft: #E4E9F1;
+  --surface-muted: #F7F9FC;
+  --line: #D5DCE6;
+  --line-soft: #E6EBF2;
+  --text: var(--navy);
+  --text-muted: #4A5A75;
+  --text-faint: #7D8AA0;
+  --primary: var(--ink);
+  --primary-hover: #142F58;
+  --primary-soft: #EAEFF6;
   --busy: #E8A39B;
   --busy-strong: #C9665B;
-  --free-bg: #D8EFF1;
-  --free-line: #4FA3AE;
-  --free-text: #1F5F68;
-  --ok: #1F7A7A;
-  --ok-soft: #DDF0EF;
+  --free-bg: #DDF4EF;
+  --free-line: var(--mint);
+  --free-text: #157461;
+  --ok: #1E8F7B;
+  --ok-soft: #DDF4EF;
   --warn: #C2611F;
   --danger: #C0453A;
   --danger-soft: #FBE4E1;
-  --mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  /* Brändissä yksi fontti: luvut tasalevyisinä (tabular-nums) kellonaikoja varten. */
+  --mono: 'Manrope', -apple-system, 'Segoe UI', sans-serif;
 }
 
-body { font-family: 'IBM Plex Sans', -apple-system, 'Segoe UI', sans-serif; background: var(--page-bg); color: var(--text); margin: 0; }
-h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+body { font-family: 'Manrope', -apple-system, 'Segoe UI', sans-serif; font-weight: 500; font-variant-numeric: tabular-nums; background: var(--page-bg); color: var(--text); margin: 0; }
+h1 { font-size: 28px; font-weight: 800; letter-spacing: -0.02em; margin: 0; }
+h2, h3 { font-weight: 800; }
 a.back { font-size: 13px; color: var(--text-muted); text-decoration: none; }
 a.back:hover { color: var(--text); }
 
@@ -51,16 +59,16 @@ a.btn.secondary:hover { background: var(--surface-muted); }
 /* ---------- Yläpalkki (nav.js) ---------- */
 .app-nav { background: var(--nav-bg); color: #fff; }
 .app-nav-inner { max-width: 1360px; margin: 0 auto; padding: 0 40px; height: 64px; display: flex; align-items: center; gap: 40px; }
-.brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 700; font-size: 17px; }
+.brand { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 800; font-size: 19px; letter-spacing: -0.02em; }
 .nav-links { display: flex; align-items: stretch; height: 100%; gap: 8px; }
-.nav-links a { display: flex; align-items: center; padding: 0 14px; color: #C9D1DC; text-decoration: none; font-size: 14px; font-weight: 500; border-bottom: 3px solid transparent; border-top: 3px solid transparent; }
+.nav-links a { display: flex; align-items: center; padding: 0 14px; color: #C9D6EA; text-decoration: none; font-size: 14px; font-weight: 500; border-bottom: 3px solid transparent; border-top: 3px solid transparent; }
 .nav-links a:hover { color: #fff; }
-.nav-links a.active { color: #fff; font-weight: 600; border-bottom-color: #7DA2D6; }
+.nav-links a.active { color: #fff; font-weight: 700; border-bottom-color: var(--sky); }
 .nav-user { margin-left: auto; display: flex; align-items: center; gap: 16px; position: relative; }
 .nav-user-btn { background: none; border: none; color: #fff; display: flex; align-items: center; gap: 10px; padding: 0; margin: 0; font-size: 14px; font-weight: 500; }
 .nav-user-btn:hover { background: none; border: none; }
-.nav-avatar { width: 32px; height: 32px; border-radius: 50%; background: #2C3E57; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
-.nav-logout { background: none; border: none; color: #C9D1DC; text-decoration: underline; padding: 0; margin: 0; font-size: 13px; font-weight: 400; }
+.nav-avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--ink); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; }
+.nav-logout { background: none; border: none; color: #C9D6EA; text-decoration: underline; padding: 0; margin: 0; font-size: 13px; font-weight: 400; }
 .nav-logout:hover { background: none; border: none; color: #fff; }
 
 .profile-panel { display: none; position: absolute; top: 48px; right: 0; width: 260px; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-radius: 10px; padding: 16px; box-shadow: 0 8px 24px rgba(15,27,45,0.14); z-index: 20; text-align: left; }

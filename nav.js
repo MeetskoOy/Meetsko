@@ -1,4 +1,4 @@
-// Yhteisikkuna — yhteinen yläpalkki kaikille kirjautuneille sivuille.
+// Meetsko — yhteinen yläpalkki kaikille kirjautuneille sivuille.
 // Vaatii translations.js:n (t, getCurrentLanguage). Sivu määrittelee itse
 // logout()- ja setLanguagePref(lang)-funktiot, joita palkin napit kutsuvat.
 //
@@ -18,8 +18,8 @@ const AppNav = {
       <header class="app-nav">
         <div class="app-nav-inner">
           <a class="brand" href="/projektit.html">
-            <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="1.5" y="1.5" width="8" height="8" rx="1.5"/><rect x="12.5" y="1.5" width="8" height="8" rx="1.5"/><rect x="1.5" y="12.5" width="8" height="8" rx="1.5"/><rect x="12.5" y="12.5" width="8" height="8" rx="1.5"/></svg>
-            Yhteisikkuna
+            <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="4" width="36" height="36" rx="8" fill="#FFFFFF"/><rect x="24" y="24" width="36" height="36" rx="8" fill="#8FB3E8"/><path d="M24 32A8 8 0 0 1 32 24H40V32A8 8 0 0 1 32 40H24Z" fill="#2BB39A"/></svg>
+            Meetsko
           </a>
           <nav class="nav-links">
             ${link('projects', '/projektit.html', 'nav_projects')}

@@ -1,6 +1,6 @@
-/* Myyntisivu (index.html ja en/index.html) — app.css:n rakenne, Meetsko-brändin värit ja typografia
-   (Manrope: otsikot 800, leipäteksti 500). Sovellussivut käyttävät vielä
-   app.css:n alkuperäisiä arvoja. */
+/* Myyntisivu (index.html ja en/index.html) — app.css:n rakenne ja Meetsko-brändi
+   (Manrope: otsikot 800, leipäteksti 500). Brändiarvot ovat nyt myös app.css:ssä;
+   tämän tiedoston muuttujat ovat samat. */
 :root {
   --navy: #0E2240; --ink: #1B3A6B; --sky: #8FB3E8; --mint: #2BB39A; --paper: #F5F7FA;
   --nav-bg: var(--navy); --page-bg: var(--paper);

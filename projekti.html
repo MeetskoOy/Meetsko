@@ -3,18 +3,49 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Yhteisikkuna — Projektin hallinta</title>
+<title>Meetsko — Projektin hallinta</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='36' height='36' rx='8' fill='%231B3A6B'/%3E%3Crect x='24' y='24' width='36' height='36' rx='8' fill='%238FB3E8'/%3E%3Cpath d='M24 32A8 8 0 0 1 32 24H40V32A8 8 0 0 1 32 40H24Z' fill='%232BB39A'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="/app.css" />
 <style>
-  p.sub { color: #586174; font-size: 14px; margin-top: 0; }
+  p.sub { color: var(--text-muted); font-size: 14px; margin-top: 0; }
   #inviteResult { margin: 0 0 12px; font-size: 13px; word-break: break-all; }
   #inviteResult:empty { display: none; }
 
   /* Sivun otsikko */
-  .project-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 24px; margin: 12px 0 20px; flex-wrap: wrap; }
+  .project-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; margin: 12px 0 20px; flex-wrap: wrap; }
+  .project-head .head-actions { margin-top: 4px; }
+
+  /* Päävälilehdet (Aikataulu / Projektin tapahtumat) ja alivälilehdet */
+  .page-tabs { display: flex; gap: 24px; margin-top: 18px; }
+  .page-tab { background: none; border: none; border-bottom: 2px solid transparent; color: var(--text-muted); padding: 6px 0 8px; margin: 0; border-radius: 0; font-size: 14.5px; font-weight: 600; }
+  .page-tab:hover { background: none; border-color: transparent; color: var(--text); }
+  .page-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+  .events-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .sub-tabs { display: flex; gap: 6px; padding: 12px 24px; border-bottom: 1px solid var(--line); }
+  .sub-tab { background: none; border: 1px solid transparent; color: var(--text-muted); padding: 7px 12px; margin: 0; font-size: 13.5px; font-weight: 500; border-radius: 8px; }
+  .sub-tab:hover { background: var(--surface-muted); border-color: transparent; color: var(--text); }
+  .sub-tab.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+  .sub-tab .count { color: var(--text-faint); font-weight: 400; margin-left: 4px; }
+  .events-panel-body { padding: 8px 24px 20px; }
+  .panel-note { color: var(--text-faint); font-size: 13.5px; padding: 18px 0; margin: 0; }
+
+  /* Luonnoslista */
+  .draft-row { display: flex; align-items: center; gap: 16px; padding: 16px 0; border-top: 1px solid var(--line-soft); }
+  .draft-row:first-child { border-top: none; }
+  .draft-row .dr-main { flex: 1; min-width: 0; }
+  .draft-row .dr-title { font-size: 15px; font-weight: 600; }
+  .draft-row .dr-time { font-size: 13px; color: var(--text-muted); margin-top: 3px; font-family: var(--mono); }
+  .draft-row .dr-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .draft-row .dr-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .draft-row .dr-actions button { margin: 0; padding: 7px 12px; font-size: 13px; }
+  .draft-row.past .dr-title, .draft-row.past .dr-time { color: var(--danger); }
+  .draft-flag { font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--line-soft); color: var(--text-muted); }
+  .draft-flag.warn { background: var(--danger-soft); color: #9C2C22; }
+  .draft-flag.info { background: #FBF0D9; color: #91600C; }
+  .modal .draft-edit-note { font-size: 12.5px; color: #91600C; background: #FBF0D9; border-radius: 8px; padding: 8px 10px; margin: 0 0 12px; }
   .title-row { display: flex; align-items: center; gap: 14px; }
   .project-meta { margin: 8px 0 0; font-size: 14px; color: var(--text-muted); display: flex; gap: 20px; flex-wrap: wrap; }
 
@@ -82,7 +113,7 @@
   .event-mini-board .name-row { padding-left: 0; }
 
   .avatar { width: 32px; height: 32px; border-radius: 50%; flex: 0 0 32px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 12px; font-weight: 600; box-sizing: border-box; }
-  .avatar.group-icon { border-radius: 8px; background: #E4E9F1; color: var(--primary); }
+  .avatar.group-icon { border-radius: 8px; background: var(--primary-soft); color: var(--primary); }
   .avatar.group-icon svg { width: 16px; height: 16px; }
   .avatar.status-circle { background: #fff; border: 2px solid; }
   .avatar.status-circle.ok { border-color: var(--ok); color: var(--ok); }
@@ -101,7 +132,7 @@
   .timeline-row.clickable { cursor: pointer; }
   .timeline-cell { position: relative; height: 26px; }
   .whole-row .timeline-cell { height: 34px; }
-  .day-bg { position: absolute; top: 0; bottom: 0; background: #EEF1F4; border-radius: 6px; border: 1px solid #DBDFE5; box-sizing: border-box; z-index: 0; }
+  .day-bg { position: absolute; top: 0; bottom: 0; background: var(--line-soft); border-radius: 6px; border: 1px solid var(--line); box-sizing: border-box; z-index: 0; }
   .board .day-bg { background: none; border: none; border-left: 1px solid var(--line); border-radius: 0; }
   .busy-block { position: absolute; top: 0; bottom: 0; background: var(--busy); border-radius: 3px; z-index: 2; }
   .someone-busy-block { position: absolute; top: 0; bottom: 0; background: var(--busy-strong); border-radius: 3px; z-index: 2; }
@@ -154,133 +185,133 @@
   .modal.settings-modal { width: 460px; max-height: 85vh; overflow-y: auto; }
   .modal.event-modal { width: 620px; max-width: 94vw; max-height: 88vh; overflow-y: auto; }
   .modal h3 { margin-top: 0; }
-  .modal label { display: block; font-size: 13px; color: #586174; margin: 10px 0 4px; }
-  .modal input[type=text], .modal input[type=number] { width: 100%; padding: 8px; border: 1px solid #DBDFE5; border-radius: 7px; font-size: 14px; box-sizing: border-box; }
+  .modal label { display: block; font-size: 13px; color: var(--text-muted); margin: 10px 0 4px; }
+  .modal input[type=text], .modal input[type=number] { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 7px; font-size: 14px; box-sizing: border-box; }
   .modal .visibility-choice { display: flex; gap: 16px; font-size: 13px; margin-top: 4px; }
   .modal .actions { margin-top: 18px; display: flex; justify-content: flex-end; gap: 8px; }
 
-  .group-modal-list { max-height: 260px; overflow-y: auto; border: 1px solid #EEF1F4; border-radius: 8px; margin: 10px 0; }
-  .group-select-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-top: 1px solid #EEF1F4; transition: background 0.15s; }
+  .group-modal-list { max-height: 260px; overflow-y: auto; border: 1px solid var(--line-soft); border-radius: 8px; margin: 10px 0; }
+  .group-select-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-top: 1px solid var(--line-soft); transition: background 0.15s; }
   .group-select-row:first-child { border-top: none; }
-  .group-select-row.selected { background: #E4F2E9; }
+  .group-select-row.selected { background: var(--ok-soft); }
   .group-select-row .row-name { font-size: 13.5px; }
   .group-select-btn { padding: 6px 14px; font-size: 12.5px; margin: 0; }
-  .group-select-btn.added { background: #1E6B3C; color: #fff; border-color: #1E6B3C; }
+  .group-select-btn.added { background: var(--ok); color: #fff; border-color: var(--ok); }
 
   .visibility-pill-row { display: flex; gap: 8px; margin-top: 14px; }
-  .visibility-pill { flex: 1; padding: 10px; text-align: center; border-radius: 8px; border: 1px solid #DBDFE5; cursor: pointer; font-size: 13px; background: #fff; color: #2A4B7C; }
-  .visibility-pill.active { background: #2A4B7C; color: #fff; border-color: #2A4B7C; }
+  .visibility-pill { flex: 1; padding: 10px; text-align: center; border-radius: 8px; border: 1px solid var(--line); cursor: pointer; font-size: 13px; background: #fff; color: var(--primary); }
+  .visibility-pill.active { background: var(--primary); color: #fff; border-color: var(--primary); }
 
-  .view-prefs-section { border: 1px solid #DBDFE5; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+  .view-prefs-section { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
   .view-prefs-section .radio-row { display: flex; gap: 16px; font-size: 13px; margin: 6px 0; }
   .view-prefs-section .check-row { display: flex; align-items: center; gap: 6px; font-size: 13px; margin-top: 8px; }
 
   .member-line { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 13.5px; }
-  .member-line + .member-line { border-top: 1px solid #EEF1F4; }
-  .member-line .remove-x { color: #C0453A; cursor: pointer; font-size: 14px; background: none; border: none; padding: 0 4px; margin: 0; }
+  .member-line + .member-line { border-top: 1px solid var(--line-soft); }
+  .member-line .remove-x { color: var(--danger); cursor: pointer; font-size: 14px; background: none; border: none; padding: 0 4px; margin: 0; }
   .add-member-row { display: flex; gap: 6px; margin-top: 12px; }
-  .add-member-row select { flex: 1; padding: 7px; border: 1px solid #DBDFE5; border-radius: 7px; font-size: 13px; }
+  .add-member-row select { flex: 1; padding: 7px; border: 1px solid var(--line); border-radius: 7px; font-size: 13px; }
   .add-member-row button { padding: 7px 12px; font-size: 13px; margin: 0; }
 
-  .day-block { border-top: 1px solid #EEF1F4; padding: 8px 0; }
-  .day-toggle { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: #161B22; margin: 0; }
+  .day-block { border-top: 1px solid var(--line-soft); padding: 8px 0; }
+  .day-toggle { display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--text); margin: 0; }
   .ranges { margin: 8px 0 4px 24px; }
   .range-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-  .range-row input[type=time] { padding: 5px; border: 1px solid #DBDFE5; border-radius: 6px; font-size: 12.5px; }
-  .range-row .remove-x { color: #C0453A; background: none; border: none; cursor: pointer; padding: 0 4px; margin: 0; }
+  .range-row input[type=time] { padding: 5px; border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px; }
+  .range-row .remove-x { color: var(--danger); background: none; border: none; cursor: pointer; padding: 0 4px; margin: 0; }
   .add-range-btn { padding: 5px 10px; font-size: 12px; margin: 2px 0 0; }
 
   .blackout-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
-  .blackout-row input[type=datetime-local] { padding: 5px; border: 1px solid #DBDFE5; border-radius: 6px; font-size: 12.5px; }
-  .blackout-row .remove-x { color: #C0453A; background: none; border: none; cursor: pointer; padding: 0 4px; margin: 0; }
+  .blackout-row input[type=datetime-local] { padding: 5px; border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px; }
+  .blackout-row .remove-x { color: var(--danger); background: none; border: none; cursor: pointer; padding: 0 4px; margin: 0; }
   .fully-hidden-row { display: flex; align-items: center; gap: 6px; font-weight: 600; margin-top: 18px; }
 
-  .calendar-section { border: 1px solid #DBDFE5; border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
-  .calendar-section .ok-text { color: #1E6B3C; font-size: 13px; }
-  .calendar-section .warn-text { color: #C0453A; font-size: 13px; font-weight: 600; }
-  .calendar-section .meta { color: #8A93A3; font-size: 12px; margin-top: 4px; }
+  .calendar-section { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+  .calendar-section .ok-text { color: var(--ok); font-size: 13px; }
+  .calendar-section .warn-text { color: var(--danger); font-size: 13px; font-weight: 600; }
+  .calendar-section .meta { color: var(--text-faint); font-size: 12px; margin-top: 4px; }
 
-  .danger-zone { border-top: 1px solid #EEF1F4; margin-top: 18px; padding-top: 14px; }
-    .settings-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid #EEF1F4; }
-  .settings-tab-btn { background: none; border: none; padding: 8px 4px; font-size: 13.5px; color: #8A93A3; cursor: pointer; border-bottom: 2px solid transparent; margin: 0; }
-  .settings-tab-btn.active { color: #2A4B7C; border-bottom-color: #2A4B7C; font-weight: 600; }
-  .member-manage-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px solid #EEF1F4; gap: 8px; }
+  .danger-zone { border-top: 1px solid var(--line-soft); margin-top: 18px; padding-top: 14px; }
+    .settings-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--line-soft); }
+  .settings-tab-btn { background: none; border: none; padding: 8px 4px; font-size: 13.5px; color: var(--text-faint); cursor: pointer; border-bottom: 2px solid transparent; margin: 0; }
+  .settings-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
+  .member-manage-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-top: 1px solid var(--line-soft); gap: 8px; }
   .member-manage-row:first-child { border-top: none; }
   .member-manage-row .mm-name { font-size: 13.5px; flex: 1; min-width: 0; }
-  .member-manage-row select { padding: 5px 6px; border: 1px solid #DBDFE5; border-radius: 6px; font-size: 12.5px; }
+  .member-manage-row select { padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px; }
 
   .event-two-col { display: flex; gap: 16px; }
   .event-two-col > div { flex: 1; min-width: 0; }
-  .np-member-header { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr 110px 26px; gap: 8px; font-size: 12px; color: #8A93A3; margin-bottom: 6px; }
+  .np-member-header { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr 110px 26px; gap: 8px; font-size: 12px; color: var(--text-faint); margin-bottom: 6px; }
   .np-member-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr 110px 26px; gap: 8px; margin-bottom: 8px; align-items: center; }
-  .np-member-row input, .np-member-row select { padding: 7px 8px; border: 1px solid #DBDFE5; border-radius: 7px; font-size: 13px; box-sizing: border-box; width: 100%; }
-  .np-member-row .remove-row-btn { background: none; border: none; color: #C0453A; cursor: pointer; font-size: 15px; padding: 0; margin: 0; }
+  .np-member-row input, .np-member-row select { padding: 7px 8px; border: 1px solid var(--line); border-radius: 7px; font-size: 13px; box-sizing: border-box; width: 100%; }
+  .np-member-row .remove-row-btn { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 15px; padding: 0; margin: 0; }
 
   
   .event-range-row { display: flex; align-items: center; gap: 8px; }
   .event-mode-tabs { margin: 18px 0 4px; }
   .rec-layout { display: grid; grid-template-columns: 1fr 3fr; gap: 16px; margin-top: 8px; }
-  .rec-freq-list { display: flex; flex-direction: column; gap: 4px; border-right: 1px solid #EEF1F4; padding-right: 12px; }
-  .rec-freq-btn { text-align: left; background: none; color: #161B22; border: none; padding: 8px 10px; border-radius: 7px; font-size: 13.5px; margin: 0; cursor: pointer; }
+  .rec-freq-list { display: flex; flex-direction: column; gap: 4px; border-right: 1px solid var(--line-soft); padding-right: 12px; }
+  .rec-freq-btn { text-align: left; background: none; color: var(--text); border: none; padding: 8px 10px; border-radius: 7px; font-size: 13.5px; margin: 0; cursor: pointer; }
   .rec-freq-btn:hover { background: #F3F5F8; }
-  .rec-freq-btn.active { background: #E1E6EF; color: #2A4B7C; font-weight: 600; }
+  .rec-freq-btn.active { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
   .rec-panel .modal-label-top { margin-top: 0; }
-  .rec-inline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: #161B22; }
-  .rec-inline label { display: flex; align-items: center; gap: 6px; margin: 0; color: #161B22; }
-  .rec-panel select, .rec-panel input[type=number], .rec-panel input[type=date] { padding: 6px 7px; border: 1px solid #DBDFE5; border-radius: 7px; font-size: 13px; }
+  .rec-inline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; color: var(--text); }
+  .rec-inline label { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--text); }
+  .rec-panel select, .rec-panel input[type=number], .rec-panel input[type=date] { padding: 6px 7px; border: 1px solid var(--line); border-radius: 7px; font-size: 13px; }
   .rec-panel input[type=number] { width: 60px; }
   .rec-panel input.rec-duration { width: 80px; }
   .rec-end-rows { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
-  .rec-smart { margin-top: 16px; padding: 10px 12px; background: #F6F8FA; border: 1px solid #EEF1F4; border-radius: 8px; }
-  .rec-smart label { display: flex; align-items: center; gap: 6px; margin: 0; color: #161B22; font-weight: 600; font-size: 13px; }
-  .rec-smart p { margin: 4px 0 0 22px; font-size: 12px; color: #586174; }
-  .rec-hint { font-size: 12.5px; color: #586174; margin: 4px 0 10px; }
-  .occ-list { border: 1px solid #DBDFE5; border-radius: 10px; margin-top: 10px; }
-  .occ-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid #EEF1F4; font-size: 13px; }
+  .rec-smart { margin-top: 16px; padding: 10px 12px; background: #F6F8FA; border: 1px solid var(--line-soft); border-radius: 8px; }
+  .rec-smart label { display: flex; align-items: center; gap: 6px; margin: 0; color: var(--text); font-weight: 600; font-size: 13px; }
+  .rec-smart p { margin: 4px 0 0 22px; font-size: 12px; color: var(--text-muted); }
+  .rec-hint { font-size: 12.5px; color: var(--text-muted); margin: 4px 0 10px; }
+  .occ-list { border: 1px solid var(--line); border-radius: 10px; margin-top: 10px; }
+  .occ-row { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--line-soft); font-size: 13px; }
   .occ-row:first-child { border-top: none; }
-  .occ-row .occ-idx { color: #8A93A3; width: 22px; }
+  .occ-row .occ-idx { color: var(--text-faint); width: 22px; }
   .occ-row .occ-label { flex: 1; min-width: 0; }
-  .occ-row input[type=datetime-local] { padding: 5px; border: 1px solid #DBDFE5; border-radius: 6px; font-size: 12.5px; }
-  .occ-row .remove-x { color: #C0453A; background: none; border: none; cursor: pointer; padding: 0 4px; margin: 0; }
+  .occ-row input[type=datetime-local] { padding: 5px; border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px; }
+  .occ-row .remove-x { color: var(--danger); background: none; border: none; cursor: pointer; padding: 0 4px; margin: 0; }
   .occ-badge { font-size: 11.5px; padding: 2px 8px; border-radius: 999px; white-space: nowrap; min-width: 104px; text-align: center; box-sizing: border-box; }
-  .occ-free { background: #DCF3E4; color: #1E6B3C; }
-  .occ-moved { background: #E1E6EF; color: #2A4B7C; }
-  .occ-conflict { background: #FBE4E1; color: #9C2C22; }
-  .occ-nodata { background: #EEF1F4; color: #586174; }
-  .event-range-row input[type=datetime-local] { flex: 1; padding: 7px; border: 1px solid #DBDFE5; border-radius: 7px; font-size: 12.5px; }
+  .occ-free { background: var(--ok-soft); color: var(--ok); }
+  .occ-moved { background: var(--primary-soft); color: var(--primary); }
+  .occ-conflict { background: var(--danger-soft); color: #9C2C22; }
+  .occ-nodata { background: var(--line-soft); color: var(--text-muted); }
+  .event-range-row input[type=datetime-local] { flex: 1; padding: 7px; border: 1px solid var(--line); border-radius: 7px; font-size: 12.5px; }
   .pref-row { display: flex; gap: 14px; font-size: 13px; margin-top: 6px; flex-wrap: wrap; }
-  .pref-row label { display: flex; align-items: center; gap: 5px; margin: 0; color: #161B22; }
+  .pref-row label { display: flex; align-items: center; gap: 5px; margin: 0; color: var(--text); }
 
-  .slot-list { border: 1px solid #DBDFE5; border-radius: 8px; margin: 10px 0 16px; }
-  .slot-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid #EEF1F4; cursor: pointer; font-size: 13.5px; }
+  .slot-list { border: 1px solid var(--line); border-radius: 8px; margin: 10px 0 16px; }
+  .slot-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-top: 1px solid var(--line-soft); cursor: pointer; font-size: 13.5px; }
   .slot-row:first-child { border-top: none; }
-  .slot-row.active { background: #E4F2E9; font-weight: 600; }
-  .slot-row .rank { color: #8A93A3; font-size: 11.5px; }
+  .slot-row.active { background: var(--ok-soft); font-weight: 600; }
+  .slot-row .rank { color: var(--text-faint); font-size: 11.5px; }
     .sel-overlay { position: absolute; top: -3px; bottom: -3px; z-index: 4; border-radius: 4px; cursor: ew-resize; }
-  .sel-overlay-free { background: rgba(30,107,60,0.35); border: 1px solid rgba(30,107,60,0.65); }
+  .sel-overlay-free { background: rgba(43,179,154,0.30); border: 1px solid rgba(43,179,154,0.75); }
   .sel-overlay-conflict { background: rgba(192,69,58,0.35); border: 1px solid rgba(192,69,58,0.65); }
 
-  .event-mini-board { border: 1px solid #DBDFE5; border-radius: 10px; padding: 12px 14px; margin-top: 6px; }
+  .event-mini-board { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-top: 6px; }
   .event-mini-names { width: 160px; flex: 0 0 160px; }
     .sel-overlay { position: absolute; top: -3px; bottom: -3px; z-index: 4; border-radius: 4px; cursor: grab; }
-  .sel-overlay-free { background: rgba(30,107,60,0.35); border: 1px solid rgba(30,107,60,0.65); }
+  .sel-overlay-free { background: rgba(43,179,154,0.30); border: 1px solid rgba(43,179,154,0.75); }
   .sel-overlay-conflict { background: rgba(192,69,58,0.35); border: 1px solid rgba(192,69,58,0.65); }
 
     .invite-time { font-size: 15px; font-weight: 600; margin-top: 4px; }
-  .invite-textarea { width: 100%; padding: 8px; border: 1px solid #DBDFE5; border-radius: 7px; font-size: 13.5px; box-sizing: border-box; font-family: inherit; resize: vertical; }
+  .invite-textarea { width: 100%; padding: 8px; border: 1px solid var(--line); border-radius: 7px; font-size: 13.5px; box-sizing: border-box; font-family: inherit; resize: vertical; }
   .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
-  .attendee-chip { font-size: 12.5px; padding: 4px 10px; border-radius: 999px; background: #EEF1F4; border: 1px solid #DBDFE5; }
-  .attendee-chip.conflict { background: #FBE4E1; border-color: #E8938A; color: #8E2F26; }
+  .attendee-chip { font-size: 12.5px; padding: 4px 10px; border-radius: 999px; background: var(--line-soft); border: 1px solid var(--line); }
+  .attendee-chip.conflict { background: var(--danger-soft); border-color: #E8938A; color: #8E2F26; }
   .attendee-chip.nocal { background: #F2F3F5; border-color: #C9CFD7; color: #6B7280; font-style: italic; }
   .copy-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 4px; }
-  .copy-box { flex: 1; padding: 7px; border: 1px solid #DBDFE5; border-radius: 7px; font-size: 12px; font-family: ui-monospace, Menlo, monospace; background: #F8F9FA; resize: vertical; box-sizing: border-box; }
+  .copy-box { flex: 1; padding: 7px; border: 1px solid var(--line); border-radius: 7px; font-size: 12px; font-family: ui-monospace, Menlo, monospace; background: #F8F9FA; resize: vertical; box-sizing: border-box; }
   .copy-btn { margin: 0; padding: 7px 12px; font-size: 12.5px; white-space: nowrap; }
-  .invite-legend { display: flex; gap: 16px; font-size: 11.5px; color: #586174; margin-top: 10px; }
+  .invite-legend { display: flex; gap: 16px; font-size: 11.5px; color: var(--text-muted); margin-top: 10px; }
   .flag-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
-  .flag-dot.conflict { background: #FBE4E1; border: 1px solid #E8938A; }
+  .flag-dot.conflict { background: var(--danger-soft); border: 1px solid #E8938A; }
   .flag-dot.nocal { background: #F2F3F5; border: 1px solid #C9CFD7; }
   .modal label.hide-from-others { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--text); font-size: 13.5px; }
-  .invite-note { font-size: 12.5px; color: #586174; background: #F8F9FA; border: 1px solid #DBDFE5; border-radius: 8px; padding: 10px 12px; margin-top: 12px; }
+  .invite-note { font-size: 12.5px; color: var(--text-muted); background: #F8F9FA; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -300,6 +331,10 @@
         <span id="projectOwner"></span>
         <span id="projectCounts"></span>
       </p>
+      <div class="page-tabs" role="tablist">
+        <button type="button" class="page-tab active" id="tabSchedule" onclick="setPageTab('schedule')" data-i18n="tab_schedule"></button>
+        <button type="button" class="page-tab" id="tabEvents" onclick="setPageTab('events')" data-i18n="tab_project_events"></button>
+      </div>
     </div>
     <div class="head-actions">
       <button class="secondary" id="addParticipantBtn" onclick="openAddParticipantModal()" data-i18n="btn_participant_short"></button>
@@ -310,7 +345,15 @@
   </div>
   <div id="inviteResult"></div>
 
-  <div class="board">
+  <section class="events-panel" id="eventsPanel" style="display:none;">
+    <div class="sub-tabs" role="tablist">
+      <button type="button" class="sub-tab active" id="subTabEvents" onclick="setEventsSubTab('events')" data-i18n="subtab_events"></button>
+      <button type="button" class="sub-tab" id="subTabDrafts" onclick="setEventsSubTab('drafts')"><span data-i18n="subtab_drafts"></span><span class="count" id="draftsCount"></span></button>
+    </div>
+    <div class="events-panel-body" id="eventsPanelBody"></div>
+  </section>
+
+  <div class="board" id="scheduleBoard">
     <div class="board-toolbar">
       <div class="bt-left">
         <button type="button" class="date-title" id="dateTitle" onclick="openDatePicker()"></button>
@@ -1001,7 +1044,12 @@ async function loadStatus() {
 
     renderAll();
     checkExpiredCalendar();
+    if (!draftsLoadedOnce) {
+      draftsLoadedOnce = true;
+      loadDrafts();
+    }
   }
+  let draftsLoadedOnce = false;
 
   function checkExpiredCalendar() {
     if (expiredPopupShown || !latestStatus) return;
@@ -1424,7 +1472,7 @@ function openGroupModal() {
 
     const el = document.getElementById('inviteResult');
     el.textContent = t(msgKey);
-    el.style.color = status === 'ok' ? '#1E6B3C' : '#C0453A';
+    el.style.color = status === 'ok' ? 'var(--ok)' : 'var(--danger)';
 
     const clean = new URL(window.location.href);
     clean.searchParams.delete('status');
@@ -1538,8 +1586,300 @@ function openGroupModal() {
       </div>
     `;
   }
+  // ---------------------------------------------------------------
+  // Päävälilehdet ja tapahtumaluonnokset
+  // ---------------------------------------------------------------
+
+  let pageTab = 'schedule';
+  let eventsSubTab = 'events';
+  let myDrafts = [];
+
+  function setPageTab(tab) {
+    pageTab = tab;
+    document.getElementById('tabSchedule').classList.toggle('active', tab === 'schedule');
+    document.getElementById('tabEvents').classList.toggle('active', tab === 'events');
+    document.getElementById('scheduleBoard').style.display = tab === 'schedule' ? '' : 'none';
+    document.getElementById('eventsPanel').style.display = tab === 'events' ? '' : 'none';
+    if (tab === 'schedule') {
+      // Aikajanan leveys mitataan uudelleen, koska se oli piilossa.
+      computeHoursWindow();
+      renderAll();
+      setHomeScroll();
+    } else {
+      renderEventsPanel();
+    }
+  }
+
+  function setEventsSubTab(tab) {
+    eventsSubTab = tab;
+    renderEventsPanel();
+  }
+
+  function renderEventsPanel() {
+    document.getElementById('subTabEvents').classList.toggle('active', eventsSubTab === 'events');
+    document.getElementById('subTabDrafts').classList.toggle('active', eventsSubTab === 'drafts');
+    document.getElementById('draftsCount').textContent = myDrafts.length ? String(myDrafts.length) : '';
+    const body = document.getElementById('eventsPanelBody');
+    if (eventsSubTab === 'drafts') body.innerHTML = draftsListHtml();
+    else body.innerHTML = `<p class="panel-note">${t('events_list_coming')}</p>`;
+  }
+
+  async function loadDrafts() {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/event-drafts`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ action: 'list', projectId: PROJECT_ID }),
+      });
+      const data = await res.json();
+      myDrafts = data.drafts || [];
+    } catch (err) {
+      console.error('Luonnosten haku epäonnistui', err);
+      myDrafts = [];
+    }
+    if (pageTab === 'events') renderEventsPanel();
+    else document.getElementById('draftsCount').textContent = myDrafts.length ? String(myDrafts.length) : '';
+  }
+
+  // Luonnoksen kerrat aikaväleinä (toistuvalla kaikki kerrat).
+  function draftIntervals(payload) {
+    if (!payload) return [];
+    if (payload.mode === 'recurring' && Array.isArray(payload.occurrences) && payload.occurrences.length) {
+      return payload.occurrences.map((o) => ({ startMs: o.startMs, endMs: o.endMs }));
+    }
+    if (payload.selStart && payload.selEnd) return [{ startMs: payload.selStart, endMs: payload.selEnd }];
+    return [];
+  }
+
+  // Omat luonnokset varattuina aikahaussa (ei muokattavana olevaa luonnosta itseään).
+  function ownDraftBusy(excludeDraftId) {
+    return myDrafts
+      .filter((d) => d.id !== excludeDraftId)
+      .flatMap((d) => draftIntervals(d.payload));
+  }
+
+  // Luonnoksen osallistujat, joita ei enää ole projektissa, pudotetaan pois.
+  function pruneDraftRoles(payload) {
+    const peopleRoles = {};
+    const groupRoles = {};
+    let removed = 0;
+    Object.entries(payload.peopleRoles || {}).forEach(([id, role]) => {
+      if (latestStatus.participants.some((p) => p.id === id)) peopleRoles[id] = role;
+      else removed++;
+    });
+    Object.entries(payload.groupRoles || {}).forEach(([id, role]) => {
+      if ((latestStatus.groups || []).some((g) => g.id === id)) groupRoles[id] = role;
+      else removed++;
+    });
+    return { peopleRoles, groupRoles, removed };
+  }
+
+  // Pakollisten osallistujien (myös ryhmien) nimet, joilla on päällekkäisyys jollain kerralla.
+  function draftConflicts(payload, roles, draftId) {
+    const intervals = draftIntervals(payload);
+    const names = [];
+    Object.entries(roles.peopleRoles).forEach(([id, role]) => {
+      if (role !== 'required') return;
+      const busy = resolvePersonBusy(id);
+      if (intervals.some((iv) => busy.some((b) => overlapsMs(iv.startMs, iv.endMs, b.startMs, b.endMs)))) {
+        const p = latestStatus.participants.find((x) => x.id === id);
+        if (p) names.push(nameLabelFor(p));
+      }
+    });
+    Object.entries(roles.groupRoles).forEach(([id, role]) => {
+      if (role !== 'required') return;
+      const busy = resolveGroupBusy(id);
+      if (intervals.some((iv) => busy.some((b) => overlapsMs(iv.startMs, iv.endMs, b.startMs, b.endMs)))) {
+        const g = (latestStatus.groups || []).find((x) => x.id === id);
+        if (g) names.push(g.name);
+      }
+    });
+    const others = ownDraftBusy(draftId);
+    const overlapsDraft = intervals.some((iv) => others.some((b) => overlapsMs(iv.startMs, iv.endMs, b.startMs, b.endMs)));
+    return { names, overlapsDraft };
+  }
+
+  function escapeHtmlText(str) {
+    return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
+  function draftsListHtml() {
+    if (!myDrafts.length) return `<p class="panel-note">${t('drafts_empty')}</p>`;
+    const now = Date.now();
+    return myDrafts.map((d) => {
+      const payload = d.payload || {};
+      const intervals = draftIntervals(payload);
+      const roles = pruneDraftRoles(payload);
+      const isPast = intervals.length > 0 && intervals[intervals.length - 1].endMs < now;
+      const timeLabel = intervals.length ? formatSlotLabel(intervals[0]) : '–';
+      const flags = [];
+      if (isPast) flags.push(`<span class="draft-flag warn">${t('draft_past')}</span>`);
+      if (intervals.length > 1) flags.push(`<span class="draft-flag">${t('draft_recurring', { count: intervals.length })}</span>`);
+      const attendeeCount = Object.keys(roles.peopleRoles).length + Object.keys(roles.groupRoles).length;
+      flags.push(`<span class="draft-flag">${t('draft_attendees', { count: attendeeCount })}</span>`);
+      if (!isPast) {
+        const c = draftConflicts(payload, roles, d.id);
+        if (c.names.length) flags.push(`<span class="draft-flag warn">${t('draft_conflict', { names: escapeHtmlText(c.names.join(', ')) })}</span>`);
+        if (c.overlapsDraft) flags.push(`<span class="draft-flag info">${t('draft_conflict_draft')}</span>`);
+      }
+      if (roles.removed) flags.push(`<span class="draft-flag info">${t('draft_removed', { count: roles.removed })}</span>`);
+      return `
+        <div class="draft-row ${isPast ? 'past' : ''}">
+          <div class="dr-main">
+            <div class="dr-title">${escapeHtmlText(d.title || t('draft_untitled'))}</div>
+            <div class="dr-time">${timeLabel}</div>
+            <div class="dr-flags">${flags.join('')}</div>
+          </div>
+          <div class="dr-actions">
+            <button type="button" onclick="publishDraft('${d.id}')">${t('draft_publish_btn')}</button>
+            <button type="button" class="secondary" onclick="editDraft('${d.id}')">${t('draft_edit_btn')}</button>
+            <button type="button" class="danger" onclick="deleteDraft('${d.id}')">${t('draft_delete_btn')}</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Tallennettavat kentät: kaikki tapahtuman luonnissa syötetyt tiedot.
+  const DRAFT_FIELDS = ['duration', 'peopleRoles', 'groupRoles', 'rangeFrom', 'rangeTo', 'preferMorning', 'preferMidday',
+    'preferAfternoon', 'mode', 'rec', 'recRule', 'occurrences', 'selStart', 'selEnd', 'inviteTitle', 'inviteBody', 'inviteHidden'];
+
+  async function saveAsDraft() {
+    const s = eventModalState;
+    const payload = {};
+    DRAFT_FIELDS.forEach((f) => { if (s[f] !== undefined) payload[f] = s[f]; });
+    if (!isRecurringSeries()) payload.occurrences = null;
+    const intervals = draftIntervals(payload);
+    const btn = document.getElementById('saveDraftBtn');
+    if (btn) btn.disabled = true;
+
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/event-drafts`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({
+          action: 'save',
+          projectId: PROJECT_ID,
+          draftId: s.draftId || null,
+          title: s.inviteTitle || '',
+          payload,
+          firstStartAt: intervals.length ? new Date(intervals[0].startMs).toISOString() : null,
+          lastEndAt: intervals.length ? new Date(intervals[intervals.length - 1].endMs).toISOString() : null,
+        }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert(t('error_prefix') + ': ' + data.error);
+        if (btn) btn.disabled = false;
+        return;
+      }
+      closeModal();
+      eventModalState = null;
+      await loadDrafts();
+      showInlineNote(t('draft_saved'));
+    } catch (err) {
+      alert(t('error_prefix') + ': ' + err.message);
+      if (btn) btn.disabled = false;
+    }
+  }
+
+  function showInlineNote(text) {
+    const el = document.getElementById('inviteResult');
+    el.textContent = text;
+    el.style.color = 'var(--ok)';
+    setTimeout(() => { el.textContent = ''; el.style.color = ''; }, 6000);
+  }
+
+  // Palauttaa luonnoksen tapahtuman luonnin tilaksi. Palauttaa false, jos
+  // luonnoksesta ei voi jatkaa (esim. kaikki osallistujat poistettu).
+  function restoreDraftState(draftId) {
+    const d = myDrafts.find((x) => x.id === draftId);
+    if (!d || !latestStatus) return false;
+    const payload = JSON.parse(JSON.stringify(d.payload || {}));
+    const roles = pruneDraftRoles(payload);
+
+    eventModalState = {
+      duration: 30, rangeFrom: '', rangeTo: '', preferMorning: false, preferMidday: false, preferAfternoon: false,
+      mode: 'single', rec: defaultRecurrenceState(), recRule: null, recCtx: null, occurrences: null,
+      results: null, selectedResultIdx: 0, calAnchor: null, selStart: null, selEnd: null,
+      ...payload,
+      peopleRoles: roles.peopleRoles,
+      groupRoles: roles.groupRoles,
+      draftId: d.id,
+      draftRemovedCount: roles.removed,
+    };
+    const s = eventModalState;
+    if (s.selStart && s.selEnd) {
+      s.results = [{ startMs: s.selStart, endMs: s.selEnd }];
+      s.calAnchor = toDateStr(new Date(s.selStart));
+    }
+    if (Object.keys(s.peopleRoles).length + Object.keys(s.groupRoles).length === 0) return true;
+
+    // Kertojen tila lasketaan tuoreilla kalentereilla.
+    if (isRecurringSeries()) {
+      const busy = collectEventBusy();
+      if (busy) {
+        s.recCtx = { ...busy, horizonMs: scheduleHorizonMs(), nowMs: Date.now() };
+        s.occurrences.forEach((o) => { o.status = recOccurrenceStatus(o.startMs, o.endMs, o.targetStartMs, s.recCtx); });
+      }
+    }
+    return true;
+  }
+
+  function editDraft(draftId) {
+    if (!restoreDraftState(draftId)) return;
+    const s = eventModalState;
+    if (!s.results) { renderEventSelectionStep(); return; }
+    if (isRecurringSeries() && s.rec.smart) renderOccurrenceListStep();
+    else renderEventResultsStep();
+  }
+
+  function publishDraft(draftId) {
+    if (!restoreDraftState(draftId)) return;
+    const s = eventModalState;
+    if (!s.results) { renderEventSelectionStep(); return; }
+    if (Object.keys(s.peopleRoles).length + Object.keys(s.groupRoles).length === 0) {
+      alert(t('alert_select_attendee'));
+      renderEventSelectionStep();
+      return;
+    }
+    openInviteConfirmStep();
+  }
+
+  async function deleteDraft(draftId) {
+    const d = myDrafts.find((x) => x.id === draftId);
+    if (!d) return;
+    if (!confirm(t('confirm_delete_draft', { title: d.title || t('draft_untitled') }))) return;
+    await deleteDraftRequest(draftId);
+    await loadDrafts();
+  }
+
+  async function deleteDraftRequest(draftId) {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/event-drafts`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ action: 'delete', projectId: PROJECT_ID, draftId }),
+    });
+    const data = await res.json();
+    if (data.error) alert(t('error_prefix') + ': ' + data.error);
+  }
+
+  function refetchOccurrenceTimes() {
+    if (!buildRecurringOccurrences()) return;
+    renderOccurrenceListStep();
+  }
+
+  function draftEditNoteHtml() {
+    const s = eventModalState;
+    if (!s || !s.draftId) return '';
+    const removed = s.draftRemovedCount ? ' ' + t('draft_removed', { count: s.draftRemovedCount }) : '';
+    return `<p class="draft-edit-note">${t('editing_draft_note')}${removed}</p>`;
+  }
+
   function openCreateEventModal() {
     if (!latestStatus) return;
+    // Luonnoksen muokkauksen jälkeen uusi tapahtuma aloitetaan puhtaalta pöydältä.
+    if (eventModalState && eventModalState.draftId) eventModalState = null;
     eventModalState = {
       duration: (eventModalState && eventModalState.duration) || 30,
       peopleRoles: (eventModalState && eventModalState.peopleRoles) || {},
@@ -1559,6 +1899,11 @@ function openGroupModal() {
       calAnchor: null,
       selStart: null,
       selEnd: null,
+      draftId: null,
+      draftRemovedCount: 0,
+      inviteTitle: '',
+      inviteBody: '',
+      inviteHidden: false,
     };
     renderEventSelectionStep();
   }
@@ -1865,9 +2210,11 @@ function openGroupModal() {
       return null;
     }
 
+    // Omat luonnokset käsitellään varattuina (vain tekijälle — muut eivät näe niitä).
     const requiredBusy = [
       ...requiredIds.people.flatMap(resolvePersonBusy),
       ...requiredIds.groups.flatMap(resolveGroupBusy),
+      ...ownDraftBusy(s.draftId),
     ];
     const optionalBusyLists = [
       ...optionalIds.people.map(resolvePersonBusy),
@@ -2054,11 +2401,13 @@ function openGroupModal() {
       <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
         <div class="modal event-modal">
           <h3>${t('rec_occurrences_heading')}</h3>
+          ${draftEditNoteHtml()}
           <p class="rec-hint">${recurrenceSummaryText()}</p>
           <p class="rec-hint">${t('rec_occ_hint')}</p>
           <div class="occ-list">${rows}</div>
           <div class="actions">
             <button class="secondary" onclick="renderEventResultsStep()">${t('back_btn')}</button>
+            <button class="secondary" onclick="refetchOccurrenceTimes()">${t('rec_refetch_btn')}</button>
             <button onclick="openInviteConfirmStep()">${t('rec_create_invites_btn')}</button>
           </div>
         </div>
@@ -2341,6 +2690,7 @@ function openGroupModal() {
       <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
         <div class="modal event-modal">
           <h3>${s.mode === 'recurring' ? t('rec_pick_first_heading') : t('suggested_times')}</h3>
+          ${draftEditNoteHtml()}
           ${s.mode === 'recurring' ? `<p class="rec-hint">${t('rec_pick_first_hint')}</p>` : ''}
           <button class="secondary" onclick="renderEventSelectionStep()">${t('add_more_people_groups')}</button>
 
@@ -2547,6 +2897,7 @@ function openGroupModal() {
       <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
         <div class="modal event-modal">
           <h3>${t('modal_invite_confirm')}</h3>
+          ${draftEditNoteHtml()}
 
           ${timeHtml}
           <p class="empty-note" style="margin-top:2px;">${t('invite_organizer_is_you')}</p>
@@ -2586,6 +2937,7 @@ function openGroupModal() {
 
           <div class="actions">
             <button class="secondary" onclick="${backAction}">${t('back_btn')}</button>
+            <button class="secondary" id="saveDraftBtn" onclick="saveAsDraft()">${t('save_as_draft_btn')}</button>
             <button id="sendInviteBtn" ${sendDisabled ? 'disabled' : ''}
                     onclick="sendInvite()">${t('send_invites_btn')}</button>
           </div>
@@ -2656,6 +3008,11 @@ function openGroupModal() {
         return;
       }
 
+      // Julkaistu luonnos poistetaan luonnoslistalta.
+      if (s.draftId) {
+        await deleteDraftRequest(s.draftId);
+        loadDrafts();
+      }
       renderInviteSentStep(data);
     } catch (err) {
       alert(t('invite_send_failed') + ': ' + err.message);
@@ -2677,10 +3034,10 @@ function openGroupModal() {
     // Erillisillä kokouksilla jokaisella on oma Teams-linkki — ne löytyvät kalenterista.
     const teamsHtml = !separate && data.teamsUrl
       ? `<p class="empty-note" style="margin-top:10px;">${t('teams_link_label')}:<br>
-           <a href="${data.teamsUrl}" target="_blank" style="color:#2A4B7C; word-break:break-all;">${data.teamsUrl}</a></p>`
+           <a href="${data.teamsUrl}" target="_blank" style="color:var(--primary); word-break:break-all;">${data.teamsUrl}</a></p>`
       : '';
     const openHtml = !separate && data.webLink
-      ? `<p style="margin-top:10px;"><a href="${data.webLink}" target="_blank" style="color:#2A4B7C;">${t('open_in_calendar')}</a></p>`
+      ? `<p style="margin-top:10px;"><a href="${data.webLink}" target="_blank" style="color:var(--primary);">${t('open_in_calendar')}</a></p>`
       : '';
 
     document.getElementById('modalHost').innerHTML = `
@@ -2811,14 +3168,14 @@ async function openSettingsModal() {
     if (s.calendarWrite) {
       return `
         <div class="calendar-section" style="margin-top:18px;">
-          <label style="margin-top:0; color:#161B22; font-weight:600;">${t('write_section_title')}</label>
+          <label style="margin-top:0; color:var(--text); font-weight:600;">${t('write_section_title')}</label>
           <p class="ok-text">${t('write_granted_ok')}</p>
         </div>
       `;
     }
     return `
       <div class="calendar-section" style="margin-top:18px;">
-        <label style="margin-top:0; color:#161B22; font-weight:600;">${t('write_section_title')}</label>
+        <label style="margin-top:0; color:var(--text); font-weight:600;">${t('write_section_title')}</label>
         <p class="empty-note">${t('write_section_explain')}</p>
         <button type="button" onclick="startWriteAuth()">${t('grant_write_btn')}</button>
       </div>
