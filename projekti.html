@@ -54,6 +54,36 @@
   .draft-details .dd-body { white-space: pre-wrap; }
   .draft-details .dd-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
   .draft-details .dd-actions button { margin: 0; padding: 6px 12px; font-size: 13px; }
+  /* Tapahtumalista: päivät ryhminä, rivit vieritettävissä sivusuunnassa */
+  .ev-scroll { overflow-x: auto; margin: 0 -24px; padding: 0 24px; }
+  .ev-list { display: inline-block; min-width: 100%; }
+  .ev-day { font-size: 13px; font-weight: 800; color: var(--text); padding: 18px 0 8px; position: sticky; left: 0; }
+  .ev-row { display: flex; align-items: center; gap: 16px; padding: 10px 0; border-top: 1px solid var(--line-soft); white-space: nowrap; }
+  .ev-day + .ev-row { border-top: none; }
+  .ev-main { position: sticky; left: 0; z-index: 1; background: var(--surface); display: flex; align-items: center; gap: 10px; width: 360px; flex: 0 0 360px; padding-right: 8px; box-sizing: border-box; }
+  .ev-time { font-size: 13px; color: var(--text-muted); width: 92px; flex: 0 0 92px; }
+  .ev-name { background: none; border: none; padding: 0; margin: 0; color: var(--text); font: inherit; font-size: 14.5px; font-weight: 700; cursor: pointer; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  .ev-name:hover { background: none; border: none; text-decoration: underline; }
+  .ev-icon { display: inline-flex; color: var(--text-faint); flex: none; }
+  .ev-icon svg { width: 14px; height: 14px; }
+  .ev-pill { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #EEF1F4; color: var(--text-muted); flex: none; }
+  .ev-pill.cancel { background: var(--danger-soft); color: #9C2C22; }
+  .ev-attendees { display: flex; gap: 6px; align-items: center; }
+  .ev-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
+  .ev-chip.optional { border-style: dashed; color: var(--text-muted); }
+  .ev-chip.organizer { border-color: var(--primary); background: var(--primary-soft); }
+  .ev-chip .org-mark { font-size: 10.5px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.04em; }
+  .ev-row.cancelled .ev-name, .ev-row.cancelled .ev-time { text-decoration: line-through; color: var(--text-faint); }
+  .ev-past .ev-day, .ev-past .ev-name, .ev-past .ev-time, .ev-past .ev-chip { color: var(--text-faint); }
+  .ev-past .ev-chip.organizer { background: var(--surface-muted); border-color: var(--line); }
+  .ev-details { position: sticky; left: 0; width: min(100%, 760px); margin: 0 0 12px; white-space: normal; background: var(--surface-muted); border: 1px solid var(--line-soft); border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: 160px 1fr; gap: 10px 16px; font-size: 13.5px; box-sizing: border-box; }
+  .ev-details .dd-label { color: var(--text-muted); font-weight: 600; }
+  .ev-details .dd-body { white-space: pre-wrap; }
+  .ev-details a { color: var(--primary); word-break: break-all; }
+  .ev-details .dd-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; }
+  .ev-details .dd-actions button { margin: 0; padding: 6px 12px; font-size: 13px; }
+  .past-link { background: none; border: none; padding: 0; margin: 18px 0 4px; color: var(--text-faint); font-size: 13.5px; font-weight: 600; text-decoration: underline; cursor: pointer; }
+  .past-link:hover { background: none; border: none; color: var(--text-muted); }
   .draft-flag { font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--line-soft); color: var(--text-muted); }
   .draft-flag.warn { background: var(--danger-soft); color: #9C2C22; }
   .draft-flag.info { background: #FBF0D9; color: #91600C; }
@@ -1059,6 +1089,7 @@ async function loadStatus() {
     if (!draftsLoadedOnce) {
       draftsLoadedOnce = true;
       loadDrafts();
+      loadProjectEvents();
     }
   }
   let draftsLoadedOnce = false;
@@ -1673,7 +1704,146 @@ function openGroupModal() {
     document.getElementById('draftsCount').textContent = myDrafts.length ? String(myDrafts.length) : '';
     const body = document.getElementById('eventsPanelBody');
     if (eventsSubTab === 'drafts') body.innerHTML = draftsListHtml();
-    else body.innerHTML = `<p class="panel-note">${t('events_list_coming')}</p>`;
+    else body.innerHTML = eventsListHtml();
+  }
+
+  // ---------------------------------------------------------------
+  // Projektin tapahtumat (sovelluksesta lähetetyt kutsut)
+  // ---------------------------------------------------------------
+
+  let projectEvents = [];
+  let expandedEventId = null;
+  let showPastEvents = false;
+
+  async function loadProjectEvents() {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/list-project-events`, {
+        method: 'POST',
+        headers: authHeaders(),
+        body: JSON.stringify({ projectId: PROJECT_ID }),
+      });
+      const data = await res.json();
+      projectEvents = (data.events || []).map((e) => ({
+        ...e,
+        startMs: new Date(e.start_at).getTime(),
+        endMs: new Date(e.end_at).getTime(),
+      }));
+    } catch (err) {
+      console.error('Tapahtumien haku epäonnistui', err);
+      projectEvents = [];
+    }
+    if (pageTab === 'events') renderEventsPanel();
+  }
+
+  function toggleEventDetails(eventId) {
+    expandedEventId = expandedEventId === eventId ? null : eventId;
+    renderEventsPanel();
+  }
+
+  function togglePastEvents() {
+    showPastEvents = !showPastEvents;
+    renderEventsPanel();
+  }
+
+  function participantName(id) {
+    const p = latestStatus.participants.find((x) => x.id === id);
+    return p ? nameLabelFor(p) : t('removed_participant');
+  }
+
+  function formatTimeRange(startMs, endMs) {
+    const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
+    const f = (ms) => new Date(ms).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    return `${f(startMs)}–${f(endMs)}`;
+  }
+
+  function formatDayHeading(ms) {
+    const d = new Date(ms);
+    const wd = weekdayFullArr()[(d.getDay() + 6) % 7];
+    return wd.charAt(0).toUpperCase() + wd.slice(1) + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
+  }
+
+  const RECUR_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M13 6.5A5 5 0 0 0 3.6 4.6M3 9.5a5 5 0 0 0 9.4 1.9"/><path d="M3.5 2v3h3M12.5 14v-3h-3"/></svg>';
+
+  function eventRowHtml(e) {
+    const chips = [];
+    if (e.organizer_participant_id) {
+      chips.push(`<span class="ev-chip organizer"><span class="org-mark">${t('event_organizer')}</span>${escapeHtmlText(participantName(e.organizer_participant_id))}</span>`);
+    }
+    (e.required_ids || []).forEach((id) => chips.push(`<span class="ev-chip">${escapeHtmlText(participantName(id))}</span>`));
+    (e.optional_ids || []).forEach((id) => chips.push(`<span class="ev-chip optional">${escapeHtmlText(participantName(id))}</span>`));
+    const recurring = e.series_id && e.occurrence_count
+      ? `<span class="ev-icon" data-tip="${t('event_recurring_tip', { index: e.occurrence_index, count: e.occurrence_count })}">${RECUR_ICON}</span>`
+      : '';
+    const cancelled = e.status === 'cancelled' ? `<span class="ev-pill cancel">${t('event_cancelled')}</span>` : '';
+    const hidden = e.hidden ? `<span class="ev-pill">${t('draft_visibility_hidden')}</span>` : '';
+    return `
+      <div class="ev-row ${e.status === 'cancelled' ? 'cancelled' : ''}">
+        <div class="ev-main">
+          <span class="ev-time">${formatTimeRange(e.startMs, e.endMs)}</span>
+          <button type="button" class="ev-name" onclick="toggleEventDetails('${e.id}')" aria-expanded="${expandedEventId === e.id}">${escapeHtmlText(e.title)}</button>
+          ${recurring}${cancelled}${hidden}
+        </div>
+        <div class="ev-attendees">${chips.join('')}</div>
+      </div>
+      ${expandedEventId === e.id ? eventDetailsHtml(e) : ''}
+    `;
+  }
+
+  function eventDetailsHtml(e) {
+    const series = e.series_id && e.occurrence_count
+      ? `<span class="dd-label">${t('event_details_series')}</span><div>${t('event_recurring_tip', { index: e.occurrence_index, count: e.occurrence_count })}</div>`
+      : '';
+    const teams = e.teamsUrl
+      ? `<span class="dd-label">${t('teams_link_label')}</span><div><a href="${escapeHtmlText(e.teamsUrl)}" target="_blank" rel="noopener">${escapeHtmlText(e.teamsUrl)}</a></div>`
+      : '';
+    return `
+      <div class="ev-details">
+        <span class="dd-label">${t('draft_details_time')}</span>
+        <div>${formatDayHeading(e.startMs)} ${formatTimeRange(e.startMs, e.endMs)}${e.status === 'cancelled' ? ' · ' + t('event_cancelled') : ''}</div>
+        ${series}
+        <span class="dd-label">${t('event_organizer')}</span>
+        <div>${e.organizer_participant_id ? escapeHtmlText(participantName(e.organizer_participant_id)) : '–'}</div>
+        <span class="dd-label">${t('draft_details_message')}</span>
+        <div class="dd-body">${escapeHtmlText(e.body || '') || '–'}</div>
+        ${teams}
+        <span class="dd-label">${t('event_details_visibility')}</span>
+        <div>${e.hidden ? t('draft_visibility_hidden') : t('draft_visibility_all')}</div>
+        <div class="dd-actions">
+          <button type="button" class="secondary" onclick="toggleEventDetails('${e.id}')">${t('collapse_btn')}</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function eventDayGroupsHtml(events) {
+    let html = '';
+    let currentDay = null;
+    events.forEach((e) => {
+      const day = toDateStr(new Date(e.startMs));
+      if (day !== currentDay) {
+        currentDay = day;
+        html += `<div class="ev-day">${formatDayHeading(e.startMs)}</div>`;
+      }
+      html += eventRowHtml(e);
+    });
+    return html;
+  }
+
+  function eventsListHtml() {
+    if (!projectEvents.length) return `<p class="panel-note">${t('events_empty')}</p>`;
+    const now = Date.now();
+    const upcoming = projectEvents.filter((e) => e.endMs >= now);
+    // Menneet uusimmasta vanhimpaan.
+    const past = projectEvents.filter((e) => e.endMs < now).sort((a, b) => b.startMs - a.startMs);
+
+    let html = upcoming.length
+      ? `<div class="ev-scroll"><div class="ev-list">${eventDayGroupsHtml(upcoming)}</div></div>`
+      : `<p class="panel-note">${t('events_no_upcoming')}</p>`;
+    if (past.length) {
+      html += `<button type="button" class="past-link" onclick="togglePastEvents()">${showPastEvents ? t('hide_past_events') : t('past_events_link', { count: past.length })}</button>`;
+      if (showPastEvents) html += `<div class="ev-scroll ev-past"><div class="ev-list">${eventDayGroupsHtml(past)}</div></div>`;
+    }
+    return html;
   }
 
   async function loadDrafts() {
@@ -3061,6 +3231,7 @@ function openGroupModal() {
         return;
       }
 
+      loadProjectEvents();
       // Julkaistu luonnos poistetaan luonnoslistalta.
       if (s.draftId) {
         await deleteDraftRequest(s.draftId);
