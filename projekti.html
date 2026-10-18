@@ -181,6 +181,14 @@
   .all-free-block { position: absolute; top: 0; bottom: 0; background: var(--free-bg); border: 1px solid var(--free-line); border-radius: 3px; box-sizing: border-box; z-index: 2; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--free-text); overflow: hidden; white-space: nowrap; }
   .restricted-block { position: absolute; top: 0; bottom: 0; background: #4C6FA5; border-radius: 3px; z-index: 0; opacity: 0.55; }
 
+  /* Projektin tapahtumat ja omat luonnokset aikajanalla (lohkossa nimi) */
+  .ov-layer { position: absolute; left: 0; top: 50%; height: 26px; transform: translateY(-50%); z-index: 3; pointer-events: none; }
+  .ov-block { position: absolute; top: 0; bottom: 0; box-sizing: border-box; border-radius: 4px; padding: 0 6px; display: flex; align-items: center; font-size: 11.5px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: auto; cursor: pointer; }
+  .ov-block span { overflow: hidden; text-overflow: ellipsis; }
+  .ov-event { background: #FBE9E6; border: 1px solid var(--busy); }
+  .ov-draft { background: #FDF3C4; border: 1px solid #E2B93B; z-index: 1; }
+  .legend .swatch.ov-event { background: #FBE9E6; border: 1px solid var(--busy); }
+  .legend .swatch.ov-draft { background: #FDF3C4; border: 1px solid #E2B93B; }
   .no-auth-band { position: absolute; top: 13px; bottom: 13px; border-radius: 4px; display: flex; align-items: center; padding-left: 12px; font-size: 12.5px; color: var(--text-muted);
     background: repeating-linear-gradient(135deg, #F1F3F6 0 8px, #E6E9EE 8px 16px); }
   .no-auth-band.plain { background: var(--surface-muted); }
@@ -430,6 +438,8 @@
       <span><span class="swatch all-free"></span><span data-i18n="legend_all_free"></span></span>
       <span><span class="swatch no-auth"></span><span data-i18n="legend_not_authorized"></span></span>
       <span><span class="swatch restricted"></span><span data-i18n="legend_restricted"></span></span>
+      <span><span class="swatch ov-event"></span><span data-i18n="legend_project_event"></span></span>
+      <span><span class="swatch ov-draft"></span><span data-i18n="legend_draft"></span></span>
     </div>
   </div>
 </main>
@@ -767,6 +777,86 @@ function bufferDates(anchor) {
       html += `<div class="no-auth-band ${extraClass}" style="left:${i * DAY_VISIBLE_PX}px; width:${DAY_VISIBLE_PX}px;">${text}</div>`;
     }
     return html;
+  }
+
+  // Aikaväli pikselilohkoiksi näkyvän puskurin päiville (rajattuna päivän näkyvään ikkunaan).
+  function intervalToBlocks(startMs, endMs) {
+    const blocks = [];
+    bufferDates().forEach((dateStr, dayIdx) => {
+      const day = new Date(dateStr + 'T00:00:00').getTime();
+      const winStart = day + HOURS_START * 3600000;
+      const winEnd = day + HOURS_END * 3600000;
+      const s0 = Math.max(startMs, winStart);
+      const e0 = Math.min(endMs, winEnd);
+      if (e0 <= s0) return;
+      blocks.push({
+        left: dayIdx * DAY_VISIBLE_PX + (s0 - winStart) / 60000 * PX_PER_MIN,
+        width: (e0 - s0) / 60000 * PX_PER_MIN,
+      });
+    });
+    return blocks;
+  }
+
+  function overlayBlocksHtml(cls, startMs, endMs, label, tip, onclick) {
+    return intervalToBlocks(startMs, endMs).map((b) =>
+      `<div class="ov-block ${cls}" style="left:${b.left}px; width:${b.width}px;" data-tip="${escapeAttr(tip)}" onclick="event.stopPropagation(); ${onclick}"><span>${escapeAttr(label)}</span></div>`
+    ).join('');
+  }
+
+  // Henkilön rivi: tapahtumat, joihin hänet on kutsuttu tai joiden järjestäjä hän on,
+  // ja omat luonnokset, joihin hänet on valittu (tekijän omalla rivillä kaikki omat luonnokset).
+  function personOverlayHtml(participantId, isOwnRow) {
+    let html = '';
+    projectEvents.forEach((e) => {
+      if (e.status === 'cancelled') return;
+      const involved = e.organizer_participant_id === participantId
+        || (e.required_ids || []).includes(participantId) || (e.optional_ids || []).includes(participantId);
+      if (!involved) return;
+      html += overlayBlocksHtml('ov-event', e.startMs, e.endMs, e.title,
+        t('timeline_event_tip', { title: e.title, time: formatTimeRange(e.startMs, e.endMs) }),
+        `openEventFromTimeline('${e.id}')`);
+    });
+    myDrafts.forEach((d) => {
+      const payload = d.payload || {};
+      if (!isOwnRow && !(payload.peopleRoles && payload.peopleRoles[participantId])) return;
+      const title = d.title || t('draft_untitled');
+      draftIntervals(payload).forEach((iv) => {
+        html += overlayBlocksHtml('ov-draft', iv.startMs, iv.endMs, title,
+          t('timeline_draft_tip', { title, time: formatTimeRange(iv.startMs, iv.endMs) }),
+          `openDraftFromTimeline('${d.id}')`);
+      });
+    });
+    return html ? `<div class="ov-layer" style="width:${totalWidthPx()}px;">${html}</div>` : '';
+  }
+
+  // Ryhmän rivi: omat luonnokset, joihin ryhmä on valittu.
+  function groupOverlayHtml(groupId) {
+    let html = '';
+    myDrafts.forEach((d) => {
+      const payload = d.payload || {};
+      if (!(payload.groupRoles && payload.groupRoles[groupId])) return;
+      const title = d.title || t('draft_untitled');
+      draftIntervals(payload).forEach((iv) => {
+        html += overlayBlocksHtml('ov-draft', iv.startMs, iv.endMs, title,
+          t('timeline_draft_tip', { title, time: formatTimeRange(iv.startMs, iv.endMs) }),
+          `openDraftFromTimeline('${d.id}')`);
+      });
+    });
+    return html ? `<div class="ov-layer" style="width:${totalWidthPx()}px;">${html}</div>` : '';
+  }
+
+  function openEventFromTimeline(eventId) {
+    expandedEventId = eventId;
+    eventsSubTab = 'events';
+    const e = projectEvents.find((x) => x.id === eventId);
+    if (e && e.endMs < Date.now()) showPastEvents = true;
+    setPageTab('events');
+  }
+
+  function openDraftFromTimeline(draftId) {
+    expandedDraftId = draftId;
+    eventsSubTab = 'drafts';
+    setPageTab('events');
   }
 
   function escapeAttr(str) {
@@ -1219,6 +1309,7 @@ async function loadStatus() {
           const restricted = isOwnRow ? restrictedBlocksHtml(p.ownRestrictedRanges) : '';
           tRow.innerHTML = `<div class="timeline-cell" style="width:${w}px;">${dayBackgroundsHtml()}${hourGridLinesHtml()}${restricted}${busyBlocksHtml(p.scheduleItems, undefined, label)}</div>`;
         }
+        tRow.insertAdjacentHTML('beforeend', personOverlayHtml(p.id, isOwnRow));
         timelineCol.appendChild(tRow);
       });
     }
@@ -1276,7 +1367,7 @@ async function loadStatus() {
     tRow.className = 'timeline-row clickable';
     tRow.style.width = totalWidthPx() + 'px';
     tRow.onclick = () => openGroupDetail(g.id);
-    tRow.innerHTML = timelineCellHtml(groupMergedItems(g));
+    tRow.innerHTML = timelineCellHtml(groupMergedItems(g)) + groupOverlayHtml(g.id);
     timelineCol.appendChild(tRow);
   }
 
@@ -1733,6 +1824,7 @@ function openGroupModal() {
       projectEvents = [];
     }
     if (pageTab === 'events') renderEventsPanel();
+    else if (latestStatus) renderAll();
   }
 
   function toggleEventDetails(eventId) {
@@ -1860,7 +1952,10 @@ function openGroupModal() {
       myDrafts = [];
     }
     if (pageTab === 'events') renderEventsPanel();
-    else document.getElementById('draftsCount').textContent = myDrafts.length ? String(myDrafts.length) : '';
+    else {
+      document.getElementById('draftsCount').textContent = myDrafts.length ? String(myDrafts.length) : '';
+      if (latestStatus) renderAll();
+    }
   }
 
   // Luonnoksen kerrat aikaväleinä (toistuvalla kaikki kerrat).
