@@ -279,6 +279,7 @@
   .flag-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
   .flag-dot.conflict { background: #FBE4E1; border: 1px solid #E8938A; }
   .flag-dot.nocal { background: #F2F3F5; border: 1px solid #C9CFD7; }
+  .modal label.hide-from-others { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--text); font-size: 13.5px; }
   .invite-note { font-size: 12.5px; color: #586174; background: #F8F9FA; border: 1px solid #DBDFE5; border-radius: 8px; padding: 10px 12px; margin-top: 12px; }
 </style>
 </head>
@@ -2575,6 +2576,12 @@ function openGroupModal() {
           </div>
 
           ${flagLegend}
+
+          <label class="hide-from-others">
+            <input type="checkbox" ${s.inviteHidden ? 'checked' : ''} onchange="eventModalState.inviteHidden = this.checked" />
+            ${t('invite_hide_from_others')}
+          </label>
+
           ${noteHtml}
 
           <div class="actions">
@@ -2606,23 +2613,32 @@ function openGroupModal() {
       subject: s.inviteTitle,
       body: s.inviteBody || '',
       timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Helsinki',
+      hidden: !!s.inviteHidden,
     };
+    const isoOf = (ms) => new Date(ms).toISOString();
 
     if (isRecurringSeries() && s.rec.smart) {
       // Älykäs aikataulutus: erilliset kokoukset, koska kellonajat voivat vaihdella.
       payload.occurrences = s.occurrences.map((o) => ({
         start: localDateTimeString(new Date(o.startMs)),
         end: localDateTimeString(new Date(o.endMs)),
+        startIso: isoOf(o.startMs),
+        endIso: isoOf(o.endMs),
       }));
+      payload.seriesInfo = { ...s.recRule, smart: true };
     } else {
       const slot = isRecurringSeries() ? s.occurrences[0] : selectedSlot();
       payload.start = localDateTimeString(new Date(slot.startMs));
       payload.end = localDateTimeString(new Date(slot.endMs));
+      payload.startIso = isoOf(slot.startMs);
+      payload.endIso = isoOf(slot.endMs);
       if (isRecurringSeries()) {
         payload.recurrence = {
           ...s.recRule,
           ...(s.rec.endType === 'count' ? { count: s.occurrences.length } : { endDate: s.rec.endDate }),
         };
+        // Sarjan kerrat projektin tapahtumalistaa varten (Outlook luo samat kerrat säännöstä).
+        payload.seriesOccurrences = s.occurrences.map((o) => ({ startIso: isoOf(o.startMs), endIso: isoOf(o.endMs) }));
       }
     }
 
