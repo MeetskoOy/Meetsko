@@ -42,6 +42,18 @@
   .draft-row .dr-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
   .draft-row .dr-actions button { margin: 0; padding: 7px 12px; font-size: 13px; }
   .draft-row.past .dr-title, .draft-row.past .dr-time { color: var(--danger); }
+  .draft-row { flex-wrap: wrap; }
+  .draft-row .dr-title-btn { background: none; border: none; padding: 0; margin: 0; color: inherit; font: inherit; font-size: 15px; font-weight: 700; text-align: left; cursor: pointer; }
+  .draft-row .dr-title-btn:hover { background: none; border: none; text-decoration: underline; }
+  .draft-details { flex-basis: 100%; background: var(--surface-muted); border: 1px solid var(--line-soft); border-radius: 10px; padding: 14px 16px; display: grid; grid-template-columns: 160px 1fr; gap: 10px 16px; font-size: 13.5px; }
+  .draft-details .dd-label { color: var(--text-muted); font-weight: 600; }
+  .draft-details .dd-times { display: flex; flex-direction: column; gap: 2px; max-height: 160px; overflow-y: auto; }
+  .draft-details .dd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .draft-details .dd-chip { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; font-size: 12.5px; }
+  .draft-details .dd-chip.optional { border-style: dashed; }
+  .draft-details .dd-body { white-space: pre-wrap; }
+  .draft-details .dd-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; }
+  .draft-details .dd-actions button { margin: 0; padding: 6px 12px; font-size: 13px; }
   .draft-flag { font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--line-soft); color: var(--text-muted); }
   .draft-flag.warn { background: var(--danger-soft); color: #9C2C22; }
   .draft-flag.info { background: #FBF0D9; color: #91600C; }
@@ -1593,6 +1605,46 @@ function openGroupModal() {
   let pageTab = 'schedule';
   let eventsSubTab = 'events';
   let myDrafts = [];
+  let expandedDraftId = null;
+
+  function toggleDraftDetails(draftId) {
+    expandedDraftId = expandedDraftId === draftId ? null : draftId;
+    renderEventsPanel();
+  }
+
+  // Luonnoksen tiedot lukutilassa (nimen klikkaus).
+  function draftDetailsHtml(d, roles, intervals) {
+    const payload = d.payload || {};
+    const chip = (name, role) => `<span class="dd-chip ${role === 'optional' ? 'optional' : ''}">${escapeHtmlText(name)}</span>`;
+    const people = (role) => Object.entries(roles.peopleRoles).filter(([, r]) => r === role)
+      .map(([id]) => latestStatus.participants.find((p) => p.id === id)).filter(Boolean)
+      .map((p) => chip(nameLabelFor(p), role));
+    const groups = (role) => Object.entries(roles.groupRoles).filter(([, r]) => r === role)
+      .map(([id]) => (latestStatus.groups || []).find((g) => g.id === id)).filter(Boolean)
+      .map((g) => chip(g.name, role));
+    const required = [...people('required'), ...groups('required')];
+    const optional = [...people('optional'), ...groups('optional')];
+    const times = intervals.length
+      ? intervals.map((iv, i) => `<span>${intervals.length > 1 ? (i + 1) + '. ' : ''}${formatSlotLabel(iv)}</span>`).join('')
+      : '–';
+    return `
+      <div class="draft-details">
+        <span class="dd-label">${t('draft_details_time')}</span>
+        <div class="dd-times">${times}</div>
+        <span class="dd-label">${t('invite_required_label')}</span>
+        <div class="dd-chips">${required.join('') || '–'}</div>
+        <span class="dd-label">${t('invite_optional_label')}</span>
+        <div class="dd-chips">${optional.join('') || '–'}</div>
+        <span class="dd-label">${t('draft_details_message')}</span>
+        <div class="dd-body">${escapeHtmlText(payload.inviteBody || '') || '–'}</div>
+        <span class="dd-label">${t('draft_details_visibility')}</span>
+        <div>${payload.inviteHidden ? t('draft_visibility_hidden') : t('draft_visibility_all')}</div>
+        <div class="dd-actions">
+          <button type="button" class="secondary" onclick="toggleDraftDetails('${d.id}')">${t('collapse_btn')}</button>
+        </div>
+      </div>
+    `;
+  }
 
   function setPageTab(tab) {
     pageTab = tab;
@@ -1726,7 +1778,7 @@ function openGroupModal() {
       return `
         <div class="draft-row ${isPast ? 'past' : ''}">
           <div class="dr-main">
-            <div class="dr-title">${escapeHtmlText(d.title || t('draft_untitled'))}</div>
+            <div class="dr-title"><button type="button" class="dr-title-btn" onclick="toggleDraftDetails('${d.id}')" aria-expanded="${expandedDraftId === d.id}">${escapeHtmlText(d.title || t('draft_untitled'))}</button></div>
             <div class="dr-time">${timeLabel}</div>
             <div class="dr-flags">${flags.join('')}</div>
           </div>
@@ -1735,6 +1787,7 @@ function openGroupModal() {
             <button type="button" class="secondary" onclick="editDraft('${d.id}')">${t('draft_edit_btn')}</button>
             <button type="button" class="danger" onclick="deleteDraft('${d.id}')">${t('draft_delete_btn')}</button>
           </div>
+          ${expandedDraftId === d.id ? draftDetailsHtml(d, roles, intervals) : ''}
         </div>
       `;
     }).join('');
@@ -2408,7 +2461,7 @@ function openGroupModal() {
           <div class="actions">
             <button class="secondary" onclick="renderEventResultsStep()">${t('back_btn')}</button>
             <button class="secondary" onclick="refetchOccurrenceTimes()">${t('rec_refetch_btn')}</button>
-            <button onclick="openInviteConfirmStep()">${t('rec_create_invites_btn')}</button>
+            <button onclick="openInviteConfirmStep()">${eventModalState.draftId ? t('save_draft_btn') : t('rec_create_invites_btn')}</button>
           </div>
         </div>
       </div>
@@ -2716,8 +2769,8 @@ function openGroupModal() {
           <div class="actions">
             <button class="secondary" onclick="closeModal()">${t('close')}</button>
             ${s.mode === 'recurring'
-              ? `<button onclick="continueRecurring()">${s.rec.smart ? t('rec_find_other_times_btn') : t('create_invite_btn')}</button>`
-              : `<button onclick="openInviteConfirmStep()">${t('create_invite_btn')}</button>`}
+              ? `<button onclick="continueRecurring()">${s.rec.smart ? t('rec_find_other_times_btn') : (s.draftId ? t('save_draft_btn') : t('create_invite_btn'))}</button>`
+              : `<button onclick="openInviteConfirmStep()">${s.draftId ? t('save_draft_btn') : t('create_invite_btn')}</button>`}
           </div>
         </div>
       </div>
@@ -2937,7 +2990,7 @@ function openGroupModal() {
 
           <div class="actions">
             <button class="secondary" onclick="${backAction}">${t('back_btn')}</button>
-            <button class="secondary" id="saveDraftBtn" onclick="saveAsDraft()">${t('save_as_draft_btn')}</button>
+            <button class="secondary" id="saveDraftBtn" onclick="saveAsDraft()">${s.draftId ? t('save_draft_btn') : t('save_as_draft_btn')}</button>
             <button id="sendInviteBtn" ${sendDisabled ? 'disabled' : ''}
                     onclick="sendInvite()">${t('send_invites_btn')}</button>
           </div>
