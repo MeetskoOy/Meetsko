@@ -1856,7 +1856,7 @@ function openGroupModal() {
 
   const RECUR_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M13 6.5A5 5 0 0 0 3.6 4.6M3 9.5a5 5 0 0 0 9.4 1.9"/><path d="M3.5 2v3h3M12.5 14v-3h-3"/></svg>';
 
-  function eventRowHtml(e) {
+  function eventRowHtml(e, seg, showDetails) {
     const chips = [];
     if (e.organizer_participant_id) {
       chips.push(`<span class="ev-chip organizer"><span class="org-mark">${t('event_organizer')}</span>${escapeHtmlText(participantName(e.organizer_participant_id))}</span>`);
@@ -1871,13 +1871,13 @@ function openGroupModal() {
     return `
       <div class="ev-row ${e.status === 'cancelled' ? 'cancelled' : ''}">
         <div class="ev-main">
-          <span class="ev-time">${formatTimeRange(e.startMs, e.endMs)}</span>
+          <span class="ev-time">${seg.label}</span>
           <button type="button" class="ev-name" onclick="toggleEventDetails('${e.id}')" aria-expanded="${expandedEventId === e.id}">${escapeHtmlText(e.title)}</button>
           ${recurring}${cancelled}${hidden}
         </div>
         <div class="ev-attendees">${chips.join('')}</div>
       </div>
-      ${expandedEventId === e.id ? eventDetailsHtml(e) : ''}
+      ${showDetails ? eventDetailsHtml(e) : ''}
     `;
   }
 
@@ -1891,7 +1891,7 @@ function openGroupModal() {
     return `
       <div class="ev-details">
         <span class="dd-label">${t('draft_details_time')}</span>
-        <div>${formatDayHeading(e.startMs)} ${formatTimeRange(e.startMs, e.endMs)}${e.status === 'cancelled' ? ' · ' + t('event_cancelled') : ''}</div>
+        <div>${formatEventSpan(e.startMs, e.endMs)}${e.status === 'cancelled' ? ' · ' + t('event_cancelled') : ''}</div>
         ${series}
         <span class="dd-label">${t('event_organizer')}</span>
         <div>${e.organizer_participant_id ? escapeHtmlText(participantName(e.organizer_participant_id)) : '–'}</div>
@@ -1948,16 +1948,56 @@ function openGroupModal() {
     }
   }
 
-  function eventDayGroupsHtml(events) {
+  function formatClock(ms) {
+    const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
+    return new Date(ms).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+  }
+
+  // Koko aikaväli: samana päivänä "Ma 19.10.2026 10.00–11.00", useana päivänä
+  // "Ke 15.10.2026 10.00 – Ti 21.10.2026 11.00".
+  function formatEventSpan(startMs, endMs) {
+    if (toDateStr(new Date(startMs)) === toDateStr(new Date(endMs - 1))) {
+      return `${formatDayHeading(startMs)} ${formatTimeRange(startMs, endMs)}`;
+    }
+    return `${formatDayHeading(startMs)} ${formatClock(startMs)} – ${formatDayHeading(endMs)} ${formatClock(endMs)}`;
+  }
+
+  // Monipäiväinen tapahtuma pilkotaan päiväkohtaisiksi osiksi, jotta se näkyy
+  // listalla jokaisella päivällä: 1. päivä alku–23.59, välipäivät 00.00–23.59,
+  // viimeinen 00.00–loppu.
+  function eventDaySegments(e) {
+    const segs = [];
+    let dayStart = new Date(e.startMs); dayStart.setHours(0, 0, 0, 0);
+    while (dayStart.getTime() < e.endMs) {
+      const next = new Date(dayStart); next.setDate(next.getDate() + 1);
+      const segStart = Math.max(e.startMs, dayStart.getTime());
+      const segEnd = Math.min(e.endMs, next.getTime());
+      if (segEnd > segStart) {
+        const single = segStart === e.startMs && segEnd === e.endMs;
+        const label = single
+          ? formatTimeRange(e.startMs, e.endMs)
+          : `${formatClock(segStart)}–${segEnd === e.endMs ? formatClock(segEnd) : formatClock(next.getTime() - 60000)}`;
+        segs.push({ event: e, startMs: segStart, endMs: segEnd, label });
+      }
+      dayStart = next;
+    }
+    return segs;
+  }
+
+  // segments: [{ event, startMs, endMs, label }] valmiiksi järjestettynä.
+  function eventDayGroupsHtml(segments, shownDetails) {
     let html = '';
     let currentDay = null;
-    events.forEach((e) => {
-      const day = toDateStr(new Date(e.startMs));
+    segments.forEach((seg) => {
+      const day = toDateStr(new Date(seg.startMs));
       if (day !== currentDay) {
         currentDay = day;
-        html += `<div class="ev-day">${formatDayHeading(e.startMs)}</div>`;
+        html += `<div class="ev-day">${formatDayHeading(seg.startMs)}</div>`;
       }
-      html += eventRowHtml(e);
+      // Avatut tiedot näytetään vain tapahtuman ensimmäisellä näkyvällä rivillä.
+      const showDetails = expandedEventId === seg.event.id && !shownDetails.has(seg.event.id);
+      if (showDetails) shownDetails.add(seg.event.id);
+      html += eventRowHtml(seg.event, seg, showDetails);
     });
     return html;
   }
@@ -1965,16 +2005,19 @@ function openGroupModal() {
   function eventsListHtml() {
     if (!projectEvents.length) return `<p class="panel-note">${t('events_empty')}</p>`;
     const now = Date.now();
-    const upcoming = projectEvents.filter((e) => e.endMs >= now);
-    // Menneet uusimmasta vanhimpaan.
-    const past = projectEvents.filter((e) => e.endMs < now).sort((a, b) => b.startMs - a.startMs);
+    const segments = projectEvents.flatMap(eventDaySegments);
+    const upcoming = segments.filter((g) => g.endMs >= now).sort((a, b) => a.startMs - b.startMs);
+    // Menneet päivät uusimmasta vanhimpaan; laskuriin tapahtumat (ei päiviä).
+    const past = segments.filter((g) => g.endMs < now).sort((a, b) => b.startMs - a.startMs);
+    const pastEventCount = new Set(past.map((g) => g.event.id)).size;
+    const shownDetails = new Set();
 
     let html = upcoming.length
-      ? `<div class="ev-scroll"><div class="ev-list">${eventDayGroupsHtml(upcoming)}</div></div>`
+      ? `<div class="ev-scroll"><div class="ev-list">${eventDayGroupsHtml(upcoming, shownDetails)}</div></div>`
       : `<p class="panel-note">${t('events_no_upcoming')}</p>`;
     if (past.length) {
-      html += `<button type="button" class="past-link" onclick="togglePastEvents()">${showPastEvents ? t('hide_past_events') : t('past_events_link', { count: past.length })}</button>`;
-      if (showPastEvents) html += `<div class="ev-scroll ev-past"><div class="ev-list">${eventDayGroupsHtml(past)}</div></div>`;
+      html += `<button type="button" class="past-link" onclick="togglePastEvents()">${showPastEvents ? t('hide_past_events') : t('past_events_link', { count: pastEventCount })}</button>`;
+      if (showPastEvents) html += `<div class="ev-scroll ev-past"><div class="ev-list">${eventDayGroupsHtml(past, shownDetails)}</div></div>`;
     }
     return html;
   }
