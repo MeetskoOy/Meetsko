@@ -84,6 +84,41 @@
   .ev-details .dd-actions button { margin: 0; padding: 6px 12px; font-size: 13px; }
   .past-link { background: none; border: none; padding: 0; margin: 18px 0 4px; color: var(--text-faint); font-size: 13.5px; font-weight: 600; text-decoration: underline; cursor: pointer; }
   .past-link:hover { background: none; border: none; color: var(--text-muted); }
+  /* Ajanvalitsin (päivämäärä + kellonaika samassa näkymässä) */
+  .dt-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; background: var(--surface); color: var(--text); border: 1px solid #D0D5DD; border-radius: 8px; padding: 9px 11px; margin: 0; font: inherit; font-size: 14px; font-weight: 500; text-align: left; cursor: pointer; box-sizing: border-box; }
+  .dt-field:hover { background: var(--surface-muted); border-color: #D0D5DD; }
+  .dt-field.empty { color: var(--text-faint); }
+  .dt-field svg { width: 16px; height: 16px; color: var(--text-faint); flex: none; }
+  .dt-range-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .dt-range-grid label { margin-top: 10px; }
+  .dtp-pop { position: fixed; z-index: 60; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 36px rgba(14,34,64,0.18); padding: 14px; display: flex; flex-direction: column; gap: 12px; font-size: 13.5px; }
+  .dtp-ends { display: flex; gap: 8px; }
+  .dtp-end-btn { flex: 1; background: var(--surface-muted); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; margin: 0; font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+  .dtp-end-btn:hover { background: var(--surface-muted); border-color: var(--primary); }
+  .dtp-end-btn.active { border-color: var(--primary); background: var(--primary-soft); }
+  .dtp-end-btn b { display: block; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+  .dtp-body { display: flex; gap: 14px; }
+  .dtp-cal { width: 252px; }
+  .dtp-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 700; }
+  .dtp-cal-head button { background: none; border: 1px solid var(--line); color: var(--text); width: 28px; height: 28px; padding: 0; margin: 0; border-radius: 6px; }
+  .dtp-cal-head button:hover { background: var(--surface-muted); border-color: var(--line); }
+  .dtp-grid { display: grid; grid-template-columns: repeat(7, 36px); gap: 0; }
+  .dtp-wd { font-size: 11px; color: var(--text-faint); text-align: center; padding: 4px 0; font-weight: 600; }
+  .dtp-day { height: 32px; background: none; border: none; margin: 0; padding: 0; color: var(--text); font: inherit; font-size: 13px; border-radius: 6px; cursor: pointer; }
+  .dtp-day:hover { background: var(--surface-muted); border: none; }
+  .dtp-day.other { color: var(--text-faint); }
+  .dtp-day.today { font-weight: 800; }
+  .dtp-day.in-range { background: var(--primary-soft); border-radius: 0; }
+  .dtp-day.sel, .dtp-day.sel:hover { background: var(--primary); color: #fff; border-radius: 6px; }
+  .dtp-times { width: 92px; display: flex; flex-direction: column; gap: 6px; }
+  .dtp-times input { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #D0D5DD; border-radius: 6px; font: inherit; font-size: 13px; }
+  .dtp-time-list { position: relative; height: 230px; overflow-y: auto; border: 1px solid var(--line-soft); border-radius: 8px; }
+  .dtp-time { display: block; width: 100%; background: none; border: none; margin: 0; padding: 6px 10px; text-align: left; font: inherit; font-size: 13px; color: var(--text); border-radius: 0; cursor: pointer; }
+  .dtp-time:hover { background: var(--surface-muted); border: none; }
+  .dtp-time.sel, .dtp-time.sel:hover { background: var(--primary); color: #fff; }
+  .dtp-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+  .dtp-foot button { margin: 0; padding: 6px 12px; font-size: 13px; }
+  .dtp-error { color: var(--danger); font-size: 12px; }
   .draft-flag { font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--line-soft); color: var(--text-muted); }
   .draft-flag.warn { background: var(--danger-soft); color: #9C2C22; }
   .draft-flag.info { background: #FBF0D9; color: #91600C; }
@@ -1272,34 +1307,36 @@ async function loadStatus() {
     namesCol.innerHTML = rulerHeadHtml();
     timelineCol.innerHTML = '';
 
-    namesCol.innerHTML += `
+    namesCol.insertAdjacentHTML('beforeend', `
       <div class="name-row whole-row">
         ${groupAvatarHtml()}
         <div class="who-text"><span class="name">${t('whole_project')}</span></div>
       </div>
-    `;
-    timelineCol.innerHTML += `<div class="timeline-row whole-row" style="width:${totalWidthPx()}px;"><div class="timeline-cell" style="width:${totalWidthPx()}px;">${wholeProjectCellHtml(authorized)}</div></div>`;
+    `);
+    timelineCol.insertAdjacentHTML('beforeend', `<div class="timeline-row whole-row" style="width:${totalWidthPx()}px;"><div class="timeline-cell" style="width:${totalWidthPx()}px;">${wholeProjectCellHtml(authorized)}</div></div>`);
 
     const peopleHeader = sectionHeaderPair('people', t('section_people'), data.participants.length);
-    namesCol.innerHTML += peopleHeader.nameSide;
-    timelineCol.innerHTML += peopleHeader.timelineSide;
+    namesCol.insertAdjacentHTML('beforeend', peopleHeader.nameSide);
+    timelineCol.insertAdjacentHTML('beforeend', peopleHeader.timelineSide);
 
     if (!isSectionCollapsed('people')) {
       data.participants.forEach((p) => {
         const label = nameLabelFor(p);
         const statusLine = p.status === 'authorized' ? ''
           : `<span class="status-line warn">${t(p.status === 'expired' ? 'cal_status_expired' : 'cal_status_not_authorized')}</span>`;
-        namesCol.innerHTML += `
+        namesCol.insertAdjacentHTML('beforeend', `
           <div class="name-row clickable" onclick="openParticipantDetail('${p.id}')">
             ${participantAvatarHtml(p)}
             <div class="who-text"><span class="name clickable">${label}</span>${statusLine}</div>
           </div>
-        `;
+        `);
         const tRow = document.createElement('div');
         tRow.className = 'timeline-row clickable';
         tRow.style.width = totalWidthPx() + 'px';
-        tRow.onclick = () => openParticipantDetail(p.id);
         const isOwnRow = p.email.toLowerCase() === currentUserEmail;
+        // Pikavaraus: klikkaus avaa tapahtuman luonnin tällä henkilöllä ja klikatulla ajalla
+        // (omalla rivillä ilman osallistujia). Henkilön tiedot aukeavat nimen klikkauksesta.
+        tRow.onclick = (ev) => quickBookFromRow(ev, isOwnRow ? {} : { personId: p.id });
         const w = totalWidthPx();
         if (p.status !== 'authorized') {
           tRow.innerHTML = dayBandsHtml('', t('availability_hidden'));
@@ -1316,13 +1353,13 @@ async function loadStatus() {
 
     const ownGroups = (data.groups || []).filter((g) => g.visibility === 'private' && g.isOwn);
     const ownHeader = sectionHeaderPair('owngroups', t('section_own_groups'), ownGroups.length);
-    namesCol.innerHTML += ownHeader.nameSide;
-    timelineCol.innerHTML += ownHeader.timelineSide;
+    namesCol.insertAdjacentHTML('beforeend', ownHeader.nameSide);
+    timelineCol.insertAdjacentHTML('beforeend', ownHeader.timelineSide);
 
     if (!isSectionCollapsed('owngroups')) {
       if (ownGroups.length === 0) {
-        namesCol.innerHTML += `<div class="name-row"><span class="empty-note">${t('empty_no_own_groups')}</span></div>`;
-        timelineCol.innerHTML += `<div class="timeline-row"></div>`;
+        namesCol.insertAdjacentHTML('beforeend', `<div class="name-row"><span class="empty-note">${t('empty_no_own_groups')}</span></div>`);
+        timelineCol.insertAdjacentHTML('beforeend', `<div class="timeline-row"></div>`);
       } else {
         ownGroups.forEach((g) => renderGroupRow(g, namesCol, timelineCol));
       }
@@ -1330,13 +1367,13 @@ async function loadStatus() {
 
     const projectGroups = (data.groups || []).filter((g) => g.visibility === 'project');
     const projHeader = sectionHeaderPair('projectgroups', t('section_project_groups'), projectGroups.length);
-    namesCol.innerHTML += projHeader.nameSide;
-    timelineCol.innerHTML += projHeader.timelineSide;
+    namesCol.insertAdjacentHTML('beforeend', projHeader.nameSide);
+    timelineCol.insertAdjacentHTML('beforeend', projHeader.timelineSide);
 
     if (!isSectionCollapsed('projectgroups')) {
       if (projectGroups.length === 0) {
-        namesCol.innerHTML += `<div class="name-row"><span class="empty-note">${t('empty_no_project_groups')}</span></div>`;
-        timelineCol.innerHTML += `<div class="timeline-row"></div>`;
+        namesCol.insertAdjacentHTML('beforeend', `<div class="name-row"><span class="empty-note">${t('empty_no_project_groups')}</span></div>`);
+        timelineCol.insertAdjacentHTML('beforeend', `<div class="timeline-row"></div>`);
       } else {
         projectGroups.forEach((g) => renderGroupRow(g, namesCol, timelineCol));
       }
@@ -1366,7 +1403,8 @@ async function loadStatus() {
     const tRow = document.createElement('div');
     tRow.className = 'timeline-row clickable';
     tRow.style.width = totalWidthPx() + 'px';
-    tRow.onclick = () => openGroupDetail(g.id);
+    // Pikavaraus ryhmälle (pakollisena); ryhmän tiedot aukeavat nimen klikkauksesta.
+    tRow.onclick = (ev) => quickBookFromRow(ev, { groupId: g.id });
     tRow.innerHTML = timelineCellHtml(groupMergedItems(g)) + groupOverlayHtml(g.id);
     timelineCol.appendChild(tRow);
   }
@@ -1590,6 +1628,7 @@ function openGroupModal() {
   }
 
   function closeModal() {
+    closeDtp();
     document.getElementById('modalHost').innerHTML = '';
   }
 
@@ -2278,6 +2317,27 @@ function openGroupModal() {
     return `<p class="draft-edit-note">${t('editing_draft_note')}${removed}</p>`;
   }
 
+  // Pikavaraus pääaikajanalta: avaa ehdotusvaiheen suoraan klikatulla ajalla
+  // (15 min tarkkuus, kesto edellisestä tapahtumasta tai 30 min).
+  function quickBookFromRow(ev, who) {
+    if (ev.target.closest('.ov-block')) return;
+    const rowRect = ev.currentTarget.getBoundingClientRect();
+    const clicked = timestampForClickX(ev.clientX - rowRect.left, anchorDateStr);
+    if (clicked === null) return;
+    openCreateEventModal();
+    const s = eventModalState;
+    s.mode = 'single';
+    s.peopleRoles = who.personId ? { [who.personId]: 'required' } : {};
+    s.groupRoles = who.groupId ? { [who.groupId]: 'required' } : {};
+    const durationMs = (Number(s.duration) || 30) * 60000;
+    s.selStart = clicked;
+    s.selEnd = clicked + durationMs;
+    s.results = [{ startMs: s.selStart, endMs: s.selEnd }];
+    s.selectedResultIdx = 0;
+    s.calAnchor = toDateStr(new Date(clicked));
+    renderEventResultsStep({ scroll: 'selection' });
+  }
+
   function openCreateEventModal() {
     if (!latestStatus) return;
     // Luonnoksen muokkauksen jälkeen uusi tapahtuma aloitetaan puhtaalta pöydältä.
@@ -2500,11 +2560,15 @@ function openGroupModal() {
           <label>${t('duration_minutes_label')}</label>
           <input type="number" min="5" step="5" value="${s.duration}" oninput="setEventDuration(this.value)" />
 
-          <label>${t('schedule_between_label')}</label>
-          <div class="event-range-row">
-            <input type="datetime-local" value="${s.rangeFrom}" oninput="eventModalState.rangeFrom = this.value" />
-            <span>–</span>
-            <input type="datetime-local" value="${s.rangeTo}" oninput="eventModalState.rangeTo = this.value" />
+          <div class="dt-range-grid">
+            <div>
+              <label>${t('range_after_label')}</label>
+              <button type="button" class="dt-field ${s.rangeFrom ? '' : 'empty'}" id="rangeFromField" onclick="openDtp('rangeFrom')">${dtFieldInner(s.rangeFrom)}</button>
+            </div>
+            <div>
+              <label>${t('range_before_label')}</label>
+              <button type="button" class="dt-field ${s.rangeTo ? '' : 'empty'}" id="rangeToField" onclick="openDtp('rangeTo')">${dtFieldInner(s.rangeTo)}</button>
+            </div>
           </div>
 
           <label>${t('prefer_time_label')}</label>
@@ -2922,16 +2986,6 @@ function openGroupModal() {
       + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   }
 
-  function updateSelectedTimeFromInputs() {
-    const newStart = new Date(document.getElementById('selStartInput').value).getTime();
-    const newEnd = new Date(document.getElementById('selEndInput').value).getTime();
-    if (isNaN(newStart) || isNaN(newEnd) || newEnd <= newStart) return;
-    eventModalState.selStart = newStart;
-    eventModalState.selEnd = newEnd;
-    eventModalState.calAnchor = toDateStr(new Date(newStart));
-    renderEventResultsStep();
-  }
-
   function timestampForClickX(xOffset, anchor) {
     const dayIdx = Math.floor(xOffset / DAY_VISIBLE_PX);
     const dates = bufferDates(anchor);
@@ -2955,11 +3009,11 @@ function openGroupModal() {
     const clicked = timestampForClickX(xOffset, eventModalState.calAnchor);
     if (clicked === null) return;
 
+    // Aikajana ei liiku: valintalaatikko siirtyy klikattuun kohtaan samalla kestolla.
     const duration = eventModalState.selEnd - eventModalState.selStart;
     eventModalState.selStart = clicked;
     eventModalState.selEnd = clicked + duration;
-    eventModalState.calAnchor = toDateStr(new Date(eventModalState.selStart));
-    renderEventResultsStep();
+    renderEventResultsStep({ scroll: 'keep' });
   }
 
   // Suoraan DOM:iin kohdistuva, kevyt päivitys raahauksen AIKANA — ei
@@ -2978,10 +3032,8 @@ function openGroupModal() {
   }
 
   function updateSelectedTimeInputsInPlace() {
-    const startInput = document.getElementById('selStartInput');
-    const endInput = document.getElementById('selEndInput');
-    if (startInput) startInput.value = formatDatetimeLocal(eventModalState.selStart);
-    if (endInput) endInput.value = formatDatetimeLocal(eventModalState.selEnd);
+    const field = document.querySelector('#selTimeField span');
+    if (field) field.textContent = formatEventSpan(eventModalState.selStart, eventModalState.selEnd);
   }
 
   function attachSelectionDrag() {
@@ -3021,11 +3073,6 @@ function openGroupModal() {
             eventModalState.selEnd = newStart + duration;
           }
 
-          const newAnchor = toDateStr(new Date(eventModalState.selStart));
-          if (newAnchor !== eventModalState.calAnchor) {
-            eventModalState.calAnchor = newAnchor;
-          }
-
           updateSelectionOverlaysInPlace();
           updateSelectedTimeInputsInPlace();
         }
@@ -3033,8 +3080,7 @@ function openGroupModal() {
         function onUp() {
           document.removeEventListener('mousemove', onMove);
           document.removeEventListener('mouseup', onUp);
-          eventModalState.calAnchor = toDateStr(new Date(eventModalState.selStart));
-          renderEventResultsStep();
+          renderEventResultsStep({ scroll: 'keep' });
         }
 
         document.addEventListener('mousemove', onMove);
@@ -3052,8 +3098,229 @@ function openGroupModal() {
     });
   }
 
-  function renderEventResultsStep() {
+  // ---------------------------------------------------------------
+  // Ajanvalitsin: päivämäärä ja kellonaika samassa näkymässä.
+  //   'rangeFrom' / 'rangeTo' (valintavaihe): yksi aika, lista 30 min välein, valinnainen
+  //   'sel' (ehdotusvaihe): alku ja loppu, lista 15 min välein + vapaa kirjoitus;
+  //   alun muutos siirtää loppua samalla kestolla, lopun muutos muuttaa kestoa.
+  // ---------------------------------------------------------------
+
+  const CAL_ICON_HTML = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.8v2.4M10.5 1.8v2.4"/></svg>';
+  let dtp = null;
+
+  function formatDtValue(ms) {
+    return `${formatDayHeading(ms)} ${formatClock(ms)}`;
+  }
+
+  function dtFieldInner(value) {
+    const label = value ? formatDtValue(new Date(value).getTime()) : t('dtp_optional_placeholder');
+    return `${CAL_ICON_HTML}<span style="flex:1;">${label}</span>`;
+  }
+
+  function dtpTriggerId(kind) {
+    return kind === 'rangeFrom' ? 'rangeFromField' : kind === 'rangeTo' ? 'rangeToField' : 'selTimeField';
+  }
+
+  // Valitsimen nykyinen aika (ms) kohteelle: alku/loppu tai aikavälin kenttä.
+  function dtpValue(which) {
     const s = eventModalState;
+    if (dtp.kind === 'sel') return which === 'end' ? s.selEnd : s.selStart;
+    return s[dtp.kind] ? new Date(s[dtp.kind]).getTime() : null;
+  }
+
+  function openDtp(kind) {
+    const s = eventModalState;
+    const base = kind === 'sel' ? s.selStart : (s[kind] ? new Date(s[kind]).getTime() : Date.now());
+    const d = new Date(base);
+    dtp = { kind, active: 'start', view: new Date(d.getFullYear(), d.getMonth(), 1), error: '' };
+    renderDtp(true);
+  }
+
+  function closeDtp() {
+    dtp = null;
+    const el = document.getElementById('dtpPopover');
+    if (el) el.remove();
+  }
+
+  function renderDtpIfOpen() {
+    if (dtp && dtp.kind === 'sel') renderDtp(false);
+  }
+
+  function dtpSetActive(which) {
+    dtp.active = which;
+    const d = new Date(dtpValue(which));
+    dtp.view = new Date(d.getFullYear(), d.getMonth(), 1);
+    dtp.error = '';
+    renderDtp(true);
+  }
+
+  function dtpShiftMonth(delta) {
+    dtp.view = new Date(dtp.view.getFullYear(), dtp.view.getMonth() + delta, 1);
+    renderDtp(false);
+  }
+
+  function minutesOfDay(ms) {
+    const d = new Date(ms);
+    return d.getHours() * 60 + d.getMinutes();
+  }
+
+  function atDateAndMinutes(dateStr, minutes) {
+    const d = new Date(dateStr + 'T00:00:00');
+    d.setMinutes(minutes);
+    return d.getTime();
+  }
+
+  // Yhteinen asetus päivän tai kellonajan valinnalle.
+  function dtpApply(dateStr, minutes) {
+    const s = eventModalState;
+    dtp.error = '';
+    if (dtp.kind !== 'sel') {
+      const cur = dtpValue('start');
+      const defaultMinutes = dtp.kind === 'rangeFrom' ? 8 * 60 : 18 * 60;
+      const date = dateStr || toDateStr(new Date(cur || Date.now()));
+      const mins = minutes !== null ? minutes : (cur !== null ? minutesOfDay(cur) : defaultMinutes);
+      s[dtp.kind] = formatDatetimeLocal(atDateAndMinutes(date, mins));
+      const field = document.getElementById(dtpTriggerId(dtp.kind));
+      if (field) { field.innerHTML = dtFieldInner(s[dtp.kind]); field.classList.remove('empty'); }
+      renderDtp(false);
+      return;
+    }
+    if (dtp.active === 'start') {
+      const date = dateStr || toDateStr(new Date(s.selStart));
+      const newStart = atDateAndMinutes(date, minutes !== null ? minutes : minutesOfDay(s.selStart));
+      applySelection(newStart, newStart + (s.selEnd - s.selStart));
+    } else {
+      const date = dateStr || toDateStr(new Date(s.selEnd));
+      const newEnd = atDateAndMinutes(date, minutes !== null ? minutes : minutesOfDay(s.selEnd));
+      if (newEnd <= s.selStart) {
+        dtp.error = t('dtp_end_before_start');
+        renderDtp(false);
+        return;
+      }
+      applySelection(s.selStart, newEnd);
+    }
+  }
+
+  // Kirjoitettu aika: "13", "13.10", "13:10" tai "1310".
+  function dtpTypedTime(value) {
+    const m = String(value).trim().match(/^(\d{1,2})(?:[.:]?(\d{2}))?$/);
+    if (!m) { dtp.error = t('dtp_invalid_time'); renderDtp(false); return; }
+    const h = Number(m[1]), min = Number(m[2] || 0);
+    if (h > 23 || min > 59) { dtp.error = t('dtp_invalid_time'); renderDtp(false); return; }
+    dtpApply(null, h * 60 + min);
+  }
+
+  function dtpClear() {
+    eventModalState[dtp.kind] = '';
+    const field = document.getElementById(dtpTriggerId(dtp.kind));
+    if (field) { field.innerHTML = dtFieldInner(''); field.classList.add('empty'); }
+    closeDtp();
+  }
+
+  function renderDtp(scrollTimes) {
+    if (!dtp) return;
+    const trigger = document.getElementById(dtpTriggerId(dtp.kind));
+    if (!trigger) { closeDtp(); return; }
+    const isSel = dtp.kind === 'sel';
+    const activeMs = dtpValue(dtp.active);
+    const startMs = dtpValue('start');
+    const endMs = isSel ? dtpValue('end') : null;
+    const startDay = startMs !== null ? toDateStr(new Date(startMs)) : null;
+    const endDay = endMs !== null ? toDateStr(new Date(endMs)) : null;
+
+    // Kuukausikalenteri, viikko alkaa maanantaista.
+    const first = dtp.view;
+    const offset = (first.getDay() + 6) % 7;
+    const gridStart = new Date(first.getFullYear(), first.getMonth(), 1 - offset);
+    let days = '';
+    for (let i = 0; i < 42; i++) {
+      const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i);
+      const ds = toDateStr(d);
+      const cls = ['dtp-day'];
+      if (d.getMonth() !== first.getMonth()) cls.push('other');
+      if (ds === todayDateStr()) cls.push('today');
+      if (ds === startDay || ds === endDay) cls.push('sel');
+      else if (isSel && startDay && endDay && ds > startDay && ds < endDay) cls.push('in-range');
+      days += `<button type="button" class="${cls.join(' ')}" onclick="dtpApply('${ds}', null)">${d.getDate()}</button>`;
+    }
+    const wd = weekdayShortArr().map((w) => `<span class="dtp-wd">${w}</span>`).join('');
+    const monthName = t('rec_month_nom_' + (first.getMonth() + 1));
+
+    const step = isSel ? 15 : 30;
+    const activeMinutes = activeMs !== null ? minutesOfDay(activeMs) : null;
+    let times = '';
+    for (let m = 0; m < 24 * 60; m += step) {
+      const label = String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+      times += `<button type="button" class="dtp-time ${m === activeMinutes ? 'sel' : ''}" data-min="${m}" onclick="dtpApply(null, ${m})">${label}</button>`;
+    }
+
+    const ends = isSel ? `
+      <div class="dtp-ends">
+        <button type="button" class="dtp-end-btn ${dtp.active === 'start' ? 'active' : ''}" onclick="dtpSetActive('start')"><b>${t('dtp_start')}</b>${formatDtValue(startMs)}</button>
+        <button type="button" class="dtp-end-btn ${dtp.active === 'end' ? 'active' : ''}" onclick="dtpSetActive('end')"><b>${t('dtp_end')}</b>${formatDtValue(endMs)}</button>
+      </div>` : '';
+    const typed = isSel
+      ? `<input type="text" inputmode="numeric" placeholder="${t('dtp_type_time')}" value="${activeMs !== null ? formatClock(activeMs) : ''}" onkeydown="if(event.key==='Enter'){dtpTypedTime(this.value);}" onchange="dtpTypedTime(this.value)" />`
+      : '';
+
+    let el = document.getElementById('dtpPopover');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'dtpPopover';
+      el.className = 'dtp-pop';
+      document.body.appendChild(el);
+    }
+    el.innerHTML = `
+      ${ends}
+      <div class="dtp-body">
+        <div class="dtp-cal">
+          <div class="dtp-cal-head">
+            <button type="button" onclick="dtpShiftMonth(-1)" aria-label="‹">‹</button>
+            <span>${monthName} ${first.getFullYear()}</span>
+            <button type="button" onclick="dtpShiftMonth(1)" aria-label="›">›</button>
+          </div>
+          <div class="dtp-grid">${wd}${days}</div>
+        </div>
+        <div class="dtp-times">
+          ${typed}
+          <div class="dtp-time-list" id="dtpTimeList">${times}</div>
+        </div>
+      </div>
+      ${dtp.error ? `<div class="dtp-error">${dtp.error}</div>` : ''}
+      <div class="dtp-foot">
+        ${isSel ? '<span></span>' : `<button type="button" class="secondary" onclick="dtpClear()">${t('dtp_clear')}</button>`}
+        <button type="button" onclick="closeDtp()">${t('dtp_done')}</button>
+      </div>
+    `;
+
+    // Sijainti kentän alle (tai yläpuolelle, jos tila ei riitä), näkymän sisällä.
+    const r = trigger.getBoundingClientRect();
+    const w = el.offsetWidth, h = el.offsetHeight;
+    let left = Math.min(r.left, window.innerWidth - w - 12);
+    let top = r.bottom + 6;
+    if (top + h > window.innerHeight - 12) top = Math.max(12, r.top - h - 6);
+    el.style.left = Math.max(12, left) + 'px';
+    el.style.top = top + 'px';
+
+    if (scrollTimes) {
+      const list = document.getElementById('dtpTimeList');
+      const target = list.querySelector('.dtp-time.sel') || list.querySelector(`[data-min="${(activeMinutes !== null ? Math.floor(activeMinutes / step) * step : 8 * 60)}"]`);
+      if (target) list.scrollTop = Math.max(0, target.offsetTop - list.clientHeight / 2 + target.offsetHeight / 2);
+    }
+  }
+
+  // Valitsin sulkeutuu, kun klikataan sen ja kenttien ulkopuolelle, tai Escillä.
+  document.addEventListener('mousedown', (e) => {
+    if (dtp && !e.target.closest('#dtpPopover') && !e.target.closest('.dt-field')) closeDtp();
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && dtp) closeDtp(); });
+
+  // scroll: 'selection' = keskitä valinta (avaus), 'keep' = säilytä vierityskohta
+  // (klikkaus, raahaus) ja vieritä vain jos valinta ei näy, { shiftDays } = sivutus.
+  function renderEventResultsStep(opts = {}) {
+    const s = eventModalState;
+    const prevCol = document.getElementById('eventTimelineCol');
+    const prevScroll = prevCol ? prevCol.scrollLeft : null;
 
     const slotRows = s.results.map((slot, idx) => `
       <div class="slot-row ${idx === s.selectedResultIdx ? 'active' : ''}" onclick="selectEventResult(${idx})">
@@ -3099,11 +3366,7 @@ function openGroupModal() {
           <div class="slot-list">${slotRows}</div>
 
           <label>${t('selected_time_label')}</label>
-          <div class="event-range-row">
-            <input type="datetime-local" id="selStartInput" value="${formatDatetimeLocal(s.selStart)}" onchange="updateSelectedTimeFromInputs()" />
-            <span>–</span>
-            <input type="datetime-local" id="selEndInput" value="${formatDatetimeLocal(s.selEnd)}" onchange="updateSelectedTimeFromInputs()" />
-          </div>
+          <button type="button" class="dt-field" id="selTimeField" onclick="openDtp('sel')">${CAL_ICON_HTML}<span style="flex:1;">${formatEventSpan(s.selStart, s.selEnd)}</span></button>
 
           <div class="event-mini-board">
             <div class="dual-pane">
@@ -3127,16 +3390,54 @@ function openGroupModal() {
 
     attachEventCalPaging();
     attachSelectionDrag();
-    scrollEventCalToSelected();
+    const col = document.getElementById('eventTimelineCol');
+    if (opts.shiftDays && prevScroll !== null) {
+      col.scrollLeft = prevScroll - opts.shiftDays * DAY_VISIBLE_PX;
+    } else if (opts.scroll === 'keep' && prevScroll !== null) {
+      col.scrollLeft = prevScroll;
+      ensureSelectionVisible();
+    } else {
+      scrollEventCalToSelected();
+    }
+    renderDtpIfOpen();
+  }
+
+  function isInEventBuffer(ms) {
+    return bufferDates(eventModalState.calAnchor).includes(toDateStr(new Date(ms)));
+  }
+
+  // Valinta keskelle näkyvää aluetta vain, jos se ei jo näy.
+  function ensureSelectionVisible() {
+    const el = document.getElementById('eventTimelineCol');
+    const s = eventModalState;
+    if (!el) return;
+    const left = pxForTimestamp(s.selStart, s.calAnchor);
+    const right = pxForTimestamp(s.selEnd, s.calAnchor);
+    if (left === null) { scrollEventCalToSelected(); return; }
+    const r = right === null ? left + 40 : right;
+    if (left < el.scrollLeft || r > el.scrollLeft + el.clientWidth) {
+      el.scrollLeft = Math.max(0, (left + r) / 2 - el.clientWidth / 2);
+    }
+  }
+
+  // Uusi valinta (ehdotus, ajanvalitsin): puskuria siirretään vain, jos valittu
+  // päivä ei ole jo näkyvissä olevassa puskurissa.
+  function applySelection(startMs, endMs) {
+    const s = eventModalState;
+    s.selStart = startMs;
+    s.selEnd = endMs;
+    if (isInEventBuffer(startMs)) {
+      renderEventResultsStep({ scroll: 'keep' });
+    } else {
+      s.calAnchor = toDateStr(new Date(startMs));
+      renderEventResultsStep({ scroll: 'selection' });
+    }
   }
 
   function selectEventResult(idx) {
     const s = eventModalState;
     s.selectedResultIdx = idx;
-    s.selStart = s.results[idx].startMs;
-    s.selEnd = s.results[idx].endMs;
-    s.calAnchor = toDateStr(new Date(s.selStart));
-    renderEventResultsStep();
+    applySelection(s.results[idx].startMs, s.results[idx].endMs);
   }
 
   function attachEventCalPaging() {
@@ -3146,10 +3447,10 @@ function openGroupModal() {
       const max = el.scrollWidth - el.clientWidth;
       if (el.scrollLeft >= max - 4) {
         eventModalState.calAnchor = stepDayBy(eventModalState.calAnchor, 4);
-        renderEventResultsStep();
+        renderEventResultsStep({ shiftDays: 4 });
       } else if (el.scrollLeft <= 0) {
         eventModalState.calAnchor = stepDayBy(eventModalState.calAnchor, -4);
-        renderEventResultsStep();
+        renderEventResultsStep({ shiftDays: -4 });
       }
     });
   }
@@ -3448,6 +3749,7 @@ function openGroupModal() {
         <div class="modal">
           <h3>${t('invite_sent_heading')}</h3>
           <p class="sub">${bodyText}</p>
+          ${data.dryRun ? `<p class="invite-note">${t('invite_dry_run_note')}</p>` : ''}
           ${failedHtml}
           ${teamsHtml}
           ${openHtml}
