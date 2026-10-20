@@ -47,10 +47,18 @@
     <h1 data-i18n="heading_new_project"></h1>
   </div>
 
+  <div id="noPermission" class="banner error" style="display:none;" data-i18n="no_project_create_permission"></div>
+
   <div id="formStep">
     <div class="card-section">
       <label for="projectName" data-i18n="project_name_label"></label>
       <input type="text" id="projectName" data-i18n-placeholder="project_name_placeholder" />
+      <!-- Superadmin valitsee omistavan organisaation; muilla se on oma organisaatio. -->
+      <div id="orgPickerWrap" style="display:none; margin-top:18px;">
+        <label for="orgPicker" data-i18n="owning_org_label"></label>
+        <select id="orgPicker" style="width:100%;"></select>
+        <p class="note" data-i18n="owning_org_note"></p>
+      </div>
     </div>
 
     <div class="card-section">
@@ -108,32 +116,28 @@
   const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ycmh2Ynh2a2l6dmtjd3dnbGNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NjU3NDAsImV4cCI6MjEwMzA0MTc0MH0.S_M4KyTt4E_UG0ue-T-h89L17yxJKkmb36ZzNRdQnLI";
   const client = supabase.createClient(SUPABASE_URL, ANON_KEY);
 
-  let currentAccessToken = null;
   let pendingResultData = null;
   let myOwnEmail = null;
   let myOwnFirstName = '';
   let myOwnLastName = '';
   let myProfileData = null;
 
+  // Istunto: tuore token ennen jokaista kutsua, vanhentuneesta istunnosta oma ikkuna (nav.js).
+  AppNav.initSession({ client, url: SUPABASE_URL, anonKey: ANON_KEY });
   AppNav.mount('projects');
 
   async function ensureLoggedIn() {
     const { data: { session } } = await client.auth.getSession();
     if (!session) {
-      window.location.href = '/login.html';
+      window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
       return false;
     }
-    currentAccessToken = session.access_token;
     myOwnEmail = session.user.email;
     return true;
   }
 
   async function loadMyProfileAndTranslations() {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-my-profile`, {
-      method: 'POST',
-      headers: authHeaders(),
-    });
-    const data = await res.json();
+    const data = await AppNav.api('get-my-profile');
     if (data.error) {
       applyStaticTranslations();
       return;
@@ -154,28 +158,16 @@
   async function setLanguagePref(lang) {
     setCurrentLanguage(lang);
     if (myProfileData) {
-      await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({
+      await AppNav.api('update-my-profile', {
           firstName: myProfileData.firstName,
           lastName: myProfileData.lastName,
           title: myProfileData.title,
           organization: myProfileData.organization,
           team: myProfileData.team,
           language: lang,
-        }),
-      });
+        });
     }
     window.location.reload();
-  }
-
-  function authHeaders() {
-    return {
-      'Content-Type': 'application/json',
-      'apikey': ANON_KEY,
-      'Authorization': 'Bearer ' + currentAccessToken,
-    };
   }
 
   function addClientRow() {
@@ -253,12 +245,8 @@
     btn.textContent = t('creating_label');
 
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/create-project`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ name, clientOrganizations, members }),
-      });
-      const data = await res.json();
+      const organizationId = myProfileData && myProfileData.isSuperadmin ? (document.getElementById('orgPicker').value || null) : null;
+      const data = await AppNav.api('create-project', { name, clientOrganizations, members, organizationId });
 
       if (data.error) {
         errorEl.textContent = t('error_prefix') + ': ' + data.error;
@@ -271,12 +259,7 @@
       document.getElementById('formStep').style.display = 'none';
 
       const memberEmails = members.map((m) => m.email);
-      const checkRes = await fetch(`${SUPABASE_URL}/functions/v1/check-new-domains`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({ emails: memberEmails }),
-      });
-      const checkData = await checkRes.json();
+      const checkData = await AppNav.api('check-new-domains', { emails: memberEmails });
 
       if (checkData.newDomains && checkData.newDomains.length > 0) {
         renderDomainStep(checkData.newDomains, data);
@@ -320,11 +303,7 @@
       return { domain, itContactEmail };
     });
 
-    await fetch(`${SUPABASE_URL}/functions/v1/register-domain-contacts`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ entries: rows, context: `project:${pendingResultData.project.id}` }),
-    });
+    await AppNav.api('register-domain-contacts', { entries: rows, context: `project:${pendingResultData.project.id}` });
   }
 
   async function submitDomainStep() {
@@ -358,9 +337,32 @@
     resultEl.innerHTML = html;
   }
 
+  // Superadminin organisaatiovalitsin (list-organizations).
+  async function loadOrganizationPicker() {
+    const data = await AppNav.api('list-organizations');
+    const picker = document.getElementById('orgPicker');
+    const orgs = (data.organizations || []).slice().sort((a, b) => a.name.localeCompare(b.name, 'fi'));
+    picker.innerHTML = `<option value="">${escapeHtmlAttr(t('owning_org_none'))}</option>`
+      + orgs.map((o) => `<option value="${escapeHtmlAttr(o.id)}">${escapeHtmlAttr(o.name)}</option>`).join('');
+    document.getElementById('orgPickerWrap').style.display = '';
+  }
+
+  function escapeHtmlAttr(str) {
+    return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+
   (async () => {
     const ok = await ensureLoggedIn();
-    if (ok) await loadMyProfileAndTranslations();
+    if (!ok) return;
+    await loadMyProfileAndTranslations();
+    if (!myProfileData) return;
+    if (myProfileData.canCreateProjects === false) {
+      // Sama ehto kuin palvelimella (create-project): vain pääkäyttäjät ja projektien luojat.
+      document.getElementById('formStep').style.display = 'none';
+      document.getElementById('noPermission').style.display = '';
+      return;
+    }
+    if (myProfileData.isSuperadmin) await loadOrganizationPicker();
   })();
 </script>
 

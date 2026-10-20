@@ -495,6 +495,8 @@ const paramsUrl = new URLSearchParams(window.location.search);
   const SUPABASE_URL = "https://nrrhvbxvkizvkcwwglck.supabase.co";
   const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ycmh2Ynh2a2l6dmtjd3dnbGNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NjU3NDAsImV4cCI6MjEwMzA0MTc0MH0.S_M4KyTt4E_UG0ue-T-h89L17yxJKkmb36ZzNRdQnLI";
   const client = supabase.createClient(SUPABASE_URL, ANON_KEY);
+  // Istunto: tuore token ennen jokaista kutsua, vanhentuneesta istunnosta oma ikkuna (nav.js, bugi 3).
+  AppNav.initSession({ client, url: SUPABASE_URL, anonKey: ANON_KEY });
 
   // Tunnin leveys sovitetaan niin, että yksi päivä täyttää aikajanan näkyvän
   // leveyden (ks. computeHoursWindow). 80 px on alkuarvo ennen mittausta.
@@ -570,7 +572,6 @@ const paramsUrl = new URLSearchParams(window.location.search);
     setHomeScroll();
   }
 
-  let currentAccessToken = null;
   let currentUserEmail = null;
   let latestStatus = null;
   let anchorDateStr = null;
@@ -597,20 +598,11 @@ const paramsUrl = new URLSearchParams(window.location.search);
   async function ensureLoggedIn() {
     const { data: { session } } = await client.auth.getSession();
     if (!session) {
-      window.location.href = '/login.html';
+      window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
       return false;
     }
-    currentAccessToken = session.access_token;
     currentAuthProvider = session.user?.app_metadata?.provider || null;
     return true;
-  }
-
-  function authHeaders() {
-    return {
-      'Content-Type': 'application/json',
-      'apikey': ANON_KEY,
-      'Authorization': 'Bearer ' + currentAccessToken,
-    };
   }
 
   async function logout() {
@@ -621,9 +613,8 @@ const paramsUrl = new URLSearchParams(window.location.search);
   async function setLanguagePref(lang) {
     setCurrentLanguage(lang);
     if (myProfileData) {
-      await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
+      await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify({
           firstName: myProfileData.firstName,
           lastName: myProfileData.lastName,
@@ -638,9 +629,8 @@ const paramsUrl = new URLSearchParams(window.location.search);
   }
 
   async function loadMyProfileAndTranslations() {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-my-profile`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/get-my-profile`, {
       method: 'POST',
-      headers: authHeaders(),
     });
     const data = await res.json();
     if (data.error) {
@@ -991,12 +981,27 @@ function bufferDates(anchor) {
     return `<div class="timeline-cell" style="width:${w}px;">${dayBackgroundsHtml()}${hourGridLinesHtml()}${busyBlocksHtml(items, anchor)}${nowLineHtml(anchor)}</div>`;
   }
 
+  // Hallintaoikeus palvelimen laskemana (viewerAccess: vastuuhenkilö, projektin admin,
+  // omistavan organisaation pääkäyttäjä, superadmin).
   function isAdminForProject(status) {
     if (!status) return false;
+    if (status.viewerAccess) return !!status.viewerAccess.canManage;
     if (status.project.owner_email.toLowerCase() === currentUserEmail) return true;
     return status.participants.some(
       (p) => p.email.toLowerCase() === currentUserEmail && p.role === 'admin' && p.status === 'authorized'
     );
+  }
+
+  // Vastuuhenkilön vaihto ja projektin poisto: vain vastuuhenkilö, omistavan
+  // organisaation pääkäyttäjä ja superadmin (sama ehto kuin update-project/delete-project).
+  function canOwnProject(status) {
+    const va = status && status.viewerAccess;
+    return !!va && (va.isOwner || va.isOrgSuperuser || va.isSuperadmin);
+  }
+
+  function isParticipantInProject(status) {
+    const va = status && status.viewerAccess;
+    return va ? va.isParticipant : true;
   }
 
   function canEditGroup(g) {
@@ -1188,9 +1193,8 @@ async function loadStatus() {
       return;
     }
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-project-status`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/get-project-status`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
     const data = await res.json();
@@ -1271,8 +1275,13 @@ async function loadStatus() {
     const mine = data.participants.find((p) => p.email.toLowerCase() === currentUserEmail);
     const isOwner = data.project.owner_email.toLowerCase() === currentUserEmail;
     const roleBadge = document.getElementById('myRoleBadge');
+    const va = data.viewerAccess || {};
     if (mine || isOwner) {
       roleBadge.textContent = (isOwner || mine.role === 'admin') ? t('role_admin') : t('role_guest');
+      roleBadge.style.display = '';
+    } else if (va.isOrgSuperuser || va.isSuperadmin) {
+      // Ei osallistujana: näkee projektin organisaation pääkäyttäjänä tai superadminina.
+      roleBadge.textContent = va.isOrgSuperuser ? t('role_org_admin') : t('role_app_admin');
       roleBadge.style.display = '';
     } else {
       roleBadge.style.display = 'none';
@@ -1471,9 +1480,8 @@ async function loadStatus() {
   }
 
   async function submitParticipantInvite(email, firstName, lastName, title, role) {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/invite-participant`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/invite-participant`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ projectId: PROJECT_ID, email, firstName, lastName, title, role }),
     });
     return res.json();
@@ -1518,9 +1526,8 @@ async function loadStatus() {
   }
 
   async function refreshSchedulesInner() {
-    const statusRes = await fetch(`${SUPABASE_URL}/functions/v1/get-project-status`, {
+    const statusRes = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/get-project-status`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
     const statusData = await statusRes.json();
@@ -1540,9 +1547,8 @@ async function loadStatus() {
     const startTime = localStart.toISOString().slice(0, 19);
     const endTime = localEnd.toISOString().slice(0, 19);
 
-    await fetch(`${SUPABASE_URL}/functions/v1/get-schedule`, {
+    await AppNav.fetch(`${SUPABASE_URL}/functions/v1/get-schedule`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ participantIds: authorizedIds, startTime, endTime }),
     });
 
@@ -1610,9 +1616,8 @@ function openGroupModal() {
     if (!name) { alert(t('alert_group_name_required')); return; }
     if (newGroupState.selectedIds.size === 0) { alert(t('alert_group_member_required')); return; }
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-group`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/create-group`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({
         projectId: PROJECT_ID,
         name,
@@ -1703,9 +1708,8 @@ function openGroupModal() {
   }
 
   async function callUpdateGroupMembers(groupId, participantId, action) {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/update-group-members`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-group-members`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ groupId, participantId, action }),
     });
     return res.json();
@@ -1847,9 +1851,8 @@ function openGroupModal() {
 
   async function loadProjectEvents() {
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/list-project-events`, {
+      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/list-project-events`, {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify({ projectId: PROJECT_ID }),
       });
       const data = await res.json();
@@ -1973,9 +1976,8 @@ function openGroupModal() {
     const key = scope === 'future' ? 'confirm_cancel_future' : 'confirm_cancel_event';
     if (!confirm(t(key, { title: e.title, time: formatDayHeading(e.startMs) + ' ' + formatTimeRange(e.startMs, e.endMs) }))) return;
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/cancel-project-event`, {
+      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/cancel-project-event`, {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify({ projectId: PROJECT_ID, eventId, scope }),
       });
       const data = await res.json();
@@ -2063,9 +2065,8 @@ function openGroupModal() {
 
   async function loadDrafts() {
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/event-drafts`, {
+      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/event-drafts`, {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify({ action: 'list', projectId: PROJECT_ID }),
       });
       const data = await res.json();
@@ -2195,9 +2196,8 @@ function openGroupModal() {
     if (btn) btn.disabled = true;
 
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/event-drafts`, {
+      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/event-drafts`, {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify({
           action: 'save',
           projectId: PROJECT_ID,
@@ -2296,9 +2296,8 @@ function openGroupModal() {
   }
 
   async function deleteDraftRequest(draftId) {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/event-drafts`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/event-drafts`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ action: 'delete', projectId: PROJECT_ID, draftId }),
     });
     const data = await res.json();
@@ -3698,9 +3697,8 @@ function openGroupModal() {
     }
 
     try {
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/create-event`, {
+      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/create-event`, {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify(payload),
       });
       const data = await res.json();
@@ -3774,9 +3772,17 @@ function isoToDatetimeLocal(iso) {
 async function openSettingsModal() {
     settingsActiveTab = 'own';
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-participant-settings`, {
+    // Pääkäyttäjä tai superadmin ilman osallistumista: vain projektin asetukset.
+    if (!isParticipantInProject(latestStatus)) {
+      if (!isAdminForProject(latestStatus)) return;
+      settingsState = null;
+      settingsActiveTab = 'project';
+      renderSettingsModal();
+      return;
+    }
+
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/get-participant-settings`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
     const data = await res.json();
@@ -3854,9 +3860,8 @@ async function openSettingsModal() {
   async function revokeCalendarAuth() {
     if (!confirm(t('confirm_revoke_auth'))) return;
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/revoke-calendar-authorization`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/revoke-calendar-authorization`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
     const data = await res.json();
@@ -3895,9 +3900,8 @@ async function openSettingsModal() {
   async function leaveProjectConfirm() {
     if (!confirm(t('confirm_leave_project'))) return;
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/leave-project`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/leave-project`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
     const data = await res.json();
@@ -3953,14 +3957,15 @@ async function openSettingsModal() {
   function renderSettingsModal() {
     const admin = isAdminForProject(latestStatus);
 
-    const tabsHtml = admin ? `
+    const participant = isParticipantInProject(latestStatus);
+    const tabsHtml = admin && participant ? `
       <div class="settings-tabs">
         <button type="button" class="settings-tab-btn ${settingsActiveTab === 'own' ? 'active' : ''}" onclick="switchSettingsTab('own')">${t('settings_tab_own')}</button>
         <button type="button" class="settings-tab-btn ${settingsActiveTab === 'project' ? 'active' : ''}" onclick="switchSettingsTab('project')">${t('settings_tab_project')}</button>
       </div>
     ` : '';
 
-    const bodyHtml = (!admin || settingsActiveTab === 'own') ? renderOwnSettingsTabHtml() : renderProjectSettingsTabHtml();
+    const bodyHtml = participant && (!admin || settingsActiveTab === 'own') ? renderOwnSettingsTabHtml() : renderProjectSettingsTabHtml();
 
     document.getElementById('modalHost').innerHTML = `
       <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
@@ -4060,16 +4065,69 @@ async function openSettingsModal() {
 
       <label style="margin-top:20px;">${t('manage_members_heading')}</label>
       <div>${membersHtml}</div>
+      ${canOwnProject(latestStatus) ? ownerAndDeleteSectionHtml() : ''}
     `;
+  }
+
+  function ownerAndDeleteSectionHtml() {
+    const currentOwner = latestStatus.project.owner_email.toLowerCase();
+    const ownerIsParticipant = latestStatus.participants.some((p) => p.email.toLowerCase() === currentOwner);
+    const options = (ownerIsParticipant ? [] : [`<option value="" selected>${escapeHtmlText(latestStatus.project.owner_email)}</option>`])
+      .concat(latestStatus.participants.map((p) => `
+        <option value="${escapeHtmlText(p.email)}" ${p.email.toLowerCase() === currentOwner ? 'selected' : ''}>${escapeHtmlText(nameLabelFor(p))} (${escapeHtmlText(p.email)})</option>
+      `)).join('');
+    return `
+      <label style="margin-top:20px;">${t('owner_change_label')}</label>
+      <p class="empty-note" style="margin-top:-2px;">${t('owner_change_note')}</p>
+      <select id="projectOwnerSelect" style="width:100%;">${options}</select>
+      <div class="actions" style="margin-top:8px;">
+        <button onclick="saveProjectOwner()">${t('owner_change_btn')}</button>
+      </div>
+
+      <div class="danger-zone">
+        <p class="empty-note" style="margin-top:0;">${t('delete_project_note')}</p>
+        <button class="danger" type="button" onclick="deleteProjectConfirm()">${t('delete_project_btn')}</button>
+      </div>
+    `;
+  }
+
+  async function saveProjectOwner() {
+    const ownerEmail = document.getElementById('projectOwnerSelect').value;
+    if (!ownerEmail || ownerEmail.toLowerCase() === latestStatus.project.owner_email.toLowerCase()) return;
+    if (!confirm(t('confirm_owner_change', { email: ownerEmail }))) return;
+
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-project`, {
+      method: 'POST',
+      body: JSON.stringify({ projectId: PROJECT_ID, ownerEmail }),
+    });
+    const data = await res.json();
+    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+
+    await loadStatus();
+    renderSettingsModal();
+  }
+
+  async function deleteProjectConfirm() {
+    const name = latestStatus.project.name;
+    if (!confirm(t('confirm_delete_project_1', { name }))) return;
+    if (!confirm(t('confirm_delete_project_2', { name }))) return;
+
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/delete-project`, {
+      method: 'POST',
+      body: JSON.stringify({ projectId: PROJECT_ID }),
+    });
+    const data = await res.json();
+    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+
+    window.location.href = '/projektit.html';
   }
 
   async function saveProjectName() {
     const name = document.getElementById('projectNameEditInput').value.trim();
     if (!name) return;
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/update-project`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-project`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ projectId: PROJECT_ID, name }),
     });
     const data = await res.json();
@@ -4080,9 +4138,8 @@ async function openSettingsModal() {
   }
 
   async function changeParticipantRole(participantId, role) {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/update-participant-role`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-participant-role`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ projectId: PROJECT_ID, participantId, role }),
     });
     const data = await res.json();
@@ -4095,9 +4152,8 @@ async function openSettingsModal() {
   async function removeParticipantFromProject(participantId, name) {
     if (!confirm(t('confirm_remove_participant', { name }))) return;
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/remove-participant-from-project`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/remove-participant-from-project`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ projectId: PROJECT_ID, participantId }),
     });
     const data = await res.json();
@@ -4126,9 +4182,8 @@ async function openSettingsModal() {
     const blackouts = filledBlackouts
       .map((b) => ({ startAt: datetimeLocalToIso(b.startAt), endAt: datetimeLocalToIso(b.endAt) }));
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/update-participant-settings`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-participant-settings`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({
         projectId: PROJECT_ID,
         fullyHidden: settingsState.fullyHidden,

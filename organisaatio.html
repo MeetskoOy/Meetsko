@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>__page_title_organization</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='36' height='36' rx='8' fill='%231B3A6B'/%3E%3Crect x='24' y='24' width='36' height='36' rx='8' fill='%238FB3E8'/%3E%3Cpath d='M24 32A8 8 0 0 1 32 24H40V32A8 8 0 0 1 32 40H24Z' fill='%232BB39A'/%3E%3C/svg%3E" />
+<link rel="stylesheet" href="/app.css" />
+<style>
+  .card-section > h2 { display: flex; align-items: baseline; gap: 8px; }
+  .card-section > h2 .count { color: var(--text-faint); font-weight: 500; font-size: 14px; }
+  .section-note { font-size: 13px; color: var(--text-muted); margin: -6px 0 14px; }
+
+  .member-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line-soft); }
+  .member-row:first-of-type { border-top: none; }
+  .member-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--primary-soft); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; flex: 0 0 36px; }
+  .member-id { min-width: 0; flex: 1; }
+  .member-id .m-name { font-size: 14.5px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .member-id .m-sub { font-size: 13px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .member-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .member-actions button { margin: 0; }
+  .me-tag { font-size: 12px; color: var(--text-faint); font-weight: 500; }
+
+  .add-row { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  .form-scope .add-row input[type=email] { flex: 1; min-width: 220px; }
+  .add-row button { margin: 0; }
+
+  .people-table-wrap { overflow-x: auto; }
+  table.people { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  table.people th { text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; padding: 0 12px 10px 0; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  table.people td { padding: 11px 12px 11px 0; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  table.people tr:last-child td { border-bottom: none; }
+  table.people td.email { color: var(--text-muted); word-break: break-all; }
+  .role-pill { display: inline-block; font-size: 11.5px; font-weight: 700; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+  .role-pill.superuser { background: var(--primary); color: #fff; }
+  .role-pill.creator { background: var(--ok-soft); color: var(--ok); }
+  .role-pill.participant { background: var(--primary-soft); color: var(--primary); }
+
+  .empty-state { padding: 18px 20px; border: 1px dashed #CDD3DB; border-radius: 10px; background: var(--surface-muted); color: var(--text-muted); font-size: 14px; }
+
+  @media (max-width: 700px) {
+    .member-row { flex-wrap: wrap; }
+    .member-actions { width: 100%; justify-content: flex-start; padding-left: 48px; }
+    table.people thead { display: none; }
+    table.people, table.people tbody, table.people tr, table.people td { display: block; width: 100%; }
+    table.people tr { padding: 10px 0; border-bottom: 1px solid var(--line-soft); }
+    table.people td { border: none; padding: 2px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div id="appNav"></div>
+
+<main class="page narrow form-scope">
+  <a class="back" href="/projektit.html">&larr; <span data-i18n="back_all_projects"></span></a>
+  <div class="page-head">
+    <div>
+      <h1 id="orgName" data-i18n="nav_organization"></h1>
+      <p class="page-sub" id="orgSub"></p>
+    </div>
+    <span class="role-badge" id="myRoleBadge" style="display:none;"></span>
+  </div>
+
+  <div id="banner"></div>
+  <div id="content"><p class="note" data-i18n="loading"></p></div>
+</main>
+
+<script src="/translations.js"></script>
+<script src="/nav.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const SUPABASE_URL = "https://nrrhvbxvkizvkcwwglck.supabase.co";
+  const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ycmh2Ynh2a2l6dmtjd3dnbGNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NjU3NDAsImV4cCI6MjEwMzA0MTc0MH0.S_M4KyTt4E_UG0ue-T-h89L17yxJKkmb36ZzNRdQnLI";
+  const client = supabase.createClient(SUPABASE_URL, ANON_KEY);
+
+  // Superadmin avaa minkä tahansa organisaation Asiakkaat-sivulta (?org=<id>).
+  const requestedOrgId = new URLSearchParams(window.location.search).get('org');
+
+  let myProfileData = null;
+  let orgData = null;
+
+  AppNav.initSession({ client, url: SUPABASE_URL, anonKey: ANON_KEY });
+  AppNav.mount(requestedOrgId ? 'clients' : 'organization');
+
+  function escapeHtml(str) {
+    return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  async function logout() {
+    await client.auth.signOut();
+    window.location.href = '/login.html';
+  }
+
+  async function setLanguagePref(lang) {
+    setCurrentLanguage(lang);
+    if (myProfileData) {
+      await AppNav.api('update-my-profile', {
+        firstName: myProfileData.firstName,
+        lastName: myProfileData.lastName,
+        title: myProfileData.title,
+        organization: myProfileData.organization,
+        team: myProfileData.team,
+        language: lang,
+      });
+    }
+    window.location.reload();
+  }
+
+  async function loadMyProfileAndTranslations() {
+    const data = await AppNav.api('get-my-profile');
+    if (!data.error) {
+      myProfileData = data;
+      setCurrentLanguage(data.language || 'fi');
+    }
+    applyStaticTranslations();
+    if (!data.error) AppNav.setProfile(data);
+  }
+
+  function showBanner(kind, text) {
+    const banner = document.getElementById('banner');
+    banner.innerHTML = text ? `<div class="banner ${kind}">${escapeHtml(text)}</div>` : '';
+    if (text) banner.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function displayName(p) {
+    return (p.firstName || p.lastName) ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : '';
+  }
+
+  function domainsText() {
+    return (orgData.organization.emailDomains || []).map((d) => '@' + d).join(', ');
+  }
+
+  function roleLabel(role) {
+    return t('org_role_' + role);
+  }
+
+  async function loadOrganization() {
+    const data = await AppNav.api('get-my-organization', requestedOrgId ? { organizationId: requestedOrgId } : {});
+    if (data.error) {
+      document.getElementById('content').innerHTML = `<div class="empty-state">${t('error_prefix')}: ${escapeHtml(data.error)}</div>`;
+      return;
+    }
+    if (!data.organization) {
+      const isSuperadmin = myProfileData && myProfileData.isSuperadmin;
+      document.getElementById('content').innerHTML = isSuperadmin
+        ? `<div class="empty-state">${t('org_superadmin_pick')} <a href="/asiakkaat.html">${t('admin_link_clients')}</a></div>`
+        : `<div class="empty-state">${t('org_none')}</div>`;
+      return;
+    }
+    orgData = data;
+    render();
+  }
+
+  function render() {
+    const org = orgData.organization;
+    document.getElementById('orgName').textContent = org.name;
+    document.title = `Meetsko — ${org.name}`;
+    document.getElementById('orgSub').textContent = org.accessMode === 'domain'
+      ? t('org_sub_domain', { domains: domainsText() })
+      : t('org_sub_restricted');
+
+    const badge = document.getElementById('myRoleBadge');
+    const badgeText = orgData.isSuperadmin && !orgData.myRole ? t('org_viewing_as_superadmin')
+      : orgData.myRole ? roleLabel(orgData.myRole) : '';
+    badge.textContent = badgeText;
+    badge.style.display = badgeText ? '' : 'none';
+
+    const sections = [renderSuperusers()];
+    if (orgData.canManage) {
+      sections.push(renderCreators());
+      sections.push(renderPeople());
+    }
+    document.getElementById('content').innerHTML = sections.join('');
+  }
+
+  function memberRow(p, actions) {
+    const name = displayName(p);
+    const isMe = myProfileData && p.email.toLowerCase() === myProfileData.email;
+    const sub = [name ? p.email : '', p.title].filter(Boolean).join(' · ');
+    return `
+      <div class="member-row">
+        <span class="member-avatar">${escapeHtml(AppNav.initials(name || p.email))}</span>
+        <div class="member-id">
+          <div class="m-name">${escapeHtml(name || p.email)} ${isMe ? `<span class="me-tag">${t('org_me')}</span>` : ''}</div>
+          ${sub ? `<div class="m-sub">${escapeHtml(sub)}</div>` : ''}
+        </div>
+        ${actions ? `<div class="member-actions">${actions}</div>` : ''}
+      </div>
+    `;
+  }
+
+  function actionButton(labelKey, action, email, role, kind) {
+    return `<button type="button" class="${kind || 'secondary'} small" data-action="${action}" data-email="${escapeHtml(email)}" data-role="${role || ''}" onclick="onMemberAction(this)">${t(labelKey)}</button>`;
+  }
+
+  function renderSuperusers() {
+    const org = orgData.organization;
+    const rows = orgData.superusers.map((p) => {
+      if (!orgData.canManage) return memberRow(p, '');
+      const lastOne = orgData.superusers.length <= 1;
+      let actions = '';
+      if (!lastOne) {
+        actions = org.accessMode === 'domain'
+          ? actionButton('org_remove_superuser_domain', 'set_role', p.email, 'member', 'danger')
+          : actionButton('org_make_creator', 'set_role', p.email, 'member') + actionButton('org_remove', 'remove', p.email, '', 'danger');
+      }
+      return memberRow(p, actions);
+    }).join('');
+
+    return `
+      <section class="card-section">
+        <h2>${t('org_section_superusers')} <span class="count">${orgData.superusers.length}</span></h2>
+        ${orgData.canManage ? '' : `<p class="section-note">${t('org_superusers_note_member')}</p>`}
+        ${rows}
+        ${orgData.canManage ? addForm('superuser', 'org_add_superuser_btn') : ''}
+      </section>
+    `;
+  }
+
+  function renderCreators() {
+    const org = orgData.organization;
+    if (org.accessMode === 'domain') {
+      return `
+        <section class="card-section">
+          <h2>${t('org_section_creators')}</h2>
+          <p class="section-note" style="margin:0;">${t('org_creators_domain_note', { domains: domainsText() })}</p>
+        </section>
+      `;
+    }
+    const rows = orgData.creators.map((p) => memberRow(p,
+      actionButton('org_make_superuser', 'set_role', p.email, 'superuser') + actionButton('org_remove', 'remove', p.email, '', 'danger')
+    )).join('');
+    return `
+      <section class="card-section">
+        <h2>${t('org_section_creators')} <span class="count">${orgData.creators.length}</span></h2>
+        <p class="section-note">${t('org_creators_note')}</p>
+        ${rows || `<div class="empty-state">${t('org_empty_creators')}</div>`}
+        ${addForm('member', 'org_add_creator_btn')}
+      </section>
+    `;
+  }
+
+  function renderPeople() {
+    const people = orgData.people || [];
+    const body = people.map((p) => `
+      <tr>
+        <td>${escapeHtml(displayName(p) || '—')}</td>
+        <td>${escapeHtml(p.title || '—')}</td>
+        <td>${escapeHtml(p.team || '—')}</td>
+        <td class="email">${escapeHtml(p.email)}</td>
+        <td><span class="role-pill ${p.role}">${escapeHtml(roleLabel(p.role))}</span></td>
+      </tr>
+    `).join('');
+    return `
+      <section class="card-section">
+        <h2>${t('org_section_people')} <span class="count">${people.length}</span></h2>
+        <p class="section-note">${t('org_people_note')}</p>
+        ${people.length === 0 ? `<div class="empty-state">${t('org_empty_people')}</div>` : `
+          <div class="people-table-wrap">
+            <table class="people">
+              <thead><tr>
+                <th>${t('org_col_name')}</th><th>${t('org_col_title')}</th><th>${t('org_col_team')}</th>
+                <th>${t('org_col_email')}</th><th>${t('org_col_role')}</th>
+              </tr></thead>
+              <tbody>${body}</tbody>
+            </table>
+          </div>
+        `}
+      </section>
+    `;
+  }
+
+  function addForm(role, buttonKey) {
+    const id = 'add_' + role;
+    const domains = orgData.organization.emailDomains || [];
+    const placeholder = domains.length ? t('org_email_placeholder_domain', { domain: domains[0] }) : t('org_email_placeholder');
+    return `
+      <form class="add-row" onsubmit="addMember(event, '${role}')">
+        <input type="email" id="${id}" required placeholder="${escapeHtml(placeholder)}" aria-label="${escapeHtml(t(buttonKey))}" />
+        <button type="submit">${t(buttonKey)}</button>
+      </form>
+    `;
+  }
+
+  async function updateMembers(body) {
+    const payload = { ...body };
+    if (requestedOrgId) payload.organizationId = requestedOrgId;
+    const data = await AppNav.api('update-organization-members', payload);
+    if (data.error) {
+      showBanner('error', data.error);
+      return null;
+    }
+    return data;
+  }
+
+  async function addMember(e, role) {
+    e.preventDefault();
+    const input = document.getElementById('add_' + role);
+    const email = input.value.trim();
+    if (!email) return;
+    const button = e.target.querySelector('button');
+    button.disabled = true;
+    const data = await updateMembers({ action: 'add', email, role });
+    button.disabled = false;
+    if (!data) return;
+    showBanner('ok', data.emailSent ? t('org_added', { email }) : t('org_added_no_email', { email }));
+    await loadOrganization();
+  }
+
+  async function onMemberAction(btn) {
+    const { action, email, role } = btn.dataset;
+    const confirmKey = action === 'remove' ? 'org_confirm_remove'
+      : role === 'superuser' ? 'org_confirm_make_superuser'
+      : orgData.organization.accessMode === 'domain' ? 'org_confirm_remove_superuser_domain'
+      : 'org_confirm_make_creator';
+    if (!confirm(t(confirmKey, { email }))) return;
+    btn.disabled = true;
+    const data = await updateMembers({ action, email, role: role || undefined });
+    btn.disabled = false;
+    if (!data) return;
+    showBanner('ok', t('org_saved'));
+    // Oman pääkäyttäjyyden poisto: sivu näkyy tämän jälkeen jäsenen näkymänä.
+    await loadOrganization();
+  }
+
+  (async () => {
+    const { data: { session } } = await client.auth.getSession();
+    if (!session) {
+      window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+      return;
+    }
+    try {
+      await loadMyProfileAndTranslations();
+      await loadOrganization();
+    } catch (err) {
+      if (err.message !== 'session_expired') {
+        console.error(err);
+        showBanner('error', t('error_generic'));
+      }
+    }
+  })();
+</script>
+
+</body>
+</html>

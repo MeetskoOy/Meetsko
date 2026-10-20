@@ -6,6 +6,14 @@
 //   <div id="appNav"></div>               (body-elementin alkuun)
 //   AppNav.mount('projects');             ('projects' | 'clients' | 'people' | 'settings')
 //   AppNav.setProfile(profileData);       (get-my-profile -vastaus, käännösten latauksen jälkeen)
+//
+// Istunto (bugi 3, CLAUDE.md): Supabasen access token vanhenee tunnissa, joten sitä ei
+// tallenneta kerran latauksessa, vaan haetaan tuoreena ennen jokaista kutsua.
+//   AppNav.initSession({ client, url, anonKey });
+//   const data = await AppNav.api('get-my-organization', { ... });
+//   const res = await AppNav.fetch(url, { method: 'POST', body });   (vastaus käsitellään itse)
+// 401-vastaus tai puuttuva istunto avaa yhteisen "Istunto on vanhentunut" -ikkunan.
+// Sivut siirtyvät tähän sitä mukaa kuin niitä muutenkin muokataan.
 
 const AppNav = {
   mount(active) {
@@ -25,6 +33,7 @@ const AppNav = {
             ${link('projects', '/projektit.html', 'nav_projects')}
             ${link('clients', '/asiakkaat.html', 'admin_link_clients', 'data-superadmin-only style="display:none;"')}
             ${link('people', '/henkilot.html', 'admin_link_people', 'data-superadmin-only style="display:none;"')}
+            ${link('organization', '/organisaatio.html', 'nav_organization', 'data-org-member-only style="display:none;"')}
             ${link('settings', '/oma-profiili.html', 'nav_settings')}
           </nav>
           <div class="nav-user">
@@ -71,10 +80,13 @@ const AppNav = {
     const role = document.getElementById('panelRole');
     role.textContent = data.roleKey ? t(data.roleKey) : '';
     role.style.display = data.roleKey ? '' : 'none';
-    // Asiakas- ja henkilösivut ovat vain pääkäyttäjälle. Jäsenten oma
-    // organisaatiosivu on tulossa (CLAUDE.md).
+    // Asiakas- ja henkilösivut ovat vain superadminille; organisaation jäsenille
+    // oma organisaatiosivu (superadmin avaa organisaatiot Asiakkaat-sivulta).
     document.querySelectorAll('[data-superadmin-only]').forEach((el) => {
       el.style.display = data.isSuperadmin ? '' : 'none';
+    });
+    document.querySelectorAll('[data-org-member-only]').forEach((el) => {
+      el.style.display = !data.isSuperadmin && data.memberOrganization ? '' : 'none';
     });
     AppNav.renderLangButtons();
   },
@@ -96,6 +108,65 @@ const AppNav = {
     const parts = String(label).trim().split(/\s+/);
     if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
     return String(label).slice(0, 2).toUpperCase();
+  },
+
+  // ---------- Istunto ----------
+  _session: null,
+
+  initSession({ client, url, anonKey }) {
+    AppNav._session = { client, url, anonKey };
+    // Vanhentunut istunto keskeyttää kesken olevan toiminnon; ikkuna on jo näkyvissä.
+    window.addEventListener('unhandledrejection', (e) => {
+      if (e.reason && e.reason.message === 'session_expired') e.preventDefault();
+    });
+  },
+
+  // Tuore access token (supabase-js uusii vanhentuneen istunnon getSessionissa).
+  async accessToken() {
+    const { data: { session } } = await AppNav._session.client.auth.getSession();
+    return session ? session.access_token : null;
+  },
+
+  async authHeaders() {
+    const token = await AppNav.accessToken();
+    if (!token) { AppNav.showSessionExpired(); throw new Error('session_expired'); }
+    return { 'Content-Type': 'application/json', 'apikey': AppNav._session.anonKey, 'Authorization': 'Bearer ' + token };
+  },
+
+  // Edge Function -kutsu. Palauttaa vastauksen JSONina; 401 avaa istuntoikkunan.
+  async api(fn, body) {
+    const headers = await AppNav.authHeaders();
+    const res = await fetch(`${AppNav._session.url}/functions/v1/${fn}`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(body || {}),
+    });
+    if (res.status === 401) { AppNav.showSessionExpired(); throw new Error('session_expired'); }
+    return res.json().catch(() => ({ error: t('error_generic') }));
+  },
+
+  // fetch-korvike sivuille, joiden kutsut käsittelevät vastauksen itse: lisää tuoreet
+  // otsakkeet ja avaa istuntoikkunan 401-vastauksesta.
+  async fetch(url, opts = {}) {
+    const headers = await AppNav.authHeaders();
+    const res = await fetch(url, { ...opts, headers: { ...headers, ...(opts.headers || {}) } });
+    if (res.status === 401) { AppNav.showSessionExpired(); throw new Error('session_expired'); }
+    return res;
+  },
+
+  showSessionExpired() {
+    if (document.getElementById('sessionExpiredDialog')) return;
+    const next = encodeURIComponent(window.location.pathname + window.location.search);
+    document.body.classList.add('session-expired');
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="session-expired-backdrop" id="sessionExpiredDialog" role="alertdialog" aria-modal="true" aria-labelledby="sessionExpiredTitle">
+        <div class="session-expired-box">
+          <h2 id="sessionExpiredTitle">${AppNav.escape(t('session_expired_title'))}</h2>
+          <p>${AppNav.escape(t('session_expired_body'))}</p>
+          <a class="btn" href="/login.html?next=${next}">${AppNav.escape(t('session_expired_login'))}</a>
+        </div>
+      </div>
+    `);
   },
 
   escape(str) {

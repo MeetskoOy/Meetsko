@@ -39,6 +39,24 @@
   .project-card .name { font-weight: 600; font-size: 15px; }
   .project-card .meta { color: var(--text-muted); font-size: 12.5px; }
   .project-card .meta.mono { font-family: var(--mono); font-size: 12px; }
+  .log-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; margin: 32px 0 12px; }
+  .log-head .section-title { margin: 0; }
+  .log-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow-x: auto; }
+  table.log { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.log th { text-align: left; font-size: 11.5px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; padding: 12px 14px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  table.log td { padding: 10px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  table.log tr:last-child td { border-bottom: none; }
+  table.log td.time { white-space: nowrap; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  table.log td.detail { color: var(--text-muted); }
+  table.log tr.admin-access td { background: #FBF6E9; }
+  .badge.admin-access { background: #FBF0D9; color: #91600C; }
+  .badge.kind { background: var(--primary-soft); color: var(--primary); }
+  @media (max-width: 700px) {
+    table.log thead { display: none; }
+    table.log, table.log tbody, table.log tr, table.log td { display: block; width: 100%; box-sizing: border-box; }
+    table.log tr { border-bottom: 1px solid var(--line-soft); padding: 8px 0; }
+    table.log td { border: none; padding: 2px 14px; }
+  }
 </style>
 </head>
 <body>
@@ -66,13 +84,14 @@
   const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ycmh2Ynh2a2l6dmtjd3dnbGNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NjU3NDAsImV4cCI6MjEwMzA0MTc0MH0.S_M4KyTt4E_UG0ue-T-h89L17yxJKkmb36ZzNRdQnLI";
   const client = supabase.createClient(SUPABASE_URL, ANON_KEY);
 
-  let currentAccessToken = null;
   let organizations = [];
   let superuserEmails = [''];
   let memberEmails = [''];
   let editingOrgId = null;
   let myProfileData = null;
 
+  // Istunto: tuore token ennen jokaista kutsua, vanhentuneesta istunnosta oma ikkuna (nav.js).
+  AppNav.initSession({ client, url: SUPABASE_URL, anonKey: ANON_KEY });
   AppNav.mount('clients');
 
   const ORG_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M2.5 14V3.5l5-2v12.5M7.5 6h6v8M2 14h12M4.5 5.5h1M4.5 8h1M4.5 10.5h1M10 8.5h1M10 11h1"/></svg>';
@@ -109,28 +128,20 @@
   async function setLanguagePref(lang) {
     setCurrentLanguage(lang);
     if (myProfileData) {
-      await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
-        method: 'POST',
-        headers: authHeaders(),
-        body: JSON.stringify({
+      await AppNav.api('update-my-profile', {
           firstName: myProfileData.firstName,
           lastName: myProfileData.lastName,
           title: myProfileData.title,
           organization: myProfileData.organization,
           team: myProfileData.team,
           language: lang,
-        }),
-      });
+        });
     }
     window.location.reload();
   }
 
   async function loadMyProfileAndTranslations() {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-my-profile`, {
-      method: 'POST',
-      headers: authHeaders(),
-    });
-    const data = await res.json();
+    const data = await AppNav.api('get-my-profile');
     if (!data.error) {
       myProfileData = data;
       setCurrentLanguage(data.language || 'fi');
@@ -139,30 +150,17 @@
     if (!data.error) AppNav.setProfile(data);
   }
 
-  function authHeaders() {
-    return {
-      'Content-Type': 'application/json',
-      'apikey': ANON_KEY,
-      'Authorization': 'Bearer ' + currentAccessToken,
-    };
-  }
-
   async function ensureLoggedIn() {
     const { data: { session } } = await client.auth.getSession();
     if (!session) {
-      window.location.href = '/login.html';
+      window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
       return false;
     }
-    currentAccessToken = session.access_token;
     return true;
   }
 
   async function loadOrganizations() {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/list-organizations`, {
-      method: 'POST',
-      headers: authHeaders(),
-    });
-    const data = await res.json();
+    const data = await AppNav.api('list-organizations');
 
     if (data.error) {
       document.getElementById('app').innerHTML = `<div class="empty-state">${t('error_prefix')}: ${escapeHtml(data.error)}</div>`;
@@ -190,7 +188,7 @@
 
     app.innerHTML = `<div class="list-panel">${organizations.map((o) => {
       const badge = o.access_mode === 'domain'
-        ? `<span class="badge domain">${t('badge_domain')}: ${escapeHtml(o.email_domain)}</span>`
+        ? `<span class="badge domain">${t('badge_domain')}: ${escapeHtml(orgDomainsOf(o).join(', '))}</span>`
         : `<span class="badge restricted">${t('badge_restricted')}</span>`;
       const superuserCount = o.members.filter((m) => m.role === 'superuser').length;
       return `
@@ -210,7 +208,7 @@
     editingOrgId = null;
     superuserEmails = [''];
     memberEmails = [''];
-    renderOrgForm({ name: '', access_mode: 'restricted', email_domain: '' });
+    renderOrgForm({ name: '', access_mode: 'restricted', email_domains: [] });
   }
 
   function renderOrgForm(org) {
@@ -248,9 +246,10 @@
           </div>
         </div>
 
-        <div class="field" id="domainFieldWrap" style="display:${org.access_mode === 'domain' ? 'block' : 'none'};">
-          <label for="emailDomain">${t('email_domain_label')}</label>
-          <input type="text" id="emailDomain" value="${escapeHtml(org.email_domain || '')}" />
+        <div class="field">
+          <label for="emailDomains">${t('email_domains_label')}</label>
+          <input type="text" id="emailDomains" value="${escapeHtml(orgDomainsOf(org).join(', '))}" placeholder="yritys.fi, yritys.com" />
+          <p class="note" id="domainsNote">${t(org.access_mode === 'domain' ? 'email_domains_note_domain' : 'email_domains_note_restricted')}</p>
         </div>
 
         <div class="field">
@@ -281,12 +280,36 @@
 
   function toggleDomainField() {
     const mode = document.querySelector('input[name="accessMode"]:checked').value;
-    document.getElementById('domainFieldWrap').style.display = mode === 'domain' ? 'block' : 'none';
+    document.getElementById('domainsNote').textContent = t(mode === 'domain' ? 'email_domains_note_domain' : 'email_domains_note_restricted');
+  }
+
+  // Organisaation domainit: lomakkeen kenttä (pilkulla tai välilyönnillä erotettuna).
+  // Henkilökohtaiset osoitteet (gmail, hotmail ym.) eivät määritä organisaatiota —
+  // sama lista kuin palvelimen _shared/organizations.ts:ssä.
+  const PERSONAL_DOMAIN_RE = /^(gmail\.com|googlemail\.com|(hotmail|outlook|live|msn|passport|yahoo|gmx)\.[a-z.]+|icloud\.com|me\.com|mac\.com|aol\.com|protonmail\.com|proton\.me|yandex\.[a-z.]+|mail\.com|luukku\.com|suomi24\.fi|kolumbus\.fi|saunalahti\.fi|elisanet\.fi|welho\.com|pp\.inet\.fi|netti\.fi)$/i;
+
+  function orgDomainsOf(org) {
+    if (org.email_domains && org.email_domains.length) return org.email_domains;
+    return org.email_domain ? [org.email_domain] : [];
+  }
+
+  function parseDomains(text) {
+    return [...new Set(String(text || '').split(/[\s,;]+/).map((d) => d.trim().toLowerCase().replace(/^@/, '')).filter(Boolean))];
+  }
+
+  function domainsFromEmails(emails) {
+    return [...new Set(emails.map((e) => (String(e).split('@')[1] || '').trim().toLowerCase()).filter((d) => d && !PERSONAL_DOMAIN_RE.test(d)))];
+  }
+
+  // Oletusdomainit pääkäyttäjien osoitteista, kun kenttä on vielä tyhjä.
+  function prefillDomains() {
+    const field = document.getElementById('emailDomains');
+    if (field && !field.value.trim()) field.value = domainsFromEmails(superuserEmails).join(', ');
   }
 
   function addSuperuser() { superuserEmails.push(''); rerenderCurrentForm(); }
   function removeSuperuser(idx) { superuserEmails.splice(idx, 1); if (superuserEmails.length === 0) superuserEmails = ['']; rerenderCurrentForm(); }
-  function updateSuperuser(idx, val) { superuserEmails[idx] = val; }
+  function updateSuperuser(idx, val) { superuserEmails[idx] = val; prefillDomains(); }
 
   function addMember() { memberEmails.push(''); rerenderCurrentForm(); }
   function removeMember(idx) { memberEmails.splice(idx, 1); if (memberEmails.length === 0) memberEmails = ['']; rerenderCurrentForm(); }
@@ -296,7 +319,7 @@
     return {
       name: document.getElementById('orgName').value,
       access_mode: document.querySelector('input[name="accessMode"]:checked').value,
-      email_domain: document.getElementById('emailDomain') ? document.getElementById('emailDomain').value : '',
+      email_domains: parseDomains(document.getElementById('emailDomains').value),
     };
   }
 
@@ -305,21 +328,27 @@
     renderOrgForm(values);
   }
 
+  // Lomakkeen domainit; tyhjä kenttä täytetään pääkäyttäjien osoitteista.
+  function formDomains(superusers) {
+    const given = parseDomains(document.getElementById('emailDomains').value);
+    return given.length ? given : domainsFromEmails(superusers);
+  }
+
   async function submitOrganization() {
     const name = document.getElementById('orgName').value.trim();
     const accessMode = document.querySelector('input[name="accessMode"]:checked').value;
-    const emailDomain = accessMode === 'domain' ? document.getElementById('emailDomain').value.trim() : null;
     const superusers = superuserEmails.map((e) => e.trim()).filter((e) => e !== '');
     const members = memberEmails.map((e) => e.trim()).filter((e) => e !== '');
+    const emailDomains = formDomains(superusers);
 
     if (!name) { alert(t('alert_client_name_required')); return; }
     if (superusers.length === 0) { alert(t('alert_superuser_required')); return; }
-    if (accessMode === 'domain' && !emailDomain) { alert(t('alert_domain_required')); return; }
+    if (accessMode === 'domain' && emailDomains.length === 0) { alert(t('alert_domain_required')); return; }
 
     let itContactEmail = '';
     const allDomains = new Set();
     if (accessMode === 'domain') {
-      allDomains.add(emailDomain);
+      emailDomains.forEach((d) => allDomains.add(d));
     } else {
       [...superusers, ...members].forEach((e) => {
         const d = e.split('@')[1];
@@ -327,23 +356,13 @@
       });
     }
 
-    const checkRes = await fetch(`${SUPABASE_URL}/functions/v1/check-new-domains`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ emails: Array.from(allDomains).map((d) => 'x@' + d) }),
-    });
-    const checkData = await checkRes.json();
+    const checkData = await AppNav.api('check-new-domains', { emails: Array.from(allDomains).map((d) => 'x@' + d) });
 
     if (checkData.newDomains && checkData.newDomains.length > 0) {
       itContactEmail = prompt(t('new_domain_prompt', { domains: checkData.newDomains.join(', ') })) || '';
     }
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/create-organization`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ name, accessMode, emailDomain, superusers, members, itContactEmail }),
-    });
-    const data = await res.json();
+    const data = await AppNav.api('create-organization', { name, accessMode, emailDomains, superusers, members, itContactEmail });
 
     if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
 
@@ -355,20 +374,15 @@
   async function submitOrganizationEdit() {
     const name = document.getElementById('orgName').value.trim();
     const accessMode = document.querySelector('input[name="accessMode"]:checked').value;
-    const emailDomain = accessMode === 'domain' ? document.getElementById('emailDomain').value.trim() : null;
     const superusers = superuserEmails.map((e) => e.trim()).filter((e) => e !== '');
     const members = memberEmails.map((e) => e.trim()).filter((e) => e !== '');
+    const emailDomains = formDomains(superusers);
 
     if (!name) { alert(t('alert_client_name_required')); return; }
     if (superusers.length === 0) { alert(t('alert_superuser_required')); return; }
-    if (accessMode === 'domain' && !emailDomain) { alert(t('alert_domain_required')); return; }
+    if (accessMode === 'domain' && emailDomains.length === 0) { alert(t('alert_domain_required')); return; }
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/update-organization`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ organizationId: editingOrgId, name, accessMode, emailDomain, superusers, members }),
-    });
-    const data = await res.json();
+    const data = await AppNav.api('update-organization', { organizationId: editingOrgId, name, accessMode, emailDomains, superusers, members });
 
     if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
 
@@ -382,12 +396,7 @@
     const confirm1 = confirm(t('confirm_delete_client', { name: org.name }));
     if (!confirm1) return;
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-organization`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ organizationId: editingOrgId }),
-    });
-    const data = await res.json();
+    const data = await AppNav.api('delete-organization', { organizationId: editingOrgId });
 
     if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
 
@@ -413,23 +422,31 @@
     editingOrgId = orgId;
 
     const app = document.getElementById('app');
+    const domains = orgDomainsOf(org);
     setHeader({
       title: org.name,
-      sub: `${t('superusers_prefix')}: ${org.members.filter((m) => m.role === 'superuser').map((m) => m.email).join(', ') || '–'}`,
-      actionsHtml: `<button class="secondary" onclick="startEditOrganization()">${t('edit_client_btn')}</button>`,
+      sub: `${t('superusers_prefix')}: ${org.members.filter((m) => m.role === 'superuser').map((m) => m.email).join(', ') || '–'}`
+        + (domains.length ? ` · ${t('domains_prefix')}: ${domains.join(', ')}` : ''),
+      actionsHtml: `<a class="btn secondary" href="/organisaatio.html?org=${encodeURIComponent(org.id)}">${t('open_org_page_btn')}</a>
+        <button class="secondary" onclick="startEditOrganization()">${t('edit_client_btn')}</button>`,
       backToList: true,
     });
     app.innerHTML = `
       <h2 class="section-title">${t('projects_label')}</h2>
       <div id="orgProjects"><p class="note">${t('loading')}</p></div>
+      <div class="log-head">
+        <h2 class="section-title">${t('activity_log_heading')}</h2>
+        <div class="check-row">
+          <input type="checkbox" id="adminAccessOnly" onchange="loadActivityLog('${org.id}')" />
+          <label for="adminAccessOnly">${t('activity_admin_only')}</label>
+        </div>
+      </div>
+      <p class="note" style="margin:-4px 0 12px;">${t('activity_log_note')}</p>
+      <div id="activityLog"><p class="note">${t('loading')}</p></div>
     `;
+    loadActivityLog(org.id);
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/list-projects`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: JSON.stringify({ organizationId: orgId }),
-    });
-    const data = await res.json();
+    const data = await AppNav.api('list-projects', { organizationId: orgId });
 
     const projList = document.getElementById('orgProjects');
     if (data.error) {
@@ -449,6 +466,67 @@
         <div class="meta mono">${t('created_label')} ${new Date(p.created_at).toLocaleDateString(locale)}</div>
       </a>
     `).join('')}</div>`;
+  }
+
+  // ---------- Tapahtumaloki (vain superadmin, list-activity-log) ----------
+  const ACTIVITY_DETAIL = {
+    project_rename: (d) => d && d.from ? `${d.from} → ${d.to}` : '',
+    project_owner_change: (d) => d && d.from ? `${t('activity_previous')}: ${d.from}` : '',
+    participant_add: (d) => d && d.role ? t(d.role === 'admin' ? 'role_admin' : 'role_guest') : '',
+    participant_role_change: (d) => d && d.role ? t(d.role === 'admin' ? 'role_admin' : 'role_guest') : '',
+    event_create: (d) => d ? t('activity_event_detail', { created: d.created || 0, attendees: d.attendees || 0 }) + (d.dryRun ? ` · ${t('activity_dry_run')}` : '') : '',
+    event_cancel: (d) => d ? t(d.scope === 'future' ? 'activity_cancel_future' : 'activity_cancel_one', { count: d.cancelled || 0 }) : '',
+    group_create: (d) => d && d.members ? t('activity_group_members', { count: d.members }) : '',
+    project_create: (d) => d && d.invited ? t('activity_invited', { count: d.invited.length }) : '',
+    project_delete: (d) => d && d.participants !== undefined ? t('activity_deleted_participants', { count: d.participants }) : '',
+  };
+
+  async function loadActivityLog(orgId) {
+    const host = document.getElementById('activityLog');
+    if (!host) return;
+    const adminAccessOnly = document.getElementById('adminAccessOnly').checked;
+    const data = await AppNav.api('list-activity-log', { organizationId: orgId, adminAccessOnly });
+    if (data.error) {
+      host.innerHTML = `<div class="empty-state">${t('error_prefix')}: ${escapeHtml(data.error)}</div>`;
+      return;
+    }
+    if (!data.entries.length) {
+      host.innerHTML = `<div class="empty-state">${t('activity_empty')}</div>`;
+      return;
+    }
+    const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
+    const rows = data.entries.map((e) => {
+      const when = new Date(e.created_at).toLocaleString(locale, { day: 'numeric', month: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+      const kind = e.admin_access ? `<span class="badge admin-access">${t('activity_admin_access_badge')}</span>`
+        : e.actor_kind === 'org_superuser' ? `<span class="badge kind">${t('org_role_superuser')}</span>` : '';
+      const detailFn = ACTIVITY_DETAIL[e.action];
+      const detail = detailFn ? detailFn(e.details) : '';
+      const project = e.project_id
+        ? `<a href="/projekti.html?id=${encodeURIComponent(e.project_id)}">${escapeHtml(e.project_name || '–')}</a>`
+        : escapeHtml(e.project_name || '–');
+      return `
+        <tr class="${e.admin_access ? 'admin-access' : ''}">
+          <td class="time">${escapeHtml(when)}</td>
+          <td>${project}</td>
+          <td>${escapeHtml(e.actor_email)} ${kind}</td>
+          <td>${escapeHtml(t('activity_' + e.action))}</td>
+          <td>${escapeHtml(e.target || '')}</td>
+          <td class="detail">${escapeHtml(detail)}</td>
+        </tr>
+      `;
+    }).join('');
+    host.innerHTML = `
+      <div class="log-panel">
+        <table class="log">
+          <thead><tr>
+            <th>${t('activity_col_time')}</th><th>${t('activity_col_project')}</th><th>${t('activity_col_actor')}</th>
+            <th>${t('activity_col_action')}</th><th>${t('activity_col_target')}</th><th>${t('activity_col_detail')}</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      ${data.entries.length >= data.limit ? `<p class="note">${t('activity_limit_note', { count: data.limit })}</p>` : ''}
+    `;
   }
 
   (async () => {

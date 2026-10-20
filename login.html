@@ -129,7 +129,7 @@
       return;
     }
 
-    window.location.href = '/projektit.html';
+    window.location.href = takeReturnPath();
   }
 
   function showFirstLoginProfilePopup(organizationName) {
@@ -174,7 +174,7 @@
       body: JSON.stringify(body),
     });
 
-    window.location.href = '/projektit.html';
+    window.location.href = takeReturnPath();
   }
 
   async function login() {
@@ -209,6 +209,23 @@
         redirectTo: window.location.origin + '/login.html',
       },
     });
+  }
+
+  // Paluu alkuperäiselle sivulle (esim. istunto vanhentunut -ikkunasta ?next=/projekti.html?id=…).
+  // Talletetaan sessionStorageen, jotta osoite säilyy Microsoft/Google-kirjautumisen
+  // uudelleenohjauksen yli. Vain saman sivuston polut kelpaavat.
+  const RETURN_KEY = 'meetsko_return_path';
+  function isSafeReturnPath(path) {
+    return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//') && !path.startsWith('/login.html');
+  }
+  (() => {
+    const next = new URLSearchParams(window.location.search).get('next');
+    try { if (isSafeReturnPath(next)) sessionStorage.setItem(RETURN_KEY, next); } catch (e) {}
+  })();
+  function takeReturnPath() {
+    let path = null;
+    try { path = sessionStorage.getItem(RETURN_KEY); sessionStorage.removeItem(RETURN_KEY); } catch (e) {}
+    return isSafeReturnPath(path) ? path : '/projektit.html';
   }
 
   applyStaticTranslations();

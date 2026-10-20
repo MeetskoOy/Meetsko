@@ -127,6 +127,13 @@ button.icon-remove:hover { background: none; border: none; color: #9C2C22; }
 .banner.ok { background: var(--ok-soft); color: #165C5C; }
 .banner.error { background: var(--danger-soft); color: #9C2C22; }
 
+/* ---------- Istunto vanhentunut (nav.js: AppNav.showSessionExpired) ---------- */
+body.session-expired > *:not(.session-expired-backdrop) { filter: blur(4px); pointer-events: none; user-select: none; }
+.session-expired-backdrop { position: fixed; inset: 0; background: rgba(14,34,64,0.35); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
+.session-expired-box { background: var(--surface); border-radius: 12px; padding: 28px; max-width: 400px; width: 100%; box-shadow: 0 16px 48px rgba(14,34,64,0.25); text-align: center; }
+.session-expired-box h2 { font-size: 18px; margin: 0 0 8px; }
+.session-expired-box p { font-size: 14px; color: var(--text-muted); margin: 0 0 20px; }
+
 @media (max-width: 900px) {
   .app-nav-inner, .page { padding-left: 16px; padding-right: 16px; }
   .app-nav-inner { gap: 16px; }
