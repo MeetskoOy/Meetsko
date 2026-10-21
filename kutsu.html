@@ -50,6 +50,7 @@
 </main>
 
 <script src="/translations.js"></script>
+<script src="/dialogs.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = "https://nrrhvbxvkizvkcwwglck.supabase.co";
@@ -200,7 +201,7 @@
     const data = await res.json();
 
     if (data.error) {
-      alert(t('error_prefix') + ': ' + data.error);
+      AppDialog.alert(t('error_prefix') + ': ' + data.error);
       return;
     }
 
@@ -396,7 +397,7 @@
     const filledBlackouts = settingsState.blackouts.filter((b) => b.startAt && b.endAt);
     // datetime-local-arvot (YYYY-MM-DDTHH:MM) ovat merkkijonoina aikajärjestyksessä.
     if (filledBlackouts.some((b) => b.endAt <= b.startAt)) {
-      alert(t('blackout_end_before_start'));
+      AppDialog.alert(t('blackout_end_before_start'));
       return false;
     }
     const blackouts = filledBlackouts

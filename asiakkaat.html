@@ -77,6 +77,7 @@
 </main>
 
 <script src="/translations.js"></script>
+<script src="/dialogs.js"></script>
 <script src="/nav.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -341,9 +342,9 @@
     const members = memberEmails.map((e) => e.trim()).filter((e) => e !== '');
     const emailDomains = formDomains(superusers);
 
-    if (!name) { alert(t('alert_client_name_required')); return; }
-    if (superusers.length === 0) { alert(t('alert_superuser_required')); return; }
-    if (accessMode === 'domain' && emailDomains.length === 0) { alert(t('alert_domain_required')); return; }
+    if (!name) { AppDialog.alert(t('alert_client_name_required')); return; }
+    if (superusers.length === 0) { AppDialog.alert(t('alert_superuser_required')); return; }
+    if (accessMode === 'domain' && emailDomains.length === 0) { AppDialog.alert(t('alert_domain_required')); return; }
 
     let itContactEmail = '';
     const allDomains = new Set();
@@ -359,14 +360,14 @@
     const checkData = await AppNav.api('check-new-domains', { emails: Array.from(allDomains).map((d) => 'x@' + d) });
 
     if (checkData.newDomains && checkData.newDomains.length > 0) {
-      itContactEmail = prompt(t('new_domain_prompt', { domains: checkData.newDomains.join(', ') })) || '';
+      itContactEmail = (await AppDialog.prompt(t('new_domain_prompt', { domains: checkData.newDomains.join(', ') }))) || '';
     }
 
     const data = await AppNav.api('create-organization', { name, accessMode, emailDomains, superusers, members, itContactEmail });
 
-    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
-    alert(t('client_created_alert') + (accessMode === 'restricted' ? t('and_named_members') : '.'));
+    AppDialog.alert(t('client_created_alert') + (accessMode === 'restricted' ? t('and_named_members') : '.'));
 
     await loadOrganizations();
   }
@@ -378,13 +379,13 @@
     const members = memberEmails.map((e) => e.trim()).filter((e) => e !== '');
     const emailDomains = formDomains(superusers);
 
-    if (!name) { alert(t('alert_client_name_required')); return; }
-    if (superusers.length === 0) { alert(t('alert_superuser_required')); return; }
-    if (accessMode === 'domain' && emailDomains.length === 0) { alert(t('alert_domain_required')); return; }
+    if (!name) { AppDialog.alert(t('alert_client_name_required')); return; }
+    if (superusers.length === 0) { AppDialog.alert(t('alert_superuser_required')); return; }
+    if (accessMode === 'domain' && emailDomains.length === 0) { AppDialog.alert(t('alert_domain_required')); return; }
 
     const data = await AppNav.api('update-organization', { organizationId: editingOrgId, name, accessMode, emailDomains, superusers, members });
 
-    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
     await loadOrganizations();
   }
@@ -393,12 +394,12 @@
     const org = organizations.find((o) => o.id === editingOrgId);
     if (!org) return;
 
-    const confirm1 = confirm(t('confirm_delete_client', { name: org.name }));
+    const confirm1 = (await AppDialog.confirm(t('confirm_delete_client', { name: org.name }), { danger: true }));
     if (!confirm1) return;
 
     const data = await AppNav.api('delete-organization', { organizationId: editingOrgId });
 
-    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
     await loadOrganizations();
   }

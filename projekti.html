@@ -503,6 +503,7 @@
 <div id="modalHost"></div>
 
 <script src="/translations.js"></script>
+<script src="/dialogs.js"></script>
 <script src="/recurrence.js"></script>
 <script src="/nav.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1550,7 +1551,7 @@ async function loadStatus() {
 
   async function submitAddParticipant() {
     const rowsToSend = npRows.filter((r) => r.email.trim() !== '');
-    if (rowsToSend.length === 0) { alert(t('error_prefix') + ': ' + t('col_email')); return; }
+    if (rowsToSend.length === 0) { AppDialog.alert(t('error_prefix') + ': ' + t('col_email')); return; }
 
     const links = [];
     const errors = [];
@@ -1569,7 +1570,7 @@ async function loadStatus() {
   async function addMyselfToProject() {
     const data = await submitParticipantInvite(currentUserEmail, '', '', '', 'admin');
     if (data.error) {
-      alert(t('error_prefix') + ': ' + data.error);
+      AppDialog.alert(t('error_prefix') + ': ' + data.error);
       return;
     }
     closeModal();
@@ -1598,7 +1599,7 @@ async function loadStatus() {
       .map((p) => p.id);
 
     if (authorizedIds.length === 0) {
-      alert(t('alert_no_authorized'));
+      AppDialog.alert(t('alert_no_authorized'));
       return;
     }
 
@@ -1675,8 +1676,8 @@ function openGroupModal() {
 
   async function submitNewGroup() {
     const name = newGroupState.name.trim();
-    if (!name) { alert(t('alert_group_name_required')); return; }
-    if (newGroupState.selectedIds.size === 0) { alert(t('alert_group_member_required')); return; }
+    if (!name) { AppDialog.alert(t('alert_group_name_required')); return; }
+    if (newGroupState.selectedIds.size === 0) { AppDialog.alert(t('alert_group_member_required')); return; }
 
     const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/create-group`, {
       method: 'POST',
@@ -1688,7 +1689,7 @@ function openGroupModal() {
       }),
     });
     const data = await res.json();
-    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
     closeModal();
     loadStatus();
@@ -1782,13 +1783,13 @@ function openGroupModal() {
   async function deleteGroup(groupId) {
     const g = (latestStatus.groups || []).find((x) => x.id === groupId);
     if (!g) return;
-    if (!confirm(t('confirm_delete_group', { name: g.name }))) return;
+    if (!(await AppDialog.confirm(t('confirm_delete_group', { name: g.name }), { danger: true }))) return;
     const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/delete-group`, {
       method: 'POST',
       body: JSON.stringify({ groupId }),
     });
     const data = await res.json();
-    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
     closeModal();
     await loadStatus();
   }
@@ -1804,7 +1805,7 @@ function openGroupModal() {
   async function removeGroupMember(groupId, participantId) {
     const data = await callUpdateGroupMembers(groupId, participantId, 'remove');
     if (data.error) {
-      alert(t('error_prefix') + ': ' + data.error);
+      AppDialog.alert(t('error_prefix') + ': ' + data.error);
       return;
     }
     await loadStatus();
@@ -1816,7 +1817,7 @@ function openGroupModal() {
     if (!select || !select.value) return;
     const data = await callUpdateGroupMembers(groupId, select.value, 'add');
     if (data.error) {
-      alert(t('error_prefix') + ': ' + data.error);
+      AppDialog.alert(t('error_prefix') + ': ' + data.error);
       return;
     }
     await loadStatus();
@@ -2284,14 +2285,14 @@ function openGroupModal() {
       });
       const data = await res.json();
       if (data.error) {
-        alert(t('edit_failed') + ': ' + data.error);
+        AppDialog.alert(t('edit_failed') + ': ' + data.error);
         if (btn) { btn.disabled = false; btn.textContent = calendarChange ? t('edit_send_update_btn') : t('save_btn'); }
         return;
       }
       await loadProjectEvents();
       renderEventUpdatedStep(data, calendarChange);
     } catch (err) {
-      alert(t('edit_failed') + ': ' + err.message);
+      AppDialog.alert(t('edit_failed') + ': ' + err.message);
       if (btn) { btn.disabled = false; btn.textContent = calendarChange ? t('edit_send_update_btn') : t('save_btn'); }
     }
   }
@@ -2322,18 +2323,18 @@ function openGroupModal() {
     const e = projectEvents.find((x) => x.id === eventId);
     if (!e) return;
     const key = scope === 'future' ? 'confirm_cancel_future' : 'confirm_cancel_event';
-    if (!confirm(t(key, { title: e.title, time: formatDayHeading(e.startMs) + ' ' + formatTimeRange(e.startMs, e.endMs) }))) return;
+    if (!(await AppDialog.confirm(t(key, { title: e.title, time: formatDayHeading(e.startMs) + ' ' + formatTimeRange(e.startMs, e.endMs) }), { danger: true }))) return;
     try {
       const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/cancel-project-event`, {
         method: 'POST',
         body: JSON.stringify({ projectId: PROJECT_ID, eventId, scope }),
       });
       const data = await res.json();
-      if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
-      if (data.failed && data.failed.length) alert(t('cancel_partial', { cancelled: data.cancelled, failed: data.failed.length }));
+      if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
+      if (data.failed && data.failed.length) AppDialog.alert(t('cancel_partial', { cancelled: data.cancelled, failed: data.failed.length }));
       await loadProjectEvents();
     } catch (err) {
-      alert(t('error_prefix') + ': ' + err.message);
+      AppDialog.alert(t('error_prefix') + ': ' + err.message);
     }
   }
 
@@ -2558,7 +2559,7 @@ function openGroupModal() {
       });
       const data = await res.json();
       if (data.error) {
-        alert(t('error_prefix') + ': ' + data.error);
+        AppDialog.alert(t('error_prefix') + ': ' + data.error);
         if (btn) btn.disabled = false;
         return;
       }
@@ -2567,7 +2568,7 @@ function openGroupModal() {
       await loadDrafts();
       showInlineNote(t('draft_saved'));
     } catch (err) {
-      alert(t('error_prefix') + ': ' + err.message);
+      AppDialog.alert(t('error_prefix') + ': ' + err.message);
       if (btn) btn.disabled = false;
     }
   }
@@ -2628,7 +2629,7 @@ function openGroupModal() {
     const s = eventModalState;
     if (!s.results) { renderEventSelectionStep(); return; }
     if (Object.keys(s.peopleRoles).length + Object.keys(s.groupRoles).length === 0) {
-      alert(t('alert_select_attendee'));
+      AppDialog.alert(t('alert_select_attendee'));
       renderEventSelectionStep();
       return;
     }
@@ -2638,7 +2639,7 @@ function openGroupModal() {
   async function deleteDraft(draftId) {
     const d = myDrafts.find((x) => x.id === draftId);
     if (!d) return;
-    if (!confirm(t('confirm_delete_draft', { title: d.title || t('draft_untitled') }))) return;
+    if (!(await AppDialog.confirm(t('confirm_delete_draft', { title: d.title || t('draft_untitled') }), { danger: true }))) return;
     await deleteDraftRequest(draftId);
     await loadDrafts();
   }
@@ -2649,7 +2650,7 @@ function openGroupModal() {
       body: JSON.stringify({ action: 'delete', projectId: PROJECT_ID, draftId }),
     });
     const data = await res.json();
-    if (data.error) alert(t('error_prefix') + ': ' + data.error);
+    if (data.error) AppDialog.alert(t('error_prefix') + ': ' + data.error);
   }
 
   function refetchOccurrenceTimes() {
@@ -3025,7 +3026,7 @@ function openGroupModal() {
     Object.entries(s.groupRoles).forEach(([id, role]) => (role === 'required' ? requiredIds.groups : optionalIds.groups).push(id));
 
     if (requiredIds.people.length + requiredIds.groups.length + optionalIds.people.length + optionalIds.groups.length === 0) {
-      alert(t('alert_select_attendee'));
+      AppDialog.alert(t('alert_select_attendee'));
       return null;
     }
 
@@ -3067,7 +3068,7 @@ function openGroupModal() {
     });
 
     if (results.length === 0) {
-      alert(t('alert_no_slots_found'));
+      AppDialog.alert(t('alert_no_slots_found'));
       return;
     }
 
@@ -3101,7 +3102,7 @@ function openGroupModal() {
     if (r.endType === 'count') {
       const count = Number(r.count);
       if (!Number.isInteger(count) || count < 2 || count > RECURRENCE_MAX_OCCURRENCES) {
-        alert(t('rec_alert_count'));
+        AppDialog.alert(t('rec_alert_count'));
         return null;
       }
       return { count, endDate: null };
@@ -3109,7 +3110,7 @@ function openGroupModal() {
     const endDate = parseDateInput(r.endDate);
     const startFrom = parseDateInput(r.startFrom) || new Date();
     if (!endDate || endDate <= recStartOfDay(startFrom)) {
-      alert(t('rec_alert_end_date'));
+      AppDialog.alert(t('rec_alert_end_date'));
       return null;
     }
     return { count: null, endDate };
@@ -3129,7 +3130,7 @@ function openGroupModal() {
     const startFrom = parseDateInput(r.startFrom);
     const from = startFrom && startFrom > tomorrow ? startFrom : tomorrow;
     const firstDate = recNextMatchingDate(recRuleFromState(r), from);
-    if (!firstDate) { alert(t('alert_no_slots_found')); return; }
+    if (!firstDate) { AppDialog.alert(t('alert_no_slots_found')); return; }
 
     const win = RECURRENCE_TIME_WINDOWS[r.window];
     const durationMinutes = Number(s.duration) || 30;
@@ -3175,7 +3176,7 @@ function openGroupModal() {
     const firstDate = new Date(s.selStart);
     const rule = recDeriveRuleFromDate(recRuleFromState(r), firstDate);
     if (!recMatchesRule(firstDate, rule)) {
-      alert(t('rec_alert_weekday_only'));
+      AppDialog.alert(t('rec_alert_weekday_only'));
       return false;
     }
 
@@ -3189,8 +3190,8 @@ function openGroupModal() {
       smart: r.smart,
     }, ctx);
 
-    if (occurrences.length > RECURRENCE_MAX_OCCURRENCES) { alert(t('rec_alert_too_many')); return false; }
-    if (occurrences.length < 2) { alert(t('rec_alert_too_few')); return false; }
+    if (occurrences.length > RECURRENCE_MAX_OCCURRENCES) { AppDialog.alert(t('rec_alert_too_many')); return false; }
+    if (occurrences.length < 2) { AppDialog.alert(t('rec_alert_too_few')); return false; }
 
     s.recRule = rule;
     s.recCtx = ctx;
@@ -3285,7 +3286,7 @@ function openGroupModal() {
 
   function removeOccurrence(idx) {
     const s = eventModalState;
-    if (s.occurrences.length <= 1) { alert(t('rec_alert_no_occurrences')); return; }
+    if (s.occurrences.length <= 1) { AppDialog.alert(t('rec_alert_no_occurrences')); return; }
     s.occurrences.splice(idx, 1);
     renderOccurrenceListStep();
   }
@@ -4116,7 +4117,7 @@ function openGroupModal() {
       const data = await res.json();
 
       if (data.error) {
-        alert(t('invite_send_failed') + ': ' + data.error);
+        AppDialog.alert(t('invite_send_failed') + ': ' + data.error);
         if (btn) { btn.disabled = false; btn.textContent = t('send_invites_btn'); }
         return;
       }
@@ -4129,7 +4130,7 @@ function openGroupModal() {
       }
       renderInviteSentStep(data);
     } catch (err) {
-      alert(t('invite_send_failed') + ': ' + err.message);
+      AppDialog.alert(t('invite_send_failed') + ': ' + err.message);
       if (btn) { btn.disabled = false; btn.textContent = t('send_invites_btn'); }
     }
   }
@@ -4200,7 +4201,7 @@ async function openSettingsModal() {
     const data = await res.json();
 
     if (data.error) {
-      alert(t('error_prefix') + ': ' + data.error);
+      AppDialog.alert(t('error_prefix') + ': ' + data.error);
       return;
     }
 
@@ -4284,14 +4285,14 @@ async function openSettingsModal() {
   }
 
   async function revokeCalendarAuth() {
-    if (!confirm(t('confirm_revoke_auth'))) return;
+    if (!(await AppDialog.confirm(t('confirm_revoke_auth'), { danger: true }))) return;
 
     const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/revoke-calendar-authorization`, {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
     const data = await res.json();
-    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
     closeModal();
     loadStatus();
@@ -4320,20 +4321,20 @@ async function openSettingsModal() {
     `;
   }
 
-  function startWriteAuth() {
-    if (!confirm(t('confirm_write_auth'))) return;
+  async function startWriteAuth() {
+    if (!(await AppDialog.confirm(t('confirm_write_auth')))) return;
     startCalendarAuthForParticipant(settingsState.participantId, true);
   }
 
   async function leaveProjectConfirm() {
-    if (!confirm(t('confirm_leave_project'))) return;
+    if (!(await AppDialog.confirm(t('confirm_leave_project'), { danger: true }))) return;
 
     const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/leave-project`, {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
     const data = await res.json();
-    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
     window.location.href = '/projektit.html';
   }
@@ -4523,14 +4524,14 @@ async function openSettingsModal() {
   async function saveProjectOwner() {
     const ownerEmail = document.getElementById('projectOwnerSelect').value;
     if (!ownerEmail || ownerEmail.toLowerCase() === latestStatus.project.owner_email.toLowerCase()) return;
-    if (!confirm(t('confirm_owner_change', { email: ownerEmail }))) return;
+    if (!(await AppDialog.confirm(t('confirm_owner_change', { email: ownerEmail })))) return;
 
     const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-project`, {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID, ownerEmail }),
     });
     const data = await res.json();
-    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
     await loadStatus();
     renderSettingsModal();
@@ -4538,15 +4539,15 @@ async function openSettingsModal() {
 
   async function deleteProjectConfirm() {
     const name = latestStatus.project.name;
-    if (!confirm(t('confirm_delete_project_1', { name }))) return;
-    if (!confirm(t('confirm_delete_project_2', { name }))) return;
+    if (!(await AppDialog.confirm(t('confirm_delete_project_1', { name }), { danger: true }))) return;
+    if (!(await AppDialog.confirm(t('confirm_delete_project_2', { name }), { danger: true }))) return;
 
     const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/delete-project`, {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
     const data = await res.json();
-    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
     window.location.href = '/projektit.html';
   }
@@ -4560,10 +4561,10 @@ async function openSettingsModal() {
       body: JSON.stringify({ projectId: PROJECT_ID, name }),
     });
     const data = await res.json();
-    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
     await loadStatus();
-    alert(t('project_name_saved'));
+    AppDialog.alert(t('project_name_saved'));
   }
 
   async function changeParticipantRole(participantId, role) {
@@ -4572,21 +4573,21 @@ async function openSettingsModal() {
       body: JSON.stringify({ projectId: PROJECT_ID, participantId, role }),
     });
     const data = await res.json();
-    if (data.error) { alert(t('error_prefix') + ': ' + data.error); }
+    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); }
 
     await loadStatus();
     renderSettingsModal();
   }
 
   async function removeParticipantFromProject(participantId, name) {
-    if (!confirm(t('confirm_remove_participant', { name }))) return;
+    if (!(await AppDialog.confirm(t('confirm_remove_participant', { name }), { danger: true }))) return;
 
     const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/remove-participant-from-project`, {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID, participantId }),
     });
     const data = await res.json();
-    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
     await loadStatus();
     renderSettingsModal();
@@ -4605,7 +4606,7 @@ async function openSettingsModal() {
     const filledBlackouts = settingsState.blackouts.filter((b) => b.startAt && b.endAt);
     // datetime-local-arvot (YYYY-MM-DDTHH:MM) ovat merkkijonoina aikajärjestyksessä.
     if (filledBlackouts.some((b) => b.endAt <= b.startAt)) {
-      alert(t('blackout_end_before_start'));
+      AppDialog.alert(t('blackout_end_before_start'));
       return;
     }
     const blackouts = filledBlackouts
@@ -4623,7 +4624,7 @@ async function openSettingsModal() {
     const data = await res.json();
 
     if (data.error) {
-      alert(t('error_prefix') + ': ' + data.error);
+      AppDialog.alert(t('error_prefix') + ': ' + data.error);
       return;
     }
 

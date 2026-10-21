@@ -60,6 +60,7 @@
 </main>
 
 <script src="/translations.js"></script>
+<script src="/dialogs.js"></script>
 <script src="/nav.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -207,10 +208,10 @@
   }
 
   async function deletePerson(email) {
-    const firstConfirm = confirm(t('confirm_delete_user_1', { email }));
+    const firstConfirm = (await AppDialog.confirm(t('confirm_delete_user_1', { email }), { danger: true }));
     if (!firstConfirm) return;
 
-    const secondConfirm = confirm(t('confirm_delete_user_2', { email }));
+    const secondConfirm = (await AppDialog.confirm(t('confirm_delete_user_2', { email }), { danger: true }));
     if (!secondConfirm) return;
 
     const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-person-everywhere`, {
@@ -221,7 +222,7 @@
     const data = await res.json();
 
     if (data.error) {
-      alert(t('error_prefix') + ': ' + data.error);
+      AppDialog.alert(t('error_prefix') + ': ' + data.error);
       return;
     }
 

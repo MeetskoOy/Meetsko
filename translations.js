@@ -598,6 +598,9 @@ const TRANSLATIONS = {
     occ_move_hint: "Siirrä vain tätä kertaa: raahaa valintaa aikajanalla tai valitse aika. Muut kerrat eivät muutu.",
     delete_group_btn: "Poista ryhmä",
     group_expand: "Näytä jäsenet",
+    dialog_ok: "OK",
+    dialog_cancel: "Peruuta",
+    dialog_confirm: "Vahvista",
     group_collapse: "Piilota jäsenet",
     confirm_delete_group: "Poistetaanko ryhmä {{name}}? Ryhmän jäsenet pysyvät projektissa.",
 
@@ -1192,6 +1195,9 @@ const TRANSLATIONS = {
     occ_move_hint: "Move this occurrence only: drag the selection on the timeline or pick a time. Other occurrences stay as they are.",
     delete_group_btn: "Delete group",
     group_expand: "Show members",
+    dialog_ok: "OK",
+    dialog_cancel: "Cancel",
+    dialog_confirm: "Confirm",
     group_collapse: "Hide members",
     confirm_delete_group: "Delete the group {{name}}? Its members stay in the project.",
 
