@@ -265,6 +265,10 @@
 
   .tip-box { position: fixed; z-index: 50; background: var(--nav-bg); color: #fff; font-size: 12.5px; font-weight: 500; padding: 6px 10px; border-radius: 6px; pointer-events: none; white-space: nowrap; transform: translate(-50%, -100%); display: none; }
 
+  .edit-summary { margin: 6px 0 0; padding-left: 18px; font-size: 13.5px; color: var(--text); }
+  .edit-summary li { margin-bottom: 6px; }
+  .edit-summary .edit-from { color: var(--text-muted); text-decoration: line-through; }
+  .occ-move-btn { margin: 0; padding: 6px 12px; font-size: 13px; }
   .modal-close-x { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; padding: 0; margin: 0; border: none; border-radius: 8px; background: transparent; color: var(--text-muted); font-size: 16px; line-height: 32px; text-align: center; cursor: pointer; z-index: 2; }
   .modal-close-x:hover { background: var(--surface-muted); color: var(--text); border: none; }
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 10; overflow-y: auto; padding: 30px 0; }
@@ -2015,6 +2019,7 @@ function openGroupModal() {
         <div>${e.hidden ? t('draft_visibility_hidden') : t('draft_visibility_all')}</div>
         ${eventCancelNoteHtml(e)}
         <div class="dd-actions">
+          ${eventEditButtonsHtml(e)}
           ${eventCancelButtonsHtml(e)}
           <button type="button" class="secondary" onclick="toggleEventDetails('${e.id}')">${t('collapse_btn')}</button>
         </div>
@@ -2034,6 +2039,226 @@ function openGroupModal() {
               <button type="button" class="danger" onclick="cancelProjectEvent('${e.id}', 'future')">${t('cancel_future_btn')}</button>`;
     }
     return `<button type="button" class="danger" onclick="cancelProjectEvent('${e.id}', 'occurrence')">${t('cancel_event_btn')}</button>`;
+  }
+
+  // Muokkaus samoin ehdoin kuin peruminen: vain järjestäjälle, tuleville tapahtumille
+  // ja kirjoitusoikeudella (update-project-event tarkistaa saman).
+  // Julkaisukytkin: update-project-event julkaistaan vasta turvakaiteiden kanssa
+  // (CLAUDE.md). Vaihda true, kun funktio on deployattu ja testattu testitileillä.
+  const EVENT_EDITING_ENABLED = false;
+
+  function eventEditButtonsHtml(e) {
+    if (!EVENT_EDITING_ENABLED) return '';
+    if (!canCancelEvent(e) || !canWriteCalendar || currentAuthProvider === 'google') return '';
+    if (e.series_id) {
+      return `<button type="button" class="secondary" onclick="startEditEvent('${e.id}', 'occurrence')">${t('edit_occurrence_btn')}</button>
+              <button type="button" class="secondary" onclick="startEditEvent('${e.id}', 'future')">${t('edit_future_btn')}</button>`;
+    }
+    return `<button type="button" class="secondary" onclick="startEditEvent('${e.id}', 'occurrence')">${t('edit_event_btn')}</button>`;
+  }
+
+  // Tapahtuman muokkaus: avaa tapahtuman luonnin ehdotusvaiheen esitäytettynä
+  // (aika minikalenterissa, osallistujat, otsikko, viesti, näkyvyys). Toistuvassa
+  // muokataan tätä kertaa tai tätä ja tulevia kertoja (aika siirtyy samalla erotuksella).
+  function startEditEvent(eventId, scope) {
+    const e = projectEvents.find((x) => x.id === eventId);
+    if (!e || !latestStatus) return;
+    const exists = (id) => latestStatus.participants.some((p) => p.id === id);
+    const peopleRoles = {};
+    (e.required_ids || []).filter(exists).forEach((id) => { peopleRoles[id] = 'required'; });
+    (e.optional_ids || []).filter(exists).forEach((id) => { if (!peopleRoles[id]) peopleRoles[id] = 'optional'; });
+    const futureCount = scope === 'future' && e.series_id
+      ? projectEvents.filter((x) => x.series_id === e.series_id && x.status === 'scheduled' && x.startMs >= e.startMs).length
+      : 1;
+
+    eventModalState = {
+      duration: Math.max(5, Math.round((e.endMs - e.startMs) / 60000)),
+      peopleRoles, groupRoles: {},
+      rangeFrom: '', rangeTo: '', preferMorning: false, preferMidday: false, preferAfternoon: false,
+      mode: 'single', rec: defaultRecurrenceState(), recRule: null, recCtx: null, occurrences: null,
+      results: [{ startMs: e.startMs, endMs: e.endMs }], selectedResultIdx: 0,
+      calAnchor: toDateStr(new Date(e.startMs)), selStart: e.startMs, selEnd: e.endMs,
+      draftId: null, draftRemovedCount: 0,
+      inviteTitle: e.title || '', inviteBody: e.body || '', inviteHidden: !!e.hidden,
+      editEvent: {
+        id: e.id, scope, futureCount, seriesId: e.series_id || null,
+        original: {
+          startMs: e.startMs, endMs: e.endMs, title: e.title || '', body: e.body || '', hidden: !!e.hidden,
+          requiredIds: (e.required_ids || []).slice(), optionalIds: (e.optional_ids || []).slice(),
+        },
+      },
+    };
+    renderEventResultsStep({ scroll: 'selection' });
+  }
+
+  // Muokattavan tapahtuman oma aika ei ole "varattu" uutta aikaa haettaessa.
+  function withoutEditedEvent(intervals) {
+    const ed = eventModalState && eventModalState.editEvent;
+    if (!ed) return intervals;
+    const o = ed.original;
+    return intervals.filter((b) => !(Math.abs(b.startMs - o.startMs) < 60000 && Math.abs(b.endMs - o.endMs) < 60000));
+  }
+
+  // Muutokset alkuperäiseen verrattuna; palvelimelle lähetetään vain muuttuneet kentät,
+  // jottei "tämä ja tulevat" -muokkaus ylikirjoita kertojen muita yksilöllisiä tietoja.
+  function editEventChanges() {
+    const s = eventModalState;
+    const o = s.editEvent.original;
+    const { required, optional } = buildInviteAttendees();
+    const reqIds = required.map((a) => a.id);
+    const optIds = optional.map((a) => a.id);
+    // Järjestäjä itse ei ole osallistujalistalla.
+    const origReq = o.requiredIds.filter((id) => !isOwnParticipantId(id));
+    const origOpt = o.optionalIds.filter((id) => !isOwnParticipantId(id));
+    const same = (a, b) => a.length === b.length && [...a].sort().join() === [...b].sort().join();
+    const slot = selectedSlot();
+    const changes = {};
+    const summary = [];
+    if (slot.startMs !== o.startMs || slot.endMs !== o.endMs) {
+      changes.startIso = new Date(slot.startMs).toISOString();
+      changes.endIso = new Date(slot.endMs).toISOString();
+      summary.push({ label: t('edit_change_time'), from: formatEventSpan(o.startMs, o.endMs), to: formatEventSpan(slot.startMs, slot.endMs) });
+    }
+    const title = (s.inviteTitle || '').trim();
+    if (title !== o.title) { changes.title = title; summary.push({ label: t('edit_change_title'), from: o.title, to: title }); }
+    if ((s.inviteBody || '') !== o.body) { changes.body = s.inviteBody || ''; summary.push({ label: t('edit_change_body') }); }
+    if (!same(reqIds, origReq) || !same(optIds, origOpt)) {
+      changes.requiredIds = reqIds;
+      changes.optionalIds = optIds;
+      const before = new Set([...origReq, ...origOpt]);
+      const after = new Set([...reqIds, ...optIds]);
+      const added = [...after].filter((id) => !before.has(id)).map(participantName);
+      const removed = [...before].filter((id) => !after.has(id)).map(participantName);
+      summary.push({ label: t('edit_change_attendees'), added, removed });
+    }
+    if (!!s.inviteHidden !== o.hidden) {
+      changes.hidden = !!s.inviteHidden;
+      summary.push({ label: t('edit_change_visibility'), to: s.inviteHidden ? t('draft_visibility_hidden') : t('draft_visibility_all') });
+    }
+    const calendarChange = Object.keys(changes).some((k) => k !== 'hidden');
+    return { changes, summary, calendarChange };
+  }
+
+  function isOwnParticipantId(id) {
+    const p = latestStatus.participants.find((x) => x.id === id);
+    return !!p && p.email.toLowerCase() === currentUserEmail;
+  }
+
+  function renderEditConfirmStep() {
+    const s = eventModalState;
+    const ed = s.editEvent;
+    const { required, optional } = buildInviteAttendees();
+    const { summary, calendarChange } = editEventChanges();
+    const sendState = inviteSendState();
+    const canSend = summary.length > 0 && (!calendarChange || sendState === 'ready');
+    const futureNote = ed.scope === 'future' && ed.futureCount > 1
+      ? `<p class="invite-note">${t('edit_future_note', { count: ed.futureCount })}</p>` : '';
+    const summaryHtml = summary.length === 0
+      ? `<p class="empty-note">${t('edit_no_changes')}</p>`
+      : `<ul class="edit-summary">${summary.map((c) => `
+          <li><strong>${c.label}</strong>
+            ${c.from !== undefined ? `<span class="edit-from">${escapeHtmlText(c.from)}</span> → ` : ''}${c.to !== undefined ? `<span>${escapeHtmlText(c.to)}</span>` : ''}
+            ${c.added && c.added.length ? `<div>${t('edit_added')}: ${escapeHtmlText(c.added.join(', '))}</div>` : ''}
+            ${c.removed && c.removed.length ? `<div>${t('edit_removed')}: ${escapeHtmlText(c.removed.join(', '))}</div>` : ''}
+          </li>`).join('')}</ul>`;
+
+    document.getElementById('modalHost').innerHTML = `
+      <div class="modal-overlay">
+        <div class="modal event-modal">
+          ${modalCloseButtonHtml()}
+          <h3>${t('edit_confirm_heading')}</h3>
+          ${draftEditNoteHtml()}
+
+          <div class="invite-time">${formatSlotLabel(selectedSlot())}</div>
+
+          <label style="margin-top:14px;">${t('invite_subject_label')}</label>
+          <input type="text" value="${escapeHtmlText(s.inviteTitle)}" oninput="eventModalState.inviteTitle = this.value; refreshEditSummary()" />
+
+          <label>${t('invite_body_label')}</label>
+          <textarea class="invite-textarea" rows="3" oninput="eventModalState.inviteBody = this.value; refreshEditSummary()">${escapeHtmlText(s.inviteBody || '')}</textarea>
+
+          <label>${t('invite_required_label')} (${required.length})</label>
+          <div class="chip-row">${attendeeChipsHtml(required)}</div>
+          <label>${t('invite_optional_label')} (${optional.length})</label>
+          <div class="chip-row">${attendeeChipsHtml(optional)}</div>
+
+          <label class="hide-from-others">
+            <input type="checkbox" ${s.inviteHidden ? 'checked' : ''} onchange="eventModalState.inviteHidden = this.checked; refreshEditSummary()" />
+            ${t('invite_hide_from_others')}
+          </label>
+
+          <label>${t('edit_changes_label')}</label>
+          <div id="editSummary">${summaryHtml}</div>
+          ${futureNote}
+          ${calendarChange && sendState !== 'ready' ? `<p class="invite-note">${t(sendState === 'google' ? 'invite_note_google' : 'invite_note_noauth')}</p>` : ''}
+
+          <div class="actions">
+            <button class="secondary" onclick="renderEventResultsStep()">${t('back_btn')}</button>
+            <button id="sendInviteBtn" ${canSend ? '' : 'disabled'} onclick="sendInvite()">${calendarChange ? t('edit_send_update_btn') : t('save_btn')}</button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Kenttien muokkaus päivittää muutosyhteenvedon ja napin ilman koko ikkunan uudelleenpiirtoa.
+  function refreshEditSummary() {
+    const host = document.getElementById('editSummary');
+    if (!host) return;
+    const scrollTop = document.querySelector('.modal-overlay') ? document.querySelector('.modal-overlay').scrollTop : 0;
+    const active = document.activeElement;
+    const pos = active && 'selectionStart' in active ? active.selectionStart : null;
+    const tag = active ? active.tagName : null;
+    renderEditConfirmStep();
+    const overlay = document.querySelector('.modal-overlay');
+    if (overlay) overlay.scrollTop = scrollTop;
+    if (tag) {
+      const el = document.querySelector(tag === 'TEXTAREA' ? '.event-modal textarea' : '.event-modal input[type=text]');
+      if (el) { el.focus(); if (pos !== null && el.setSelectionRange) el.setSelectionRange(pos, pos); }
+    }
+  }
+
+  async function sendEventUpdate() {
+    const s = eventModalState;
+    const ed = s.editEvent;
+    const { changes, calendarChange } = editEventChanges();
+    if (Object.keys(changes).length === 0) return;
+    const btn = document.getElementById('sendInviteBtn');
+    if (btn) { btn.disabled = true; btn.textContent = calendarChange ? t('sending_label') : t('saving_label'); }
+    try {
+      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-project-event`, {
+        method: 'POST',
+        body: JSON.stringify({ projectId: PROJECT_ID, eventId: ed.id, scope: ed.scope, changes }),
+      });
+      const data = await res.json();
+      if (data.error) {
+        alert(t('edit_failed') + ': ' + data.error);
+        if (btn) { btn.disabled = false; btn.textContent = calendarChange ? t('edit_send_update_btn') : t('save_btn'); }
+        return;
+      }
+      await loadProjectEvents();
+      renderEventUpdatedStep(data, calendarChange);
+    } catch (err) {
+      alert(t('edit_failed') + ': ' + err.message);
+      if (btn) { btn.disabled = false; btn.textContent = calendarChange ? t('edit_send_update_btn') : t('save_btn'); }
+    }
+  }
+
+  function renderEventUpdatedStep(data, calendarChange) {
+    const failedHtml = (data.failed || []).length
+      ? `<p class="invite-note">${t('edit_partial', { updated: data.updated, failed: data.failed.length })}</p>` : '';
+    document.getElementById('modalHost').innerHTML = `
+      <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+        <div class="modal">
+          <h3>${t(calendarChange ? 'edit_sent_heading' : 'edit_saved_heading')}</h3>
+          <p class="sub">${t(calendarChange ? 'edit_sent_body' : 'edit_saved_body', { count: data.updated })}</p>
+          ${data.dryRun ? `<p class="invite-note">${t('invite_dry_run_note')}</p>` : ''}
+          ${failedHtml}
+          <div class="actions"><button onclick="closeModal()">${t('close')}</button></div>
+        </div>
+      </div>
+    `;
+    eventModalState = null;
   }
 
   function eventCancelNoteHtml(e) {
@@ -2382,6 +2607,10 @@ function openGroupModal() {
 
   function draftEditNoteHtml() {
     const s = eventModalState;
+    if (s && s.editEvent) {
+      const key = s.editEvent.scope === 'future' && s.editEvent.futureCount > 1 ? 'editing_event_future_note' : 'editing_event_note';
+      return `<p class="draft-edit-note">${t(key, { title: escapeHtmlText(s.editEvent.original.title), count: s.editEvent.futureCount })}</p>`;
+    }
     if (!s || !s.draftId) return '';
     const removed = s.draftRemovedCount ? ' ' + t('draft_removed', { count: s.draftRemovedCount }) : '';
     return `<p class="draft-edit-note">${t('editing_draft_note')}${removed}</p>`;
@@ -2411,7 +2640,7 @@ function openGroupModal() {
   function openCreateEventModal() {
     if (!latestStatus) return;
     // Luonnoksen muokkauksen jälkeen uusi tapahtuma aloitetaan puhtaalta pöydältä.
-    if (eventModalState && eventModalState.draftId) eventModalState = null;
+    if (eventModalState && (eventModalState.draftId || eventModalState.editEvent)) eventModalState = null;
     eventModalState = {
       duration: (eventModalState && eventModalState.duration) || 30,
       peopleRoles: (eventModalState && eventModalState.peopleRoles) || {},
@@ -2609,7 +2838,8 @@ function openGroupModal() {
       <div class="modal-overlay">
         <div class="modal event-modal">
           ${modalCloseButtonHtml()}
-          <h3>${t('modal_new_event')}</h3>
+          <h3>${s.editEvent ? t('edit_event_heading') : t('modal_new_event')}</h3>
+          ${draftEditNoteHtml()}
 
           <div class="event-two-col" style="margin-top:14px;">
             <div>
@@ -2622,10 +2852,10 @@ function openGroupModal() {
             </div>
           </div>
 
-          <div class="settings-tabs event-mode-tabs">
+          ${s.editEvent ? '' : `<div class="settings-tabs event-mode-tabs">
             <button type="button" class="settings-tab-btn ${s.mode === 'single' ? 'active' : ''}" onclick="setEventMode('single')">${t('event_tab_single')}</button>
             <button type="button" class="settings-tab-btn ${s.mode === 'recurring' ? 'active' : ''}" onclick="setEventMode('recurring')">${t('event_tab_recurring')}</button>
-          </div>
+          </div>`}
 
           ${s.mode === 'recurring' ? recurrencePanelHtml() : `
           <label>${t('duration_minutes_label')}</label>
@@ -2662,17 +2892,17 @@ function openGroupModal() {
   function resolvePersonBusy(id) {
     const p = latestStatus.participants.find((x) => x.id === id);
     if (!p || !p.scheduleItems) return [];
-    return p.scheduleItems
+    return withoutEditedEvent(p.scheduleItems
       .filter((i) => i.status === 'busy')
-      .map((i) => ({ startMs: new Date(i.start.dateTime + 'Z').getTime(), endMs: new Date(i.end.dateTime + 'Z').getTime() }));
+      .map((i) => ({ startMs: new Date(i.start.dateTime + 'Z').getTime(), endMs: new Date(i.end.dateTime + 'Z').getTime() })));
   }
 
   function resolveGroupBusy(id) {
     const g = (latestStatus.groups || []).find((x) => x.id === id);
     if (!g) return [];
-    return groupMergedItems(g)
+    return withoutEditedEvent(groupMergedItems(g)
       .filter((i) => i.status === 'busy')
-      .map((i) => ({ startMs: new Date(i.start.dateTime + 'Z').getTime(), endMs: new Date(i.end.dateTime + 'Z').getTime() }));
+      .map((i) => ({ startMs: new Date(i.start.dateTime + 'Z').getTime(), endMs: new Date(i.end.dateTime + 'Z').getTime() })));
   }
 
   function overlapsMs(s1, e1, s2, e2) {
@@ -2928,7 +3158,7 @@ function openGroupModal() {
       <div class="occ-row">
         <span class="occ-idx">${idx + 1}.</span>
         <span class="occ-label">${formatSlotLabel(o)}</span>
-        <input type="datetime-local" value="${formatDatetimeLocal(o.startMs)}" onchange="updateOccurrenceStart(${idx}, this.value)" />
+        <button type="button" class="secondary occ-move-btn" onclick="editOccurrenceTime(${idx})">${t('occ_move_btn')}</button>
         <span class="occ-badge occ-${o.status}">${t('occ_status_' + o.status)}</span>
         <button type="button" class="remove-x" title="${t('remove_btn_title')}" onclick="removeOccurrence(${idx})">✕</button>
       </div>
@@ -2951,6 +3181,41 @@ function openGroupModal() {
         </div>
       </div>
     `;
+  }
+
+  // Kerran siirto aikajanalta: avaa kerran päivän minikalenterin (sama näkymä kuin
+  // yksittäisessä tapahtumassa: varaukset, raahattava valinta, ajanvalitsin).
+  // Ehdotusvaiheen tila (ensimmäisen kerran ehdotukset) talteen ja takaisin.
+  function editOccurrenceTime(idx) {
+    const s = eventModalState;
+    const o = s.occurrences[idx];
+    if (!o) return;
+    s.occEdit = {
+      idx,
+      saved: { results: s.results, selectedResultIdx: s.selectedResultIdx, selStart: s.selStart, selEnd: s.selEnd, calAnchor: s.calAnchor, duration: s.duration },
+    };
+    s.results = [{ startMs: o.startMs, endMs: o.endMs }];
+    s.selectedResultIdx = 0;
+    s.selStart = o.startMs;
+    s.selEnd = o.endMs;
+    s.calAnchor = toDateStr(new Date(o.startMs));
+    renderEventResultsStep({ scroll: 'selection' });
+  }
+
+  function finishOccurrenceEdit(apply) {
+    const s = eventModalState;
+    const ed = s.occEdit;
+    if (!ed) return;
+    if (apply) {
+      const o = s.occurrences[ed.idx];
+      o.startMs = s.selStart;
+      o.endMs = s.selEnd;
+      o.status = s.recCtx ? recOccurrenceStatus(o.startMs, o.endMs, o.targetStartMs, s.recCtx) : o.status;
+    }
+    Object.assign(s, ed.saved);
+    s.occEdit = null;
+    s.occurrences.sort((a, b) => a.startMs - b.startMs);
+    renderOccurrenceListStep();
   }
 
   function updateOccurrenceStart(idx, value) {
@@ -3431,9 +3696,9 @@ function openGroupModal() {
       <div class="modal-overlay">
         <div class="modal event-modal">
           ${modalCloseButtonHtml()}
-          <h3>${s.mode === 'recurring' ? t('rec_pick_first_heading') : t('suggested_times')}</h3>
+          <h3>${s.occEdit ? t('occ_move_heading', { index: s.occEdit.idx + 1 }) : s.editEvent ? t('edit_event_heading') : s.mode === 'recurring' ? t('rec_pick_first_heading') : t('suggested_times')}</h3>
           ${draftEditNoteHtml()}
-          ${s.mode === 'recurring' ? `<p class="rec-hint">${t('rec_pick_first_hint')}</p>` : ''}
+          ${s.occEdit ? `<p class="rec-hint">${t('occ_move_hint')}</p>` : s.mode === 'recurring' ? `<p class="rec-hint">${t('rec_pick_first_hint')}</p>` : ''}
           <button class="secondary" onclick="renderEventSelectionStep()">${t('add_more_people_groups')}</button>
 
           <div class="slot-list">${slotRows}</div>
@@ -3452,10 +3717,14 @@ function openGroupModal() {
           </div>
 
           <div class="actions">
+            ${s.occEdit ? `<button class="secondary" onclick="finishOccurrenceEdit(false)">${t('back_btn')}</button>
+                           <button onclick="finishOccurrenceEdit(true)">${t('occ_move_apply_btn')}</button>` : `
             <button class="secondary" onclick="closeModal()">${t('close')}</button>
-            ${s.mode === 'recurring'
+            ${s.editEvent ? `<button class="secondary" onclick="renderEventSelectionStep()">${t('edit_find_times_btn')}</button>
+                             <button onclick="openInviteConfirmStep()">${t('edit_continue_btn')}</button>` :
+            s.mode === 'recurring'
               ? `<button onclick="continueRecurring()">${s.rec.smart ? t('rec_find_other_times_btn') : (s.draftId ? t('save_draft_btn') : t('create_invite_btn'))}</button>`
-              : `<button onclick="openInviteConfirmStep()">${s.draftId ? t('save_draft_btn') : t('create_invite_btn')}</button>`}
+              : `<button onclick="openInviteConfirmStep()">${s.draftId ? t('save_draft_btn') : t('create_invite_btn')}</button>`}`}
           </div>
         </div>
       </div>
@@ -3636,6 +3905,7 @@ function openGroupModal() {
 
   function openInviteConfirmStep() {
     const s = eventModalState;
+    if (s.editEvent) { renderEditConfirmStep(); return; }
     if (!s.inviteTitle) s.inviteTitle = latestStatus.project.name;
     renderInviteConfirmStep();
   }
@@ -3737,7 +4007,8 @@ function openGroupModal() {
     if (inviteSendInFlight) return;
     inviteSendInFlight = true;
     try {
-      await sendInviteOnce();
+      if (eventModalState && eventModalState.editEvent) await sendEventUpdate();
+      else await sendInviteOnce();
     } finally {
       inviteSendInFlight = false;
     }

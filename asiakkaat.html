@@ -475,6 +475,7 @@
     participant_add: (d) => d && d.role ? t(d.role === 'admin' ? 'role_admin' : 'role_guest') : '',
     participant_role_change: (d) => d && d.role ? t(d.role === 'admin' ? 'role_admin' : 'role_guest') : '',
     event_create: (d) => d ? t('activity_event_detail', { created: d.created || 0, attendees: d.attendees || 0 }) + (d.dryRun ? ` · ${t('activity_dry_run')}` : '') : '',
+    event_update: (d) => d ? `${(d.fields || []).join(', ')}${d.scope === 'future' ? ' · ' + t('activity_cancel_future', { count: d.updated || 0 }) : ''}${d.dryRun ? ' · ' + t('activity_dry_run') : ''}` : '',
     event_cancel: (d) => d ? t(d.scope === 'future' ? 'activity_cancel_future' : 'activity_cancel_one', { count: d.cancelled || 0 }) : '',
     group_create: (d) => d && d.members ? t('activity_group_members', { count: d.members }) : '',
     project_create: (d) => d && d.invited ? t('activity_invited', { count: d.invited.length }) : '',
