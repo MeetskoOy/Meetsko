@@ -536,6 +536,19 @@ const TRANSLATIONS = {
     delete_project_btn: "Poista projekti",
     confirm_delete_project_1: "Poistetaanko projekti {{name}}? Toimintoa ei voi perua.",
     confirm_delete_project_2: "Vahvista vielä: projekti {{name}} ja kaikki sen tiedot poistetaan pysyvästi.",
+
+    // Valtuutusmuistutukset
+    reminder_explain_unregistered: "Henkilö ei ole vielä rekisteröitynyt Meetskoon. Muistutus pyytää häntä rekisteröitymään ja valtuuttamaan kalenterinsa (enintään kerran vuorokaudessa).",
+    reminder_explain_registered: "Henkilö käyttää jo Meetskoa, mutta ei ole jakanut kalenteriaan tähän projektiin. Muistutus pyytää häntä valtuuttamaan kalenterinsa (enintään kerran vuorokaudessa).",
+    reminder_explain_auto: "Uusille kutsutuille Meetsko lähettää muistutuksen myös itse 2 ja 5 päivän kuluttua kutsusta.",
+    reminder_last_sent: "Edellinen muistutus: {{when}}.",
+    reminder_send_btn: "Lähetä muistutus",
+    reminder_sent_today: "Muistutettu viimeisen vuorokauden aikana",
+    reminder_sent_ok: "Muistutus lähetetty.",
+    activity_participant_reminder: "Lähetti valtuutusmuistutuksen",
+    activity_participant_reminder_auto: "Automaattinen valtuutusmuistutus",
+    activity_reminder_number: "{{number}}. muistutus",
+    activity_actor_system: "Meetsko (automaattinen)",
   },
   en: {
     created_label: "Created",
@@ -1059,6 +1072,19 @@ const TRANSLATIONS = {
     delete_project_btn: "Delete project",
     confirm_delete_project_1: "Delete the project {{name}}? This can't be undone.",
     confirm_delete_project_2: "Please confirm: the project {{name}} and all its data will be permanently deleted.",
+
+    // Authorisation reminders
+    reminder_explain_unregistered: "This person hasn't signed up to Meetsko yet. The reminder asks them to sign up and connect their calendar (at most once a day).",
+    reminder_explain_registered: "This person already uses Meetsko but hasn't connected their calendar to this project. The reminder asks them to connect it (at most once a day).",
+    reminder_explain_auto: "For new invitees, Meetsko also sends reminders automatically 2 and 5 days after the invitation.",
+    reminder_last_sent: "Last reminder: {{when}}.",
+    reminder_send_btn: "Send reminder",
+    reminder_sent_today: "Reminded within the last day",
+    reminder_sent_ok: "Reminder sent.",
+    activity_participant_reminder: "Sent an authorisation reminder",
+    activity_participant_reminder_auto: "Automatic authorisation reminder",
+    activity_reminder_number: "Reminder {{number}}",
+    activity_actor_system: "Meetsko (automatic)",
   },
 };
 

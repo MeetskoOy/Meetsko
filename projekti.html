@@ -293,6 +293,11 @@
 
   .member-line { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 13.5px; }
   .member-line + .member-line { border-top: 1px solid var(--line-soft); }
+  .reminder-box { margin-top: 14px; padding: 14px; background: var(--surface-muted); border: 1px solid var(--line-soft); border-radius: 10px; }
+  .reminder-box button { margin: 0; }
+  .reminder-status { margin-left: 10px; font-size: 13px; }
+  .reminder-status.ok { color: var(--ok); }
+  .reminder-status.error { color: var(--danger); }
   .member-line .remove-x { color: var(--danger); cursor: pointer; font-size: 14px; background: none; border: none; padding: 0 4px; margin: 0; }
   .add-member-row { display: flex; gap: 6px; margin-top: 12px; }
   .add-member-row select { flex: 1; padding: 7px; border: 1px solid var(--line); border-radius: 7px; font-size: 13px; }
@@ -1756,6 +1761,7 @@ function openGroupModal() {
           <div class="member-line"><span>${t('email_label')}</span><span>${p.email}</span></div>
           <div class="member-line"><span>${t('role_label')}</span><span>${roleLabel}</span></div>
           <div class="member-line"><span>${t('calendar_status_label')}</span><span>${statusLabel}</span></div>
+          ${reminderSectionHtml(p)}
           <div class="actions">
             <button class="secondary" onclick="closeModal()">${t('close')}</button>
           </div>
@@ -1763,6 +1769,45 @@ function openGroupModal() {
       </div>
     `;
   }
+  // Valtuutusmuistutus valtuuttamattomalle osallistujalle (vain hallintaoikeudella,
+  // enintään kerran vuorokaudessa; palvelin tarkistaa saman).
+  function reminderSectionHtml(p) {
+    if (p.status === 'authorized' || !isAdminForProject(latestStatus)) return '';
+    const last = p.lastReminderAt ? new Date(p.lastReminderAt) : null;
+    const recent = last && (Date.now() - last.getTime()) < 24 * 3600 * 1000;
+    const lastText = last
+      ? t('reminder_last_sent', { when: last.toLocaleString(getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) })
+      : '';
+    return `
+      <div class="reminder-box">
+        <p class="empty-note" style="margin:0 0 10px;">${t(p.registered ? 'reminder_explain_registered' : 'reminder_explain_unregistered')} ${t('reminder_explain_auto')}${lastText ? ' ' + escapeHtmlText(lastText) : ''}</p>
+        <button type="button" id="reminderBtn" ${recent ? 'disabled' : ''} onclick="sendAuthorizationReminder('${p.id}')">${t(recent ? 'reminder_sent_today' : 'reminder_send_btn')}</button>
+        <span class="reminder-status" id="reminderStatus"></span>
+      </div>
+    `;
+  }
+
+  async function sendAuthorizationReminder(participantId) {
+    const btn = document.getElementById('reminderBtn');
+    const status = document.getElementById('reminderStatus');
+    btn.disabled = true;
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/send-authorization-reminder`, {
+      method: 'POST',
+      body: JSON.stringify({ projectId: PROJECT_ID, participantId }),
+    });
+    const data = await res.json();
+    if (data.error) {
+      status.textContent = data.error;
+      status.className = 'reminder-status error';
+      return;
+    }
+    const p = latestStatus.participants.find((x) => x.id === participantId);
+    if (p) p.lastReminderAt = data.lastReminderAt;
+    btn.textContent = t('reminder_sent_today');
+    status.textContent = t('reminder_sent_ok');
+    status.className = 'reminder-status ok';
+  }
+
   // ---------------------------------------------------------------
   // Päävälilehdet ja tapahtumaluonnokset
   // ---------------------------------------------------------------

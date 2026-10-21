@@ -479,6 +479,7 @@
     group_create: (d) => d && d.members ? t('activity_group_members', { count: d.members }) : '',
     project_create: (d) => d && d.invited ? t('activity_invited', { count: d.invited.length }) : '',
     project_delete: (d) => d && d.participants !== undefined ? t('activity_deleted_participants', { count: d.participants }) : '',
+    participant_reminder_auto: (d) => d && d.number ? t('activity_reminder_number', { number: d.number }) : '',
   };
 
   async function loadActivityLog(orgId) {
@@ -508,7 +509,7 @@
         <tr class="${e.admin_access ? 'admin-access' : ''}">
           <td class="time">${escapeHtml(when)}</td>
           <td>${project}</td>
-          <td>${escapeHtml(e.actor_email)} ${kind}</td>
+          <td>${e.actor_kind === 'system' ? `<span class="badge kind">${t('activity_actor_system')}</span>` : `${escapeHtml(e.actor_email)} ${kind}`}</td>
           <td>${escapeHtml(t('activity_' + e.action))}</td>
           <td>${escapeHtml(e.target || '')}</td>
           <td class="detail">${escapeHtml(detail)}</td>
