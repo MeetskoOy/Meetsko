@@ -39,6 +39,10 @@
   .role-pill.creator { background: var(--ok-soft); color: var(--ok); }
   .role-pill.participant { background: var(--primary-soft); color: var(--primary); }
 
+  .setting-row { display: flex; align-items: flex-start; gap: 12px; }
+  .form-scope .setting-row input[type=checkbox] { margin-top: 3px; width: 18px; height: 18px; flex: 0 0 18px; accent-color: var(--ink); }
+  .form-scope .setting-row label { margin: 0; color: var(--text); font-size: 14.5px; font-weight: 600; }
+  .setting-row .setting-note { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
   .empty-state { padding: 18px 20px; border: 1px dashed #CDD3DB; border-radius: 10px; background: var(--surface-muted); color: var(--text-muted); font-size: 14px; }
 
   @media (max-width: 700px) {
@@ -173,6 +177,7 @@
     if (orgData.canManage) {
       sections.push(renderCreators());
       sections.push(renderPeople());
+      sections.push(renderSettings());
     }
     document.getElementById('content').innerHTML = sections.join('');
   }
@@ -242,6 +247,38 @@
         ${addForm('member', 'org_add_creator_btn')}
       </section>
     `;
+  }
+
+  // Organisaation asetukset (pääkäyttäjät ja superadmin).
+  function renderSettings() {
+    return `
+      <section class="card-section">
+        <h2>${t('org_section_settings')}</h2>
+        <div class="setting-row">
+          <input type="checkbox" id="autoReminders" ${orgData.organization.autoRemindersEnabled ? 'checked' : ''} onchange="saveAutoReminders(this)" />
+          <div>
+            <label for="autoReminders">${t('org_auto_reminders_label')}</label>
+            <div class="setting-note">${t('org_auto_reminders_note')}</div>
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  async function saveAutoReminders(input) {
+    const autoRemindersEnabled = input.checked;
+    input.disabled = true;
+    const payload = { autoRemindersEnabled };
+    if (requestedOrgId) payload.organizationId = requestedOrgId;
+    const data = await AppNav.api('update-organization-settings', payload);
+    input.disabled = false;
+    if (data.error) {
+      input.checked = !autoRemindersEnabled;
+      showBanner('error', data.error);
+      return;
+    }
+    orgData.organization.autoRemindersEnabled = autoRemindersEnabled;
+    showBanner('ok', t(autoRemindersEnabled ? 'org_auto_reminders_on' : 'org_auto_reminders_off'));
   }
 
   function renderPeople() {

@@ -1780,7 +1780,7 @@ function openGroupModal() {
       : '';
     return `
       <div class="reminder-box">
-        <p class="empty-note" style="margin:0 0 10px;">${t(p.registered ? 'reminder_explain_registered' : 'reminder_explain_unregistered')} ${t('reminder_explain_auto')}${lastText ? ' ' + escapeHtmlText(lastText) : ''}</p>
+        <p class="empty-note" style="margin:0 0 10px;">${t(p.registered ? 'reminder_explain_registered' : 'reminder_explain_unregistered')}${latestStatus.autoRemindersEnabled === false ? '' : ' ' + t('reminder_explain_auto')}${lastText ? ' ' + escapeHtmlText(lastText) : ''}</p>
         <button type="button" id="reminderBtn" ${recent ? 'disabled' : ''} onclick="sendAuthorizationReminder('${p.id}')">${t(recent ? 'reminder_sent_today' : 'reminder_send_btn')}</button>
         <span class="reminder-status" id="reminderStatus"></span>
       </div>

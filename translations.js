@@ -549,6 +549,13 @@ const TRANSLATIONS = {
     activity_participant_reminder_auto: "Automaattinen valtuutusmuistutus",
     activity_reminder_number: "{{number}}. muistutus",
     activity_actor_system: "Meetsko (automaattinen)",
+
+    // organisaatio.html: asetukset
+    org_section_settings: "Asetukset",
+    org_auto_reminders_label: "Automaattiset valtuutusmuistutukset",
+    org_auto_reminders_note: "Meetsko muistuttaa organisaation projekteihin kutsuttuja, jotka eivät ole valtuuttaneet kalenteriaan: 2 päivää kutsusta ja uudelleen 3 päivää myöhemmin. Projektin ylläpitäjät voivat lähettää muistutuksen käsin asetuksesta riippumatta.",
+    org_auto_reminders_on: "Automaattiset muistutukset otettu käyttöön.",
+    org_auto_reminders_off: "Automaattiset muistutukset poistettu käytöstä.",
   },
   en: {
     created_label: "Created",
@@ -1085,6 +1092,13 @@ const TRANSLATIONS = {
     activity_participant_reminder_auto: "Automatic authorisation reminder",
     activity_reminder_number: "Reminder {{number}}",
     activity_actor_system: "Meetsko (automatic)",
+
+    // organisaatio.html: settings
+    org_section_settings: "Settings",
+    org_auto_reminders_label: "Automatic authorisation reminders",
+    org_auto_reminders_note: "Meetsko reminds people invited to the organisation's projects who haven't connected their calendar: 2 days after the invitation and again 3 days later. Project managers can send reminders manually regardless of this setting.",
+    org_auto_reminders_on: "Automatic reminders turned on.",
+    org_auto_reminders_off: "Automatic reminders turned off.",
   },
 };
 
