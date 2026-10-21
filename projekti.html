@@ -1282,7 +1282,9 @@ async function loadStatus() {
     const roleBadge = document.getElementById('myRoleBadge');
     const va = data.viewerAccess || {};
     if (mine || isOwner) {
-      roleBadge.textContent = (isOwner || mine.role === 'admin') ? t('role_admin') : t('role_guest');
+      // Projektirooli; "(vieras)", jos ei kuulu projektin omistavaan organisaatioon.
+      roleBadge.textContent = ((isOwner || (mine && mine.role === 'admin')) ? t('role_admin') : t('role_guest'))
+        + (mine && mine.isGuest ? t('role_external_suffix') : '');
       roleBadge.style.display = '';
     } else if (va.isOrgSuperuser || va.isSuperadmin) {
       // Ei osallistujana: näkee projektin organisaation pääkäyttäjänä tai superadminina.
@@ -1750,7 +1752,7 @@ function openGroupModal() {
       : p.status === 'expired' ? t('cal_status_expired')
       : t('cal_status_pending');
 
-    const roleLabel = p.role === 'admin' ? t('role_admin') : t('role_guest');
+    const roleLabel = (p.role === 'admin' ? t('role_admin') : t('role_guest')) + (p.isGuest ? t('role_external_suffix') : '');
 
     document.getElementById('modalHost').innerHTML = `
       <div class="modal-overlay" onclick="if(event.target===this) closeModal()">

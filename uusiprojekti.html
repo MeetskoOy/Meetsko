@@ -357,7 +357,7 @@
     await loadMyProfileAndTranslations();
     if (!myProfileData) return;
     if (myProfileData.canCreateProjects === false) {
-      // Sama ehto kuin palvelimella (create-project): vain pääkäyttäjät ja projektien luojat.
+      // Sama ehto kuin palvelimella (create-project): vain pääkäyttäjät ja käyttäjät, joilla on projektinluontioikeus.
       document.getElementById('formStep').style.display = 'none';
       document.getElementById('noPermission').style.display = '';
       return;
