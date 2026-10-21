@@ -265,8 +265,12 @@
 
   .tip-box { position: fixed; z-index: 50; background: var(--nav-bg); color: #fff; font-size: 12.5px; font-weight: 500; padding: 6px 10px; border-radius: 6px; pointer-events: none; white-space: nowrap; transform: translate(-50%, -100%); display: none; }
 
+  .modal-close-x { position: absolute; top: 14px; right: 14px; width: 32px; height: 32px; padding: 0; margin: 0; border: none; border-radius: 8px; background: transparent; color: var(--text-muted); font-size: 16px; line-height: 32px; text-align: center; cursor: pointer; z-index: 2; }
+  .modal-close-x:hover { background: var(--surface-muted); color: var(--text); border: none; }
   .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.35); display: flex; align-items: center; justify-content: center; z-index: 10; overflow-y: auto; padding: 30px 0; }
   .modal { background: #fff; border-radius: 12px; padding: 22px; width: 380px; max-width: 90vw; }
+  .modal { position: relative; }
+  .modal > h3:first-of-type { padding-right: 36px; }
   .modal.settings-modal { width: 460px; max-height: 85vh; overflow-y: auto; }
   .modal.event-modal { width: 620px; max-width: 94vw; max-height: 88vh; overflow-y: auto; }
   .modal h3 { margin-top: 0; }
@@ -835,20 +839,36 @@ function bufferDates(anchor) {
 
   // Henkilön rivi: tapahtumat, joihin hänet on kutsuttu tai joiden järjestäjä hän on,
   // ja omat luonnokset, joihin hänet on valittu (tekijän omalla rivillä kaikki omat luonnokset).
-  function personOverlayHtml(participantId, isOwnRow) {
+  // Ryhmän jäsenten osallistuja-id:t.
+  function groupMemberIds(groupId) {
+    const g = (latestStatus && latestStatus.groups || []).find((x) => x.id === groupId);
+    return new Set((g && g.members || []).map((m) => m.participantId).filter(Boolean));
+  }
+
+  // Onko joku annetuista osallistujista mukana luonnoksessa: henkilönä, ryhmän kautta
+  // tai (groupId) koko ryhmä on valittu.
+  function draftInvolves(payload, participantIds, groupId) {
+    if (groupId && payload.groupRoles && payload.groupRoles[groupId]) return true;
+    if (Object.keys(payload.peopleRoles || {}).some((id) => participantIds.has(id))) return true;
+    return Object.keys(payload.groupRoles || {}).some((gid) =>
+      [...groupMemberIds(gid)].some((id) => participantIds.has(id)));
+  }
+
+  // Projektin tapahtumat (järjestäjä tai kutsuttu) ja katsojan omat luonnokset rivin
+  // osallistujille. Luonnokset ovat käyttäjäkohtaisia: myDrafts sisältää vain omat.
+  function overlayLayerHtml(participantIds, { isOwnRow = false, groupId = null } = {}) {
     let html = '';
     projectEvents.forEach((e) => {
       if (e.status === 'cancelled') return;
-      const involved = e.organizer_participant_id === participantId
-        || (e.required_ids || []).includes(participantId) || (e.optional_ids || []).includes(participantId);
-      if (!involved) return;
+      const ids = [e.organizer_participant_id, ...(e.required_ids || []), ...(e.optional_ids || [])];
+      if (!ids.some((id) => participantIds.has(id))) return;
       html += overlayBlocksHtml('ov-event', e.startMs, e.endMs, e.title,
         t('timeline_event_tip', { title: e.title, time: formatTimeRange(e.startMs, e.endMs) }),
         `openEventFromTimeline('${e.id}')`);
     });
     myDrafts.forEach((d) => {
       const payload = d.payload || {};
-      if (!isOwnRow && !(payload.peopleRoles && payload.peopleRoles[participantId])) return;
+      if (!isOwnRow && !draftInvolves(payload, participantIds, groupId)) return;
       const title = d.title || t('draft_untitled');
       draftIntervals(payload).forEach((iv) => {
         html += overlayBlocksHtml('ov-draft', iv.startMs, iv.endMs, title,
@@ -859,20 +879,14 @@ function bufferDates(anchor) {
     return html ? `<div class="ov-layer" style="width:${totalWidthPx()}px;">${html}</div>` : '';
   }
 
-  // Ryhmän rivi: omat luonnokset, joihin ryhmä on valittu.
+  function personOverlayHtml(participantId, isOwnRow) {
+    return overlayLayerHtml(new Set([participantId]), { isOwnRow });
+  }
+
+  // Ryhmän rivi: jäsenten projektin tapahtumat ja omat luonnokset, joissa ryhmä tai
+  // joku sen jäsenistä on mukana.
   function groupOverlayHtml(groupId) {
-    let html = '';
-    myDrafts.forEach((d) => {
-      const payload = d.payload || {};
-      if (!(payload.groupRoles && payload.groupRoles[groupId])) return;
-      const title = d.title || t('draft_untitled');
-      draftIntervals(payload).forEach((iv) => {
-        html += overlayBlocksHtml('ov-draft', iv.startMs, iv.endMs, title,
-          t('timeline_draft_tip', { title, time: formatTimeRange(iv.startMs, iv.endMs) }),
-          `openDraftFromTimeline('${d.id}')`);
-      });
-    });
-    return html ? `<div class="ov-layer" style="width:${totalWidthPx()}px;">${html}</div>` : '';
+    return overlayLayerHtml(groupMemberIds(groupId), { groupId });
   }
 
   function openEventFromTimeline(eventId) {
@@ -1451,8 +1465,9 @@ async function loadStatus() {
     `).join('');
 
     document.getElementById('modalHost').innerHTML = `
-      <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-overlay">
         <div class="modal event-modal">
+          ${modalCloseButtonHtml()}
           <h3>${t('new_participant_modal_heading')}</h3>
 
           <div class="np-member-header">
@@ -1590,8 +1605,9 @@ function openGroupModal() {
     ` : '';
 
     document.getElementById('modalHost').innerHTML = `
-      <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-overlay">
         <div class="modal">
+          ${modalCloseButtonHtml()}
           <h3>${t('modal_new_group')}</h3>
           <label style="margin-top:0;">${t('group_name_label')}</label>
           <input type="text" id="newGroupNameInput" placeholder="${t('group_name_placeholder')}" value="${newGroupState.name}" oninput="newGroupState.name = this.value" />
@@ -1642,6 +1658,14 @@ function openGroupModal() {
   function closeModal() {
     closeDtp();
     document.getElementById('modalHost').innerHTML = '';
+  }
+
+  // Toiminnalliset ikkunat (lomakkeet, tapahtuman luonti, asetukset) suljetaan vain
+  // omasta napista, jottei vahinkoklikkaus ulkopuolelle hävitä syötettyjä tietoja.
+  // Informatiiviset ikkunat (henkilö- ja ryhmäkortti, kutsu lähetetty) sulkeutuvat
+  // edelleen myös klikkaamalla ulkopuolelle.
+  function modalCloseButtonHtml() {
+    return `<button type="button" class="modal-close-x" onclick="closeModal()" aria-label="${t('close')}" title="${t('close')}">✕</button>`;
   }
 
     // Näyttää valtuutuksen tuloksen kun on palattu Microsoftin kirjautumisesta,
@@ -2582,8 +2606,9 @@ function openGroupModal() {
     }).join('') || `<p class="empty-note">${t('no_groups')}</p>`;
 
     document.getElementById('modalHost').innerHTML = `
-      <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-overlay">
         <div class="modal event-modal">
+          ${modalCloseButtonHtml()}
           <h3>${t('modal_new_event')}</h3>
 
           <div class="event-two-col" style="margin-top:14px;">
@@ -2910,8 +2935,9 @@ function openGroupModal() {
     `).join('');
 
     document.getElementById('modalHost').innerHTML = `
-      <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-overlay">
         <div class="modal event-modal">
+          ${modalCloseButtonHtml()}
           <h3>${t('rec_occurrences_heading')}</h3>
           ${draftEditNoteHtml()}
           <p class="rec-hint">${recurrenceSummaryText()}</p>
@@ -3402,8 +3428,9 @@ function openGroupModal() {
     });
 
     document.getElementById('modalHost').innerHTML = `
-      <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-overlay">
         <div class="modal event-modal">
+          ${modalCloseButtonHtml()}
           <h3>${s.mode === 'recurring' ? t('rec_pick_first_heading') : t('suggested_times')}</h3>
           ${draftEditNoteHtml()}
           ${s.mode === 'recurring' ? `<p class="rec-hint">${t('rec_pick_first_hint')}</p>` : ''}
@@ -3643,8 +3670,9 @@ function openGroupModal() {
       : '';
 
     document.getElementById('modalHost').innerHTML = `
-      <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-overlay">
         <div class="modal event-modal">
+          ${modalCloseButtonHtml()}
           <h3>${t('modal_invite_confirm')}</h3>
           ${draftEditNoteHtml()}
 
@@ -3701,7 +3729,21 @@ function openGroupModal() {
            `T${p(date.getHours())}:${p(date.getMinutes())}:00`;
   }
 
+  // Estää saman kutsun lähettämisen kahdesti (tuplaklikkaus tai ikkunan uudelleenpiirto
+  // kesken lähetyksen). Palvelinpuolen idempotenssi: CLAUDE.md, turvakaiteet.
+  let inviteSendInFlight = false;
+
   async function sendInvite() {
+    if (inviteSendInFlight) return;
+    inviteSendInFlight = true;
+    try {
+      await sendInviteOnce();
+    } finally {
+      inviteSendInFlight = false;
+    }
+  }
+
+  async function sendInviteOnce() {
     const s = eventModalState;
     const btn = document.getElementById('sendInviteBtn');
     if (btn) { btn.disabled = true; btn.textContent = t('sending_label'); }
@@ -3878,6 +3920,20 @@ async function openSettingsModal() {
   function calendarSectionHtml() {
     const s = settingsState;
     const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
+    if (s.calendarStatus === 'authorized' && s.calendarWrite && currentAuthProvider !== 'google') {
+      // Luku- ja kirjoitusoikeus yhdessä laatikossa: kirjoitusoikeutta ei voi perua
+      // erikseen (Microsoftin suostumukset kasautuvat), joten tarjotaan vain molempien poisto.
+      return `
+        <div class="calendar-section">
+          <p class="ok-text" style="margin-bottom:2px;">${t('perm_read_granted')}</p>
+          <p class="empty-note" style="margin-top:0;">${t('perm_read_explain')}</p>
+          <p class="ok-text" style="margin:12px 0 2px;">${t('perm_write_granted')}</p>
+          <p class="empty-note" style="margin-top:0;">${t('perm_write_explain')}</p>
+          <button class="danger" type="button" style="margin-top:12px;" onclick="revokeCalendarAuth()">${t('perm_revoke_both_btn')}</button>
+          <p class="empty-note">${t('perm_revoke_both_explain')}</p>
+        </div>
+      `;
+    }
     if (s.calendarStatus === 'authorized') {
       const updated = s.tokenUpdatedAt ? new Date(s.tokenUpdatedAt).toLocaleString(locale) : '–';
       return `
@@ -3922,6 +3978,8 @@ async function openSettingsModal() {
     function writeAccessSectionHtml() {
     if (currentAuthProvider === 'google') return '';
     const s = settingsState;
+    // Luku + kirjoitus näytetään yhdessä laatikossa (calendarSectionHtml).
+    if (s.calendarWrite && s.calendarStatus === 'authorized') return '';
     if (s.calendarWrite) {
       return `
         <div class="calendar-section" style="margin-top:18px;">
@@ -4015,8 +4073,9 @@ async function openSettingsModal() {
     const bodyHtml = participant && (!admin || settingsActiveTab === 'own') ? renderOwnSettingsTabHtml() : renderProjectSettingsTabHtml();
 
     document.getElementById('modalHost').innerHTML = `
-      <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+      <div class="modal-overlay">
         <div class="modal settings-modal">
+          ${modalCloseButtonHtml()}
           <h3>${t('modal_settings')}</h3>
           ${tabsHtml}
           ${bodyHtml}

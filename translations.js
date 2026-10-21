@@ -555,6 +555,14 @@ const TRANSLATIONS = {
     role_guest_user: "Käyttäjä (vieras)",
     role_external_suffix: " (vieras)",
 
+    // Projektiasetukset: luku- ja kirjoitusoikeus yhdessä laatikossa
+    perm_read_granted: "✓ Kalenterin lukuoikeus valtuutettu",
+    perm_read_explain: "Sovellus voi lukea reaaliaikaisen vapaa/varattu-aikasi kalenteristasi.",
+    perm_write_granted: "✓ Kalenterin kirjoitusoikeus valtuutettu",
+    perm_write_explain: "Sovellus voi lisätä tapahtumia kalenteriisi.",
+    perm_revoke_both_btn: "Poista valtuutukset",
+    perm_revoke_both_explain: "Poistaa molemmat valtuudet. Voit tämän jälkeen lisätä erikseen joko lukuvaltuuden tai luku- ja kirjoitusvaltuudet.",
+
     // organisaatio.html: asetukset
     org_section_settings: "Asetukset",
     org_auto_reminders_label: "Automaattiset valtuutusmuistutukset",
@@ -1102,6 +1110,14 @@ const TRANSLATIONS = {
     role_user_creator: "User (can create projects)",
     role_guest_user: "Guest user",
     role_external_suffix: " (guest)",
+
+    // Project settings: read and write access in one box
+    perm_read_granted: "✓ Calendar read access granted",
+    perm_read_explain: "The app can read your real-time free/busy information from your calendar.",
+    perm_write_granted: "✓ Calendar write access granted",
+    perm_write_explain: "The app can add events to your calendar.",
+    perm_revoke_both_btn: "Remove access",
+    perm_revoke_both_explain: "Removes both permissions. You can then grant either read access only, or read and write access.",
 
     // organisaatio.html: settings
     org_section_settings: "Settings",
