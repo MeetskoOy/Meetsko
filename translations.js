@@ -596,6 +596,10 @@ const TRANSLATIONS = {
     occ_move_heading: "Siirrä kertaa {{index}}",
     occ_move_apply_btn: "Käytä tätä aikaa",
     occ_move_hint: "Siirrä vain tätä kertaa: raahaa valintaa aikajanalla tai valitse aika. Muut kerrat eivät muutu.",
+    delete_group_btn: "Poista ryhmä",
+    group_expand: "Näytä jäsenet",
+    group_collapse: "Piilota jäsenet",
+    confirm_delete_group: "Poistetaanko ryhmä {{name}}? Ryhmän jäsenet pysyvät projektissa.",
 
     // organisaatio.html: asetukset
     org_section_settings: "Asetukset",
@@ -1186,6 +1190,10 @@ const TRANSLATIONS = {
     occ_move_heading: "Move occurrence {{index}}",
     occ_move_apply_btn: "Use this time",
     occ_move_hint: "Move this occurrence only: drag the selection on the timeline or pick a time. Other occurrences stay as they are.",
+    delete_group_btn: "Delete group",
+    group_expand: "Show members",
+    group_collapse: "Hide members",
+    confirm_delete_group: "Delete the group {{name}}? Its members stay in the project.",
 
     // organisaatio.html: settings
     org_section_settings: "Settings",

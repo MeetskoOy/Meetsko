@@ -478,6 +478,7 @@
     event_update: (d) => d ? `${(d.fields || []).join(', ')}${d.scope === 'future' ? ' · ' + t('activity_cancel_future', { count: d.updated || 0 }) : ''}${d.dryRun ? ' · ' + t('activity_dry_run') : ''}` : '',
     event_cancel: (d) => d ? t(d.scope === 'future' ? 'activity_cancel_future' : 'activity_cancel_one', { count: d.cancelled || 0 }) : '',
     group_create: (d) => d && d.members ? t('activity_group_members', { count: d.members }) : '',
+    group_delete: (d) => d && d.members !== undefined ? t('activity_group_members', { count: d.members }) : '',
     project_create: (d) => d && d.invited ? t('activity_invited', { count: d.invited.length }) : '',
     project_delete: (d) => d && d.participants !== undefined ? t('activity_deleted_participants', { count: d.participants }) : '',
     participant_reminder_auto: (d) => d && d.number ? t('activity_reminder_number', { number: d.number }) : '',

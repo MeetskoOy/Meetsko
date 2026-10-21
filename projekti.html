@@ -185,6 +185,12 @@
   .name-row + .name-row, .timeline-row + .timeline-row { border-top: 1px solid var(--line-soft); }
   .name-row { gap: 12px; padding: 0 6px 0 24px; }
   .name-row.clickable { cursor: pointer; }
+  .name-row .group-toggle { width: 22px; height: 22px; margin: 0 -6px 0 -18px; padding: 0; border: none; background: none; color: var(--text-muted); display: flex; align-items: center; justify-content: center; border-radius: 6px; flex: 0 0 22px; cursor: pointer; }
+  .name-row .group-toggle:hover { background: var(--surface-muted); color: var(--text); border: none; }
+  .name-row .group-toggle svg { transition: transform 0.15s; }
+  .name-row .group-toggle.open svg { transform: rotate(90deg); }
+  .name-row.group-member-row { padding-left: 52px; background: var(--surface-muted); }
+  .timeline-row.group-member-row { background: var(--surface-muted); }
   .whole-row { height: 61px; background: var(--surface-muted); border-bottom: 1px solid var(--line); }
   .event-mini-board .name-row, .event-mini-board .timeline-row { height: 44px; }
   .event-mini-board .name-row { padding-left: 0; }
@@ -1354,35 +1360,7 @@ async function loadStatus() {
     timelineCol.insertAdjacentHTML('beforeend', peopleHeader.timelineSide);
 
     if (!isSectionCollapsed('people')) {
-      data.participants.forEach((p) => {
-        const label = nameLabelFor(p);
-        const statusLine = p.status === 'authorized' ? ''
-          : `<span class="status-line warn">${t(p.status === 'expired' ? 'cal_status_expired' : 'cal_status_not_authorized')}</span>`;
-        namesCol.insertAdjacentHTML('beforeend', `
-          <div class="name-row clickable" onclick="openParticipantDetail('${p.id}')">
-            ${participantAvatarHtml(p)}
-            <div class="who-text"><span class="name clickable">${label}</span>${statusLine}</div>
-          </div>
-        `);
-        const tRow = document.createElement('div');
-        tRow.className = 'timeline-row clickable';
-        tRow.style.width = totalWidthPx() + 'px';
-        const isOwnRow = p.email.toLowerCase() === currentUserEmail;
-        // Pikavaraus: klikkaus avaa tapahtuman luonnin tällä henkilöllä ja klikatulla ajalla
-        // (omalla rivillä ilman osallistujia). Henkilön tiedot aukeavat nimen klikkauksesta.
-        tRow.onclick = (ev) => quickBookFromRow(ev, isOwnRow ? {} : { personId: p.id });
-        const w = totalWidthPx();
-        if (p.status !== 'authorized') {
-          tRow.innerHTML = dayBandsHtml('', t('availability_hidden'));
-        } else if (p.scheduleItems === null) {
-          tRow.innerHTML = dayBandsHtml('plain', t('no_schedule_fetched_yet'));
-        } else {
-          const restricted = isOwnRow ? restrictedBlocksHtml(p.ownRestrictedRanges) : '';
-          tRow.innerHTML = `<div class="timeline-cell" style="width:${w}px;">${dayBackgroundsHtml()}${hourGridLinesHtml()}${restricted}${busyBlocksHtml(p.scheduleItems, undefined, label)}</div>`;
-        }
-        tRow.insertAdjacentHTML('beforeend', personOverlayHtml(p.id, isOwnRow));
-        timelineCol.appendChild(tRow);
-      });
+      data.participants.forEach((p) => renderPersonRow(p, namesCol, timelineCol));
     }
 
     const ownGroups = (data.groups || []).filter((g) => g.visibility === 'private' && g.isOwn);
@@ -1423,12 +1401,62 @@ async function loadStatus() {
     return allItems;
   }
 
+  // Henkilön rivi: nimen klikkaus avaa henkilökortin, aikajanan klikkaus pikavarauksen.
+  // Käytetään sekä Projektin henkilöt -osiossa että laajennetun ryhmän jäsenriveinä.
+  function renderPersonRow(p, namesCol, timelineCol, rowClass = '') {
+    const label = nameLabelFor(p);
+    const statusLine = p.status === 'authorized' ? ''
+      : `<span class="status-line warn">${t(p.status === 'expired' ? 'cal_status_expired' : 'cal_status_not_authorized')}</span>`;
+    namesCol.insertAdjacentHTML('beforeend', `
+      <div class="name-row clickable ${rowClass}" onclick="openParticipantDetail('${p.id}')">
+        ${participantAvatarHtml(p)}
+        <div class="who-text"><span class="name clickable">${label}</span>${statusLine}</div>
+      </div>
+    `);
+    const tRow = document.createElement('div');
+    tRow.className = 'timeline-row clickable' + (rowClass ? ' ' + rowClass : '');
+    tRow.style.width = totalWidthPx() + 'px';
+    const isOwnRow = p.email.toLowerCase() === currentUserEmail;
+    // Pikavaraus: klikkaus avaa tapahtuman luonnin tällä henkilöllä ja klikatulla ajalla
+    // (omalla rivillä ilman osallistujia). Henkilön tiedot aukeavat nimen klikkauksesta.
+    tRow.onclick = (ev) => quickBookFromRow(ev, isOwnRow ? {} : { personId: p.id });
+    const w = totalWidthPx();
+    if (p.status !== 'authorized') {
+      tRow.innerHTML = dayBandsHtml('', t('availability_hidden'));
+    } else if (p.scheduleItems === null) {
+      tRow.innerHTML = dayBandsHtml('plain', t('no_schedule_fetched_yet'));
+    } else {
+      const restricted = isOwnRow ? restrictedBlocksHtml(p.ownRestrictedRanges) : '';
+      tRow.innerHTML = `<div class="timeline-cell" style="width:${w}px;">${dayBackgroundsHtml()}${hourGridLinesHtml()}${restricted}${busyBlocksHtml(p.scheduleItems, undefined, label)}</div>`;
+    }
+    tRow.insertAdjacentHTML('beforeend', personOverlayHtml(p.id, isOwnRow));
+    timelineCol.appendChild(tRow);
+  }
+
+  // Laajennetut ryhmät (jäsenet omina riveinään ryhmän alla), muistetaan projektikohtaisesti.
+  const EXPANDED_GROUPS_KEY = 'meetsko_expandedGroups_' + PROJECT_ID;
+  let expandedGroups = new Set();
+  try { expandedGroups = new Set(JSON.parse(localStorage.getItem(EXPANDED_GROUPS_KEY) || '[]')); } catch (e) {}
+
+  function toggleGroupExpanded(groupId) {
+    if (expandedGroups.has(groupId)) expandedGroups.delete(groupId); else expandedGroups.add(groupId);
+    try { localStorage.setItem(EXPANDED_GROUPS_KEY, JSON.stringify([...expandedGroups])); } catch (e) {}
+    const col = document.getElementById('mainTimelineCol');
+    const scroll = col ? col.scrollLeft : null;
+    renderAll();
+    if (col && scroll !== null) document.getElementById('mainTimelineCol').scrollLeft = scroll;
+  }
+
   function renderGroupRow(g, namesCol, timelineCol) {
     const visLabel = g.visibility === 'project' ? t('project_group_label') : t('own_group_label');
     const nameDiv = document.createElement('div');
     nameDiv.className = 'name-row clickable';
     nameDiv.onclick = () => openGroupDetail(g.id);
+    const expanded = expandedGroups.has(g.id);
     nameDiv.innerHTML = `
+      <button type="button" class="group-toggle ${expanded ? 'open' : ''}" aria-expanded="${expanded}"
+              title="${t(expanded ? 'group_collapse' : 'group_expand')}" aria-label="${t(expanded ? 'group_collapse' : 'group_expand')}"
+              onclick="event.stopPropagation(); toggleGroupExpanded('${g.id}')">${CHEVRON_RIGHT_ICON}</button>
       ${groupAvatarHtml()}
       <div class="who-text"><span class="name clickable">${g.name}</span><span class="status-line group">${visLabel}</span></div>
     `;
@@ -1441,6 +1469,13 @@ async function loadStatus() {
     tRow.onclick = (ev) => quickBookFromRow(ev, { groupId: g.id });
     tRow.innerHTML = timelineCellHtml(groupMergedItems(g)) + groupOverlayHtml(g.id);
     timelineCol.appendChild(tRow);
+
+    if (expanded) {
+      (g.members || []).forEach((m) => {
+        const p = latestStatus.participants.find((x) => x.id === m.participantId);
+        if (p) renderPersonRow(p, namesCol, timelineCol, 'group-member-row');
+      });
+    }
   }
 
    let npRows = [{ firstName: '', lastName: '', title: '', email: '', role: 'guest' }];
@@ -1735,11 +1770,27 @@ function openGroupModal() {
           <div>${memberLinesHtml}</div>
           ${addRowHtml}
           <div class="actions">
+            ${editable ? `<button class="danger" style="margin-right:auto;" onclick="deleteGroup('${groupId}')">${t('delete_group_btn')}</button>` : ''}
             <button class="secondary" onclick="closeModal()">${t('close')}</button>
           </div>
         </div>
       </div>
     `;
+  }
+
+  // Ryhmän poisto samoin oikeuksin kuin muokkaus (delete-group tarkistaa saman).
+  async function deleteGroup(groupId) {
+    const g = (latestStatus.groups || []).find((x) => x.id === groupId);
+    if (!g) return;
+    if (!confirm(t('confirm_delete_group', { name: g.name }))) return;
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/delete-group`, {
+      method: 'POST',
+      body: JSON.stringify({ groupId }),
+    });
+    const data = await res.json();
+    if (data.error) { alert(t('error_prefix') + ': ' + data.error); return; }
+    closeModal();
+    await loadStatus();
   }
 
   async function callUpdateGroupMembers(groupId, participantId, action) {
@@ -1971,6 +2022,7 @@ function openGroupModal() {
     return wd.charAt(0).toUpperCase() + wd.slice(1) + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
   }
 
+  const CHEVRON_RIGHT_ICON = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m6 3 5 5-5 5"/></svg>';
   const RECUR_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M13 6.5A5 5 0 0 0 3.6 4.6M3 9.5a5 5 0 0 0 9.4 1.9"/><path d="M3.5 2v3h3M12.5 14v-3h-3"/></svg>';
 
   function eventRowHtml(e, seg, showDetails) {
