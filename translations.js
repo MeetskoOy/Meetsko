@@ -601,6 +601,17 @@ const TRANSLATIONS = {
     dialog_ok: "OK",
     dialog_cancel: "Peruuta",
     dialog_confirm: "Vahvista",
+
+    // Projektiton käyttäjä (projektit.html) ja Henkilöt-sivun säilytysmerkintä
+    np_heading: "Sinulla ei ole tällä hetkellä projekteja",
+    np_body: "Jos sinun pitäisi olla mukana projektissa, pyydä projektin ylläpitäjää lisäämään sinut. Projekti näkyy täällä heti, kun sinut on lisätty.",
+    np_create_right_heading: "Haluatko luoda omia projekteja?",
+    np_create_right_body: "Organisaatiossa {{org}} projekteja luovat pääkäyttäjien hyväksymät käyttäjät. Pyydä projektinluontioikeutta pääkäyttäjältä:",
+    np_promo_heading: "Tarvitseeko organisaatiosi omia projekteja?",
+    np_promo_body: "Meetsko kokoaa eri organisaatioiden osallistujien vapaat ajat yhteen näkymään ja hoitaa projektin tapahtumat yhdestä paikasta. Otamme organisaatiollesi omat projektit käyttöön.",
+    np_promo_link: "Tutustu Meetskoon",
+    np_promo_contact: "Ota yhteyttä:",
+    people_removal_pending: "Ei projekteja · poistuu {{date}}",
     group_collapse: "Piilota jäsenet",
     confirm_delete_group: "Poistetaanko ryhmä {{name}}? Ryhmän jäsenet pysyvät projektissa.",
 
@@ -1198,6 +1209,17 @@ const TRANSLATIONS = {
     dialog_ok: "OK",
     dialog_cancel: "Cancel",
     dialog_confirm: "Confirm",
+
+    // User without projects (projektit.html) and people page retention note
+    np_heading: "You don't have any projects right now",
+    np_body: "If you should be part of a project, ask the project's administrator to add you. The project appears here as soon as you've been added.",
+    np_create_right_heading: "Want to create your own projects?",
+    np_create_right_body: "At {{org}}, projects are created by users approved by the administrators. Ask an administrator for permission to create projects:",
+    np_promo_heading: "Does your organisation need its own projects?",
+    np_promo_body: "Meetsko brings the availability of participants from different organisations into one view and keeps the project's events in one place. We can set up projects for your organisation.",
+    np_promo_link: "Discover Meetsko",
+    np_promo_contact: "Contact us:",
+    people_removal_pending: "No projects · removed on {{date}}",
     group_collapse: "Hide members",
     confirm_delete_group: "Delete the group {{name}}? Its members stay in the project.",
 

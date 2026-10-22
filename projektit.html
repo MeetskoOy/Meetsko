@@ -23,6 +23,15 @@
   .project-card:hover .pc-arrow { color: var(--primary); transform: translateX(3px); }
   .involved-badge { font-size: 11.5px; font-weight: 600; color: var(--ok); background: var(--ok-soft); padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
 
+  .no-projects { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 28px; max-width: 720px; }
+  .no-projects h2 { font-size: 20px; margin: 0 0 8px; }
+  .no-projects > p { margin: 0; font-size: 15px; color: var(--text-muted); line-height: 1.55; }
+  .no-projects .np-box { margin-top: 20px; padding: 16px 18px; border-radius: 10px; background: var(--primary-soft); font-size: 14px; line-height: 1.55; }
+  .no-projects .np-box.promo { background: var(--ok-soft); }
+  .no-projects .np-box strong { display: block; margin-bottom: 4px; color: var(--text); }
+  .no-projects .np-box ul { margin: 8px 0 0; padding-left: 18px; }
+  .no-projects .np-box a { color: var(--primary); font-weight: 600; }
+  .no-projects .np-actions { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 12px; }
   .empty-state { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding: 22px 24px; border: 1px dashed #CDD3DB; border-radius: 12px; background: var(--surface); color: var(--text-muted); font-size: 14px; }
   .loading-note { color: var(--text-faint); font-size: 14px; }
 </style>
@@ -132,6 +141,12 @@
     const others = data.groupOtherOrgsInvolved || [];
     document.getElementById('pageSub').textContent = t('meta_projects_count', { count: own.length + others.length });
 
+    // Ei yhtään projektia eikä luontioikeutta: kerrotaan, miten pääsee mukaan.
+    if (own.length === 0 && others.length === 0 && !data.isOrgSuperuser && !canCreateProjects()) {
+      content.innerHTML = noProjectsHtml();
+      return;
+    }
+
     let html = sectionHtml(t('section_own_projects'), own, false, t('empty_not_involved'), true);
     if (data.isOrgSuperuser && data.ownOrganizationName) {
       html += sectionHtml(`${escapeHtml(data.ownOrganizationName)} — ${t('section_org_all_projects')}`, orgAll, true, t('empty_org_no_projects'), false);
@@ -175,6 +190,42 @@
     applyStaticTranslations();
     AppNav.setProfile(data);
     document.getElementById('newProjectBtn').style.display = canCreateProjects() ? '' : 'none';
+  }
+
+  // Meetskon yhteystieto projektittomien vieraiden ohjeessa.
+  const MEETSKO_CONTACT_EMAIL = 'tuki@meetsko.fi';
+
+  // Projektiton käyttäjä: organisaation käyttäjälle pääkäyttäjien yhteystiedot
+  // projektinluontioikeutta varten, vieraalle esittely ja Meetskon yhteystieto.
+  function noProjectsHtml() {
+    const p = myProfileData || {};
+    let box = '';
+    if (p.appRole === 'user') {
+      const admins = (p.organizationAdmins || []).map((a) =>
+        `<li>${escapeHtml(a.name || a.email)} – <a href="mailto:${escapeHtml(a.email)}">${escapeHtml(a.email)}</a></li>`).join('');
+      box = `
+        <div class="np-box">
+          <strong>${t('np_create_right_heading')}</strong>
+          ${t('np_create_right_body', { org: escapeHtml(p.appOrganizationName || '') })}
+          ${admins ? `<ul>${admins}</ul>` : ''}
+        </div>`;
+    } else {
+      box = `
+        <div class="np-box promo">
+          <strong>${t('np_promo_heading')}</strong>
+          ${t('np_promo_body')}
+          <div class="np-actions">
+            <a href="/" target="_blank" rel="noopener">${t('np_promo_link')} →</a>
+            <span>${t('np_promo_contact')} <a href="mailto:${MEETSKO_CONTACT_EMAIL}">${MEETSKO_CONTACT_EMAIL}</a></span>
+          </div>
+        </div>`;
+    }
+    return `
+      <div class="no-projects">
+        <h2>${t('np_heading')}</h2>
+        <p>${t('np_body')}</p>
+        ${box}
+      </div>`;
   }
 
   // Uusi projekti -napit vain luontioikeudella (get-my-profile, sama ehto kuin create-project).

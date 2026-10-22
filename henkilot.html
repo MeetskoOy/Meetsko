@@ -68,10 +68,11 @@
   const ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5ycmh2Ynh2a2l6dmtjd3dnbGNrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc0NjU3NDAsImV4cCI6MjEwMzA0MTc0MH0.S_M4KyTt4E_UG0ue-T-h89L17yxJKkmb36ZzNRdQnLI";
   const client = supabase.createClient(SUPABASE_URL, ANON_KEY);
 
-  let currentAccessToken = null;
   let allPeople = [];
   let myProfileData = null;
 
+  // Istunto: tuore token ennen jokaista kutsua, vanhentuneesta istunnosta oma ikkuna (nav.js, bugi 3).
+  AppNav.initSession({ client, url: SUPABASE_URL, anonKey: ANON_KEY });
   AppNav.mount('people');
 
   function escapeHtml(str) {
@@ -86,9 +87,8 @@
   async function setLanguagePref(lang) {
     setCurrentLanguage(lang);
     if (myProfileData) {
-      await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
+      await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
         method: 'POST',
-        headers: authHeaders(),
         body: JSON.stringify({
           firstName: myProfileData.firstName,
           lastName: myProfileData.lastName,
@@ -103,9 +103,8 @@
   }
 
   async function loadMyProfileAndTranslations() {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-my-profile`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/get-my-profile`, {
       method: 'POST',
-      headers: authHeaders(),
     });
     const data = await res.json();
     if (!data.error) {
@@ -116,28 +115,18 @@
     if (!data.error) AppNav.setProfile(data);
   }
 
-  function authHeaders() {
-    return {
-      'Content-Type': 'application/json',
-      'apikey': ANON_KEY,
-      'Authorization': 'Bearer ' + currentAccessToken,
-    };
-  }
-
   async function ensureLoggedIn() {
     const { data: { session } } = await client.auth.getSession();
     if (!session) {
-      window.location.href = '/login.html';
+      window.location.href = '/login.html?next=' + encodeURIComponent(window.location.pathname + window.location.search);
       return false;
     }
-    currentAccessToken = session.access_token;
     return true;
   }
 
   async function loadPeople() {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/list-all-people`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/list-all-people`, {
       method: 'POST',
-      headers: authHeaders(),
     });
     const data = await res.json();
 
@@ -148,6 +137,13 @@
 
     allPeople = data.people;
     renderList();
+  }
+
+  // Projektiton profiili poistuu 12 kk merkinnästä (calendar-sync, job "retention").
+  function retentionDate(inactiveSince) {
+    const d = new Date(inactiveSince);
+    d.setFullYear(d.getFullYear() + 1);
+    return d.toLocaleDateString(getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI');
   }
 
   function statusLabel(status) {
@@ -180,7 +176,9 @@
       const projectTags = p.projects.map((pr) => {
         const orgPart = pr.organizationName ? `${escapeHtml(pr.organizationName)} / ` : '';
         return `<span class="tag status-${pr.status}">${orgPart}${escapeHtml(pr.projectName)} — ${statusLabel(pr.status)}</span>`;
-      }).join('') || `<span class="muted">${t('empty_no_project_memberships')}</span>`;
+      }).join('') || (p.inactiveSince
+        ? `<span class="tag status-expired">${t('people_removal_pending', { date: retentionDate(p.inactiveSince) })}</span>`
+        : `<span class="muted">${t('empty_no_project_memberships')}</span>`);
 
       return `
         <div class="person-row">
@@ -214,9 +212,8 @@
     const secondConfirm = (await AppDialog.confirm(t('confirm_delete_user_2', { email }), { danger: true }));
     if (!secondConfirm) return;
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-person-everywhere`, {
+    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/delete-person-everywhere`, {
       method: 'POST',
-      headers: authHeaders(),
       body: JSON.stringify({ email }),
     });
     const data = await res.json();
