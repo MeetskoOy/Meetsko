@@ -193,6 +193,32 @@ footer nav { display: flex; gap: 20px; flex-wrap: wrap; }
 footer a { color: var(--text-muted); text-decoration: none; }
 footer a:hover { color: var(--text); }
 
+/* Tietosuojaseloste (tietosuojaseloste.html ja en/privacy-policy.html) */
+.policy-head { background: var(--nav-bg); color: #fff; padding: 64px 0 48px; }
+.policy-head .eyebrow { color: var(--sky); }
+.policy-head h1 { font-size: 44px; font-weight: 800; letter-spacing: -0.03em; line-height: 1.1; margin: 0 0 14px; }
+.policy-head p { color: #C9D6EA; font-size: 16px; line-height: 1.6; margin: 0; max-width: 720px; }
+.policy-head .meta { margin-top: 18px; font-size: 13.5px; color: #A9B8CF; }
+.policy { padding: 48px 0 80px; background: var(--page-bg); }
+.policy-body { max-width: 860px; font-size: 15.5px; line-height: 1.65; color: var(--text); }
+.policy-body h2 { font-size: 22px; letter-spacing: -0.015em; margin: 44px 0 12px; scroll-margin-top: 80px; }
+.policy-body h3 { font-size: 16px; margin: 24px 0 8px; }
+.policy-body p { margin: 0 0 14px; }
+.policy-body ul, .policy-body ol { margin: 0 0 14px; padding-left: 22px; }
+.policy-body li { margin: 4px 0; }
+.policy-body a { color: var(--ink); }
+.policy-toc { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px 22px; margin-bottom: 8px; }
+.policy-toc p { font-weight: 700; margin: 0 0 8px; }
+.policy-toc ol { columns: 2; column-gap: 32px; margin: 0; font-size: 14.5px; }
+.policy-toc a { text-decoration: none; }
+.policy-toc a:hover { text-decoration: underline; }
+.policy-table { width: 100%; border-collapse: collapse; margin: 6px 0 18px; font-size: 14.5px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.policy-table th, .policy-table td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line-soft); }
+.policy-table th { background: var(--primary-soft); font-weight: 700; font-size: 13.5px; }
+.policy-table tr:last-child td { border-bottom: none; }
+.policy-scroll { overflow-x: auto; }
+.policy-note { background: var(--free-bg); border-left: 3px solid var(--mint); padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 0 0 16px; }
+
 @media (max-width: 1000px) {
   .feat-grid { grid-template-columns: 1fr 1fr; }
   .uses { grid-template-columns: 1fr 1fr; row-gap: 32px; }
@@ -219,4 +245,8 @@ footer a:hover { color: var(--text); }
   .cta-box h2 { font-size: 24px; }
   .nav-cta .login-link { display: none; }
   .dt-head, .dt-row { grid-template-columns: 1fr 96px; padding-left: 16px; padding-right: 16px; }
+  .policy-head { padding: 40px 0 32px; }
+  .policy-head h1 { font-size: 30px; }
+  .policy-toc ol { columns: 1; }
+  .policy-table { min-width: 520px; }
 }
