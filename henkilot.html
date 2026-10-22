@@ -198,7 +198,9 @@
             <div class="tag-row">${projectTags}</div>
           </div>
           <div class="delete-cell">
-            <button class="danger small" onclick="deletePerson('${p.email.replace(/'/g, "\\'")}')">${t('delete_user_btn')}</button>
+            ${p.isSuperadmin
+              ? `<span class="tag">${t('role_app_admin')}</span>`
+              : `<button class="danger small" onclick="deletePerson('${p.email.replace(/'/g, "\\'")}')">${t('delete_user_btn')}</button>`}
           </div>
         </div>
       `;

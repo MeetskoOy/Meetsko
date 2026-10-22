@@ -380,8 +380,8 @@ const TRANSLATIONS = {
     empty_no_results: "Ei tuloksia.",
     empty_no_org_memberships: "Ei asiakkuusjäsenyyksiä.",
     empty_no_project_memberships: "Ei projektiosallistumisia.",
-    confirm_delete_user_1: "Poistetaanko käyttäjä {{email}} KOKONAAN sovelluksesta?\n\nTämä poistaa hänet kaikista projekteista ja asiakkuuksista, ja poistaa hänen kirjautumistilinsä kokonaan. Tätä ei voi perua.",
-    confirm_delete_user_2: "Oletko aivan varma? Kirjoita tämä vahvistus vielä kerran mielessäsi: {{email}} poistetaan pysyvästi.",
+    confirm_delete_user_1: "Poistetaanko käyttäjä {{email}} kokonaan sovelluksesta?\n\nHenkilö poistetaan kaikista projekteista ja asiakkuuksista, ja hänen profiilinsa ja kirjautumistilinsä poistetaan. Tätä ei voi perua.",
+    confirm_delete_user_2: "Oletko aivan varma? {{email}} poistetaan tämän jälkeen pysyvästi.",
 
     // oma-profiili.html
     heading_my_profile: "Oma profiili",
@@ -965,8 +965,8 @@ const TRANSLATIONS = {
     empty_no_results: "No results.",
     empty_no_org_memberships: "No client memberships.",
     empty_no_project_memberships: "No project memberships.",
-    confirm_delete_user_1: "Delete user {{email}} COMPLETELY from the app?\n\nThis removes them from all projects and clients, and deletes their login account entirely. This cannot be undone.",
-    confirm_delete_user_2: "Are you absolutely sure? Confirm once more in your mind: {{email}} will be permanently deleted.",
+    confirm_delete_user_1: "Delete user {{email}} completely from the app?\n\nThey will be removed from all projects and clients, and their profile and login account will be deleted. This cannot be undone.",
+    confirm_delete_user_2: "Are you absolutely sure? {{email}} will then be permanently deleted.",
     
 
     heading_my_profile: "My profile",
