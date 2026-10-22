@@ -92,8 +92,15 @@
       </div>
       <button class="secondary small add-row" type="button" onclick="addMemberRow()" data-i18n="add_member_btn"></button>
       <div class="check-row myself-row">
-        <input type="checkbox" id="addMyselfCheckbox" />
+        <input type="checkbox" id="addMyselfCheckbox" onchange="refreshOwnerPicker()" />
         <label for="addMyselfCheckbox" data-i18n="add_myself_checkbox_label"></label>
+      </div>
+      <!-- Vastuuhenkilön pitää olla projektin osallistuja: jos en lisää itseäni,
+           valitaan projektin ylläpitäjiksi merkityistä. -->
+      <div id="ownerPickerWrap" style="display:none; margin-top:14px;">
+        <label for="ownerPicker" data-i18n="owner_picker_label"></label>
+        <select id="ownerPicker" style="width:100%;"></select>
+        <p class="note" id="ownerPickerNote"></p>
       </div>
     </div>
 
@@ -221,6 +228,11 @@
       .map((el) => el.value.trim())
       .filter((v) => v !== '');
 
+    if (!document.getElementById('addMyselfCheckbox').checked && adminMembers().length === 0) {
+      errorEl.textContent = t('owner_required_error');
+      return;
+    }
+
      const members = Array.from(document.querySelectorAll('#memberRows .member-row')).map((row) => {
       const inputs = row.querySelectorAll('input');
       const select = row.querySelector('select');
@@ -246,7 +258,8 @@
 
     try {
       const organizationId = myProfileData && myProfileData.isSuperadmin ? (document.getElementById('orgPicker').value || null) : null;
-      const data = await AppNav.api('create-project', { name, clientOrganizations, members, organizationId });
+      const ownerEmail = document.getElementById('addMyselfCheckbox').checked ? null : (document.getElementById('ownerPicker').value || null);
+      const data = await AppNav.api('create-project', { name, clientOrganizations, members, organizationId, ownerEmail });
 
       if (data.error) {
         errorEl.textContent = t('error_prefix') + ': ' + data.error;
@@ -337,6 +350,28 @@
     resultEl.innerHTML = html;
   }
 
+  // Projektin ylläpitäjiksi merkityt jäsenrivit (vastuuhenkilön vaihtoehdot).
+  function adminMembers() {
+    return Array.from(document.querySelectorAll('#memberRows .member-row')).map((row) => {
+      const inputs = row.querySelectorAll('input');
+      const name = `${inputs[0].value.trim()} ${inputs[1].value.trim()}`.trim();
+      return { email: inputs[3].value.trim(), name, role: row.querySelector('select').value };
+    }).filter((m) => m.email && m.role === 'admin');
+  }
+
+  function refreshOwnerPicker() {
+    const wrap = document.getElementById('ownerPickerWrap');
+    if (document.getElementById('addMyselfCheckbox').checked) { wrap.style.display = 'none'; return; }
+    const picker = document.getElementById('ownerPicker');
+    const previous = picker.value;
+    const admins = adminMembers();
+    picker.innerHTML = admins.map((m) => `<option value="${escapeHtmlAttr(m.email)}">${escapeHtmlAttr(m.name ? `${m.name} (${m.email})` : m.email)}</option>`).join('');
+    if (admins.some((m) => m.email === previous)) picker.value = previous;
+    picker.style.display = admins.length ? '' : 'none';
+    document.getElementById('ownerPickerNote').textContent = admins.length ? t('owner_picker_note') : t('owner_required_error');
+    wrap.style.display = '';
+  }
+
   // Superadminin organisaatiovalitsin (list-organizations).
   async function loadOrganizationPicker() {
     const data = await AppNav.api('list-organizations');
@@ -363,6 +398,11 @@
       return;
     }
     if (myProfileData.isSuperadmin) await loadOrganizationPicker();
+    // Vastuuhenkilön valinta päivittyy jäsenrivien muuttuessa.
+    const rows = document.getElementById('memberRows');
+    rows.addEventListener('input', refreshOwnerPicker);
+    rows.addEventListener('change', refreshOwnerPicker);
+    refreshOwnerPicker();
   })();
 </script>
 

@@ -1185,6 +1185,11 @@ function bufferDates(anchor) {
   const GOOGLE_CALENDAR_REDIRECT_URI = "https://nrrhvbxvkizvkcwwglck.supabase.co/functions/v1/google-auth-callback";
 
     async function startCalendarAuthForParticipant(participantId, wantsWrite) {
+    // Asetusikkunasta lähdettäessä tallennetaan ensin näkyvyysrajaukset, muuten
+    // valtuutuksen uudelleenohjaus hylkäisi tallentamattomat muutokset.
+    if (settingsState && document.querySelector('.settings-modal')) {
+      if (!(await persistSettings())) return;
+    }
     const { data: { session } } = await client.auth.getSession();
     const provider = session?.user?.app_metadata?.provider;
 
@@ -1297,7 +1302,11 @@ async function loadStatus() {
     if (!data) return;
 
     document.getElementById('projectName').textContent = data.project.name;
-    document.getElementById('projectOwner').textContent = t('responsible_person') + ' ' + data.project.owner_email;
+    // Vastuuhenkilö nimellä ja sähköpostilla, jos hän on osallistuja (nimi profiilista).
+    const ownerRow = data.participants.find((p) => p.email.toLowerCase() === data.project.owner_email.toLowerCase());
+    const ownerName = ownerRow && (ownerRow.firstName || ownerRow.lastName) ? `${ownerRow.firstName || ''} ${ownerRow.lastName || ''}`.trim() : '';
+    document.getElementById('projectOwner').textContent = t('responsible_person') + ' '
+      + (ownerName ? `${ownerName} (${data.project.owner_email})` : data.project.owner_email);
     const authorizedCount = data.participants.filter((p) => p.status === 'authorized').length;
     document.getElementById('projectCounts').textContent =
       t('meta_participants', { count: data.participants.length }) + ' · ' + t('meta_authorized', { count: authorizedCount });
@@ -4596,6 +4605,13 @@ async function openSettingsModal() {
     
 
   async function saveSettingsSubmit() {
+    if (!(await persistSettings())) return;
+    closeModal();
+    loadStatus();
+  }
+
+  // Tallentaa asetusikkunan näkyvyysrajaukset. Palauttaa false, jos tallennus ei onnistunut.
+  async function persistSettings() {
     const windows = [];
     for (let d = 0; d < 7; d++) {
       settingsState.windowsByDay[d].forEach((r) => {
@@ -4607,7 +4623,7 @@ async function openSettingsModal() {
     // datetime-local-arvot (YYYY-MM-DDTHH:MM) ovat merkkijonoina aikajärjestyksessä.
     if (filledBlackouts.some((b) => b.endAt <= b.startAt)) {
       AppDialog.alert(t('blackout_end_before_start'));
-      return;
+      return false;
     }
     const blackouts = filledBlackouts
       .map((b) => ({ startAt: datetimeLocalToIso(b.startAt), endAt: datetimeLocalToIso(b.endAt) }));
@@ -4625,11 +4641,9 @@ async function openSettingsModal() {
 
     if (data.error) {
       AppDialog.alert(t('error_prefix') + ': ' + data.error);
-      return;
+      return false;
     }
-
-    closeModal();
-    loadStatus();
+    return true;
   }
 
   attachMasterPaging();

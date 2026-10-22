@@ -612,6 +612,9 @@ const TRANSLATIONS = {
     np_promo_link: "Tutustu Meetskoon",
     np_promo_contact: "Ota yhteyttä:",
     people_removal_pending: "Ei projekteja · poistuu {{date}}",
+    owner_picker_label: "Vastuuhenkilö",
+    owner_picker_note: "Vastuuhenkilön pitää olla projektin osallistuja. Valitse projektin ylläpitäjiksi merkityistä, tai lisää itsesi projektiin.",
+    owner_required_error: "Lisää itsesi projektiin tai merkitse vähintään yksi osallistuja projektin ylläpitäjäksi – hänestä tulee vastuuhenkilö.",
     group_collapse: "Piilota jäsenet",
     confirm_delete_group: "Poistetaanko ryhmä {{name}}? Ryhmän jäsenet pysyvät projektissa.",
 
@@ -1220,6 +1223,9 @@ const TRANSLATIONS = {
     np_promo_link: "Discover Meetsko",
     np_promo_contact: "Contact us:",
     people_removal_pending: "No projects · removed on {{date}}",
+    owner_picker_label: "Project owner",
+    owner_picker_note: "The owner must be a project participant. Choose from the participants marked as project administrators, or add yourself to the project.",
+    owner_required_error: "Add yourself to the project or mark at least one participant as a project administrator – they will become the owner.",
     group_collapse: "Hide members",
     confirm_delete_group: "Delete the group {{name}}? Its members stay in the project.",
 

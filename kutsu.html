@@ -212,6 +212,12 @@
   const GOOGLE_CALENDAR_REDIRECT_URI = "https://nrrhvbxvkizvkcwwglck.supabase.co/functions/v1/google-auth-callback";
 
   async function startCalendarAuth() {
+    // Valtuutus siirtyy Microsoftiin/Googleen: tallennetaan näkyvyysrajaukset ensin,
+    // muuten ne katoavat (sivu ladataan paluun jälkeen palvelimen tiedoista).
+    if (settingsState) {
+      const saved = await saveSettingsInline();
+      if (!saved) return;
+    }
     const { data: { session } } = await client.auth.getSession();
     const provider = session?.user?.app_metadata?.provider;
 
