@@ -45,7 +45,7 @@
       <p class="eyebrow">Privacy</p>
       <h1>Privacy policy</h1>
       <p>Meetsko shows the free and busy times of a project's participants in one shared view, across organisations. This policy explains what personal data the service processes, why, for how long, and how calendar content is protected.</p>
-      <p class="meta">Version 2.0 · updated 22 October 2026 · Articles 13 and 14 of the EU General Data Protection Regulation (GDPR)</p>
+      <p class="meta">Version 2.1 · updated 25 October 2026 · Articles 13 and 14 of the EU General Data Protection Regulation (GDPR)</p>
     </div>
   </div>
 
@@ -159,6 +159,19 @@
           <li><b>Visibility.</b> Events are visible to project participants unless the creator chooses not to show the event to others. Drafts are visible only to their author. Invitees' responses (accepted / declined) are not shown.</li>
         </ul>
 
+        <h3 id="write-access">Why does Microsoft call write access “full access”?</h3>
+        <p>When you grant write access, Microsoft asks for consent to the Calendars.ReadWrite permission, described as “Have full access to your calendars” (“Have full access to user calendars” in the organisation's Entra ID). The name and description are Microsoft's standard wording, which apps cannot change. Microsoft offers no narrower permission that lets an app create a meeting invitation in a user's calendar, so every app that creates invitations on a user's behalf uses the same permission.</p>
+        <p>Because the permission would technically allow access to every event in your calendar, Meetsko's use of it is restricted in the application code:</p>
+        <ul>
+          <li><b>New events only at your request.</b> An event is created only when you send an invitation from Meetsko yourself, and only in your own calendar.</li>
+          <li><b>Changes only to Meetsko's own events.</b> Meetsko stores the Microsoft identifiers of the events it creates at the moment of creation. Cancellations and other changes are applied on the server only to these stored identifiers. Microsoft event identifiers are never accepted from the browser, so there is no technical route to any other event.</li>
+          <li><b>Other events are left alone.</b> Meetsko never edits, deletes or cancels any other event in your calendar, and their content is not read (see section 6). For Meetsko's own events, only the time and cancellation status are read.</li>
+          <li><b>Your calendar, your request.</b> Your permission is used only for your own requests and only for your own calendar. Another user's permission is never used to write.</li>
+          <li><b>Optional and per project.</b> Write access is granted separately in the project settings and is not needed for viewing schedules. Without it, Meetsko copies the attendees so you can create the invitation yourself in Outlook.</li>
+          <li><b>Revocable.</b> When you remove the authorisation in Meetsko's settings, Meetsko deletes its stored calendar connection (read and write) and can no longer reach your calendar. You can also remove the consent in your Microsoft account's app settings.</li>
+        </ul>
+        <p>Your organisation's IT can restrict user consent with Entra ID consent policies if it wishes. Meetsko's scheduling also works with read access alone.</p>
+
         <h2 id="access">8. Access control and visibility</h2>
         <p>The main rule: calendar data is visible only to participants in the same project. People outside a project cannot see its participants' data, except for the administrators listed below.</p>
         <div class="policy-scroll">
@@ -233,6 +246,7 @@
         <div class="policy-scroll">
           <table class="policy-table">
             <tr><th style="width:14%">Version</th><th style="width:20%">Date</th><th>Change</th></tr>
+            <tr><td>2.1</td><td>25 October 2026</td><td>Scope of write access (Calendars.ReadWrite) and how it is technically limited to Meetsko's own events</td></tr>
             <tr><td>2.0</td><td>22 October 2026</td><td>Service name Meetsko; event creation and Outlook sync, visibility restrictions, organisation roles, activity log, authorisation reminders, Google Calendar and 12-month profile retention</td></tr>
             <tr><td>1.0</td><td>19 September 2026</td><td>First version</td></tr>
           </table>

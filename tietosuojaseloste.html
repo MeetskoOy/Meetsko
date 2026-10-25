@@ -45,7 +45,7 @@
       <p class="eyebrow">Tietosuoja</p>
       <h1>Tietosuojaseloste</h1>
       <p>Meetsko näyttää projektin osallistujien vapaat ja varatut ajat yhteisessä näkymässä eri organisaatioiden välillä. Tässä selosteessa kerrotaan, mitä henkilötietoja palvelu käsittelee, miksi, kuinka kauan ja miten kalenterien sisältö suojataan.</p>
-      <p class="meta">Versio 2.0 · päivitetty 22.10.2026 · EU:n yleinen tietosuoja-asetus (GDPR) 13 ja 14 artikla</p>
+      <p class="meta">Versio 2.1 · päivitetty 25.10.2026 · EU:n yleinen tietosuoja-asetus (GDPR) 13 ja 14 artikla</p>
     </div>
   </div>
 
@@ -159,6 +159,19 @@
           <li><b>Näkyvyys.</b> Tapahtumat näkyvät projektin osallistujille, ellei luoja valitse, ettei tapahtumaa näytetä muille. Luonnokset näkyvät vain niiden tekijälle. Kutsuttujen vastauksia (hyväksytty / hylätty) ei näytetä.</li>
         </ul>
 
+        <h3 id="kirjoitusoikeus">Miksi Microsoft kutsuu kirjoitusoikeutta täydeksi käyttöoikeudeksi?</h3>
+        <p>Kun annat kirjoitusoikeuden, Microsoft pyytää suostumusta oikeudelle Calendars.ReadWrite, jonka kuvaus on ”Have full access to your calendars” (organisaation Entra ID:ssä ”Have full access to user calendars”). Nimi ja kuvaus ovat Microsoftin vakiotekstejä, joita sovellus ei voi muuttaa. Microsoft ei tarjoa suppeampaa oikeutta, jolla sovellus voisi luoda kokouskutsun käyttäjän kalenteriin, joten sama oikeus on käytössä kaikissa sovelluksissa, jotka luovat kutsuja käyttäjän puolesta.</p>
+        <p>Koska oikeus antaisi teknisesti pääsyn kaikkiin kalenterisi tapahtumiin, Meetskon käyttö on rajattu sovelluksen koodissa:</p>
+        <ul>
+          <li><b>Uusi tapahtuma vain pyynnöstäsi.</b> Tapahtuma luodaan vain, kun itse lähetät kutsun Meetskosta, ja vain omaan kalenteriisi.</li>
+          <li><b>Muutokset vain Meetskon omiin tapahtumiin.</b> Meetsko tallentaa luomiensa tapahtumien Microsoft-tunnisteet luontihetkellä. Peruminen ja muut muutokset kohdistetaan palvelimella vain näihin tallennettuihin tunnisteisiin. Selaimelta ei hyväksytä Microsoftin tapahtumatunnisteita, joten muihin tapahtumiin ei ole teknistä reittiä.</li>
+          <li><b>Muita tapahtumia ei kosketa.</b> Meetsko ei muokkaa, poista eikä peru muita kalenterisi tapahtumia, eikä niiden sisältöä lueta (ks. kohta 6). Meetskon omista tapahtumista luetaan vain aika ja peruutustieto.</li>
+          <li><b>Vain oma kalenteri, vain oma pyyntö.</b> Oikeuttasi käytetään vain sinun omiin pyyntöihisi ja vain sinun kalenteriisi. Toisen käyttäjän oikeudella ei kirjoiteta koskaan.</li>
+          <li><b>Valinnainen ja projektikohtainen.</b> Kirjoitusoikeus annetaan erikseen projektin asetuksista, eikä sitä tarvita aikataulujen katseluun. Ilman sitä Meetsko kopioi osallistujat, ja kutsun voi luoda itse Outlookissa.</li>
+          <li><b>Peruttavissa.</b> Kun poistat valtuutuksen Meetskon asetuksista, Meetsko poistaa tallentamansa kalenteriyhteyden (luku ja kirjoitus) eikä enää pääse kalenteriisi. Suostumuksen voi poistaa myös Microsoft-tilin sovellusasetuksista.</li>
+        </ul>
+        <p>Organisaation IT voi halutessaan rajata käyttäjien suostumuksia Entra ID:n suostumuskäytännöillä. Meetskon aikataulutus toimii myös pelkällä lukuoikeudella.</p>
+
         <h2 id="nakyvyys">8. Pääsynhallinta ja näkyvyys</h2>
         <p>Pääsääntö: kalenteritieto näkyy vain saman projektin osallistujille. Projektiin kuulumaton ei näe osallistujien tietoja, lukuun ottamatta alla mainittuja pääkäyttäjiä.</p>
         <div class="policy-scroll">
@@ -233,6 +246,7 @@
         <div class="policy-scroll">
           <table class="policy-table">
             <tr><th style="width:14%">Versio</th><th style="width:20%">Päivämäärä</th><th>Muutos</th></tr>
+            <tr><td>2.1</td><td>25.10.2026</td><td>Kirjoitusoikeuden (Calendars.ReadWrite) laajuus ja sen tekninen rajaus Meetskon omiin tapahtumiin</td></tr>
             <tr><td>2.0</td><td>22.10.2026</td><td>Palvelun nimi Meetsko; tapahtumien luonti ja Outlook-synkronointi, näkyvyysrajaukset, organisaatioroolit, tapahtumaloki, valtuutusmuistutukset, Google-kalenteri ja profiilien 12 kuukauden säilytysaika</td></tr>
             <tr><td>1.0</td><td>19.9.2026</td><td>Ensimmäinen versio</td></tr>
           </table>

@@ -4262,6 +4262,7 @@ async function openSettingsModal() {
           <p class="empty-note" style="margin-top:0;">${t('perm_read_explain')}</p>
           <p class="ok-text" style="margin:12px 0 2px;">${t('perm_write_granted')}</p>
           <p class="empty-note" style="margin-top:0;">${t('perm_write_explain')}</p>
+          ${writeScopeNoteHtml()}
           <button class="danger" type="button" style="margin-top:12px;" onclick="revokeCalendarAuth()">${t('perm_revoke_both_btn')}</button>
           <p class="empty-note">${t('perm_revoke_both_explain')}</p>
         </div>
@@ -4325,9 +4326,17 @@ async function openSettingsModal() {
       <div class="calendar-section" style="margin-top:18px;">
         <label style="margin-top:0; color:var(--text); font-weight:600;">${t('write_section_title')}</label>
         <p class="empty-note">${t('write_section_explain')}</p>
+        ${writeScopeNoteHtml()}
         <button type="button" onclick="startWriteAuth()">${t('grant_write_btn')}</button>
       </div>
     `;
+  }
+
+  // Microsoftin suostumusikkuna kutsuu Calendars.ReadWritea täydeksi käyttöoikeudeksi;
+  // kerrotaan, mihin Meetsko sitä käyttää, ja linkki selosteen tarkempaan kuvaukseen.
+  function writeScopeNoteHtml() {
+    const href = getCurrentLanguage() === 'en' ? '/en/privacy-policy.html#write-access' : '/tietosuojaseloste.html#kirjoitusoikeus';
+    return `<p class="empty-note" style="margin-top:6px;">${t('write_scope_note')} <a href="${href}" target="_blank" rel="noopener">${t('write_scope_link')}</a></p>`;
   }
 
   async function startWriteAuth() {
