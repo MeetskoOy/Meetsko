@@ -24,7 +24,7 @@ section[id] { scroll-margin-top: 64px; }
 /* Yläpalkki */
 .app-nav { position: sticky; top: 0; z-index: 40; }
 .landing-links { display: flex; gap: 4px; margin-left: 8px; }
-.landing-links a { color: #C9D6EA; text-decoration: none; font-size: 14px; font-weight: 500; padding: 8px 12px; border-radius: 6px; }
+.landing-links a { color: #C9D6EA; text-decoration: none; font-size: 14px; font-weight: 500; padding: 8px 12px; border-radius: 6px; white-space: nowrap; }
 .landing-links a:hover { color: #fff; background: rgba(255,255,255,0.06); }
 .nav-cta { margin-left: auto; display: flex; align-items: center; gap: 14px; }
 .nav-cta .login-link { color: #C9D6EA; font-size: 14px; text-decoration: none; }
@@ -178,6 +178,20 @@ section[id] { scroll-margin-top: 64px; }
 .faq summary::after { content: "+"; font-family: var(--mono); font-size: 18px; color: var(--text-muted); font-weight: 400; }
 .faq details[open] summary::after { content: "–"; }
 .faq details p { margin: 0; padding: 0 22px 20px; font-size: 14.5px; line-height: 1.65; color: var(--text-muted); }
+
+/* Ota yhteyttä */
+.contact { border-top: 1px solid var(--line); }
+.contact-grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: 56px; align-items: center; }
+.contact-card { background: var(--page-bg); border: 1px solid var(--line); border-radius: 14px; padding: 32px; }
+.contact-card h3 { font-size: 19px; margin: 0 0 8px; letter-spacing: -0.01em; }
+.contact-card p { margin: 0 0 22px; font-size: 15px; line-height: 1.6; color: var(--text-muted); }
+.contact-mail { display: inline-flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 800; color: var(--primary); text-decoration: none; word-break: break-all; }
+.contact-mail svg { width: 22px; height: 22px; flex: none; color: var(--mint); }
+.contact-mail:hover { text-decoration: underline; }
+.contact-co { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--text-faint); }
+/* Viisi ankkurilinkkiä ei mahdu kapeampaan yläpalkkiin. */
+@media (max-width: 1140px) { .landing-links { display: none; } }
+@media (max-width: 1000px) { .contact-grid { grid-template-columns: 1fr; gap: 32px; } }
 
 /* CTA ja alatunniste */
 .cta { padding: 88px 0; }
