@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Privacy policy — Meetsko</title>
 <meta name="description" content="Meetsko privacy policy: what personal data the service processes, why, for how long, and how calendar content is protected." />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="preload" href="/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="canonical" href="https://meetsko.com/en/privacy-policy.html" />
 <link rel="alternate" hreflang="fi" href="https://meetsko.com/tietosuojaseloste.html" />
 <link rel="alternate" hreflang="en" href="https://meetsko.com/en/privacy-policy.html" />
@@ -45,7 +43,7 @@
       <p class="eyebrow">Privacy</p>
       <h1>Privacy policy</h1>
       <p>Meetsko shows the free and busy times of a project's participants in one shared view, across organisations. This policy explains what personal data the service processes, why, for how long, and how calendar content is protected.</p>
-      <p class="meta">Version 2.2 · updated 27 October 2026 · Articles 13 and 14 of the EU General Data Protection Regulation (GDPR)</p>
+      <p class="meta">Version 2.3 · updated 27 October 2026 · Articles 13 and 14 of the EU General Data Protection Regulation (GDPR)</p>
     </div>
   </div>
 
@@ -68,6 +66,7 @@
             <li><a href="#processors">Sub-processors and data location</a></li>
             <li><a href="#retention">Retention and deletion</a></li>
             <li><a href="#security">Security</a></li>
+            <li><a href="#cookies">Cookies and browser storage</a></li>
             <li><a href="#rights">Your rights</a></li>
             <li><a href="#breaches">Personal data breaches</a></li>
             <li><a href="#changes">Changes to this policy</a></li>
@@ -85,39 +84,39 @@
         <p>Meetsko Oy processes personal data in two roles:</p>
         <ul>
           <li><b>As a processor (Article 28 GDPR)</b> for data processed in a customer organisation's projects. The customer organisation is the controller and decides how the service is used in its projects. Meetsko Oy processes this data only on the customer's instructions and under a data processing agreement.</li>
-          <li><b>As a controller</b> for user accounts, service operation, security and logs, the customer relationship and invoicing, and for projects that do not belong to any customer organisation.</li>
+          <li><b>As a controller</b> for user accounts, service operation, security and logs, the customer relationship and invoicing.</li>
         </ul>
         <p>Customer agreements include a separate data processing agreement (DPA) covering the subject matter, duration, instructions, sub-processors and assistance obligations.</p>
 
         <h2 id="service">2. The service</h2>
-        <p>A lead organisation creates a project and invites participants from its own and other organisations. Each participant authorises Meetsko themselves with their own Microsoft or Google account. Nobody shares another person's calendar on their behalf, and no organisation-wide calendar permission is required from IT administrators.</p>
+        <p>A lead organisation creates a project and invites participants from its own and other organisations. Each participant authorises Meetsko themselves with their own Microsoft account. Nobody shares another person's calendar on their behalf, and no organisation-wide calendar permission is required from IT administrators.</p>
         <p>Meetsko shows participants' free and busy times, suggests times that suit everyone, and can send a meeting invitation from the organiser's own Outlook calendar. The content of calendar events (title, location, description, other attendees) is neither shown nor stored.</p>
 
         <h2 id="data">3. Personal data processed</h2>
         <div class="policy-scroll">
           <table class="policy-table">
             <tr><th style="width:26%">Category</th><th>Content</th><th style="width:24%">Source</th></tr>
-            <tr><td>Basic user data</td><td>Name, email address, sign-in account identifier</td><td>Microsoft or Google sign-in</td></tr>
+            <tr><td>Basic user data</td><td>Name, email address, sign-in account identifier</td><td>Microsoft sign-in</td></tr>
             <tr><td>Profile</td><td>Job title, function or team, language</td><td>The user</td></tr>
             <tr><td>Organisation data</td><td>Customer organisation, its email domains, membership and application role (e.g. organisation administrator)</td><td>The customer organisation, the service provider</td></tr>
             <tr><td>Project participation</td><td>Projects, project role, groups, invitation status, invitation and reminder dates</td><td>The inviter and project administrators</td></tr>
-            <tr><td>Calendar availability</td><td>Start and end times of busy and free periods (free / busy) for roughly three months ahead</td><td>Microsoft Graph or Google Calendar, with the user's own authorisation</td></tr>
+            <tr><td>Calendar availability</td><td>Start and end times of busy and free periods (free / busy) for roughly three months ahead</td><td>Microsoft, with the user's own authorisation</td></tr>
             <tr><td>Visibility restrictions</td><td>Visibility windows and hidden periods set by the user for each project</td><td>The user</td></tr>
-            <tr><td>Calendar connection credentials</td><td>Encrypted refresh token, granted permissions (read / read and write), change notification subscription identifier</td><td>Microsoft or Google</td></tr>
+            <tr><td>Calendar connection credentials</td><td>Encrypted refresh token, granted permissions (read / read and write), change notification subscription identifier</td><td>Microsoft</td></tr>
             <tr><td>Events and drafts created in Meetsko</td><td>Title, message, time, recurrence, organiser, invitees, Teams link, calendar event identifier, cancellation status</td><td>The event's creator; time and cancellation from the organiser's calendar</td></tr>
             <tr><td>Activity log</td><td>Project actions: openings, changes to participants and groups, event creation and cancellation, reminders; who and when</td><td>Recorded automatically by the service</td></tr>
             <tr><td>Technical logs</td><td>Sign-ins, errors, timestamps</td><td>Recorded automatically by the service and its sub-processors</td></tr>
             <tr><td>Emails</td><td>Recipient, message content and delivery status</td><td>The service and the email delivery provider</td></tr>
           </table>
         </div>
-        <p>The service does not process special categories of personal data (Article 9 GDPR).</p>
+        <p>The service is not intended for processing special categories of personal data (Article 9 GDPR) and does not ask for them. Such data should not be entered in event titles or messages.</p>
 
         <h2 id="purposes">4. Purposes and legal bases</h2>
         <div class="policy-scroll">
           <table class="policy-table">
             <tr><th style="width:45%">Purpose</th><th>Legal basis</th></tr>
             <tr><td>Finding common times and managing project events across organisations</td><td>The agreement between the customer organisation and Meetsko Oy (Art. 6(1)(b)) and the customer's legitimate interest in organising its work (Art. 6(1)(f))</td></tr>
-            <tr><td>Reading calendar availability and sending meeting invitations</td><td>The user's own authorisation: each person grants read access, and separately write access, themselves and can withdraw either at any time</td></tr>
+            <tr><td>Reading calendar availability and sending meeting invitations</td><td>The customer organisation's legitimate interest (Art. 6(1)(f)). A calendar is processed only once the user has authorised it themselves: read access, and separately write access, are granted with the user's own account and can be withdrawn at any time (see section 11).</td></tr>
             <tr><td>User accounts and access control</td><td>Performance of the agreement (Art. 6(1)(b))</td></tr>
             <tr><td>Invitations, authorisation reminders and notifications</td><td>Performance of the agreement (Art. 6(1)(b)) and the customer's legitimate interest (Art. 6(1)(f))</td></tr>
             <tr><td>Activity log, recording of support access and security</td><td>Legitimate interest (Art. 6(1)(f)) and security of processing (Art. 32)</td></tr>
@@ -128,7 +127,7 @@
         <h2 id="sources">5. Sources of data</h2>
         <ol>
           <li><b>The user</b>: profile details, visibility restrictions and choices made in the service.</li>
-          <li><b>Microsoft or Google</b>: name, email address and calendar availability, always on the basis of the user's own authorisation.</li>
+          <li><b>Microsoft</b>: name, email address and calendar availability, always on the basis of the user's own authorisation.</li>
           <li><b>The inviter or an organisation administrator</b>: the invitee's name and email address.</li>
         </ol>
         <p>Inviters must make sure they have grounds to process the invitee's contact details. Before authorising, the invitee sees who invited them and to which project.</p>
@@ -146,7 +145,7 @@
             <tr><td>Events marked private</td><td>Shown only as busy time, with nothing identifying</td></tr>
           </table>
         </div>
-        <p>Meetsko requests read access to the user's own Microsoft calendar (Calendars.Read), or equivalent read access from Google, because narrower permissions do not reliably return availability. As this permission would technically allow access to event content, a filtering layer on the server strips everything except time and status as soon as the calendar response arrives, before anything is stored in the database or sent to a browser.</p>
+        <p>Meetsko requests read access to the user's own Microsoft calendar (Calendars.Read), because narrower permissions do not reliably return availability. As this permission would technically allow access to event content, the server strips everything except time and status as soon as the calendar response arrives, before anything is stored or sent to a browser.</p>
         <p>Users can restrict, per project, when their calendar is visible (visibility windows and hidden periods). Hidden time is shown to others as busy and is not used for time suggestions.</p>
         <p>Changes to Outlook calendars are signalled through Microsoft change notifications. A notification only says that the calendar has changed; availability is then fetched again through the same filter.</p>
 
@@ -185,7 +184,7 @@
             <tr><td>Application administrator (Meetsko Oy)</td><td>Technical support access for troubleshooting and support requests. Opening a project without being a participant is recorded in the activity log as support access, so that it can be reported to the customer.</td></tr>
           </table>
         </div>
-        <p>Access rights are checked on the server for every request. Database tables are closed to direct access with row level security, so bypassing the user interface does not open access to data.</p>
+        <p>Access rights are checked on the server for every request. There is no direct access to the database from the browser, so bypassing the user interface does not open access to data.</p>
 
         <h2 id="emails">9. Emails and reminders</h2>
         <ul>
@@ -198,15 +197,15 @@
         <h2 id="processors">10. Sub-processors and data location</h2>
         <div class="policy-scroll">
           <table class="policy-table">
-            <tr><th style="width:18%">Sub-processor</th><th>Task</th><th>Data</th><th style="width:22%">Location</th></tr>
-            <tr><td>Supabase</td><td>Database, sign-in, server logic</td><td>All data stored by the service</td><td>EU (Ireland)</td></tr>
-            <tr><td>Netlify</td><td>Delivery of the website and user interface</td><td>Technical connection logs</td><td>Global content delivery network (US company)</td></tr>
-            <tr><td>Resend</td><td>Sending emails</td><td>Recipient name and address, message content</td><td>US company</td></tr>
-            <tr><td>Microsoft</td><td>Sign-in and calendar API</td><td>Sign-in, availability, meetings created in Meetsko</td><td>The user's own Microsoft environment</td></tr>
-            <tr><td>Google</td><td>Calendar API (if the user authorises a Google calendar)</td><td>Availability</td><td>The user's own Google account</td></tr>
+            <tr><th style="width:24%">Service</th><th>Task</th><th>Data</th><th style="width:24%">Location</th></tr>
+            <tr><td>Database and server hosting</td><td>Database, sign-in, server logic</td><td>All data stored by the service</td><td>EU (Ireland)</td></tr>
+            <tr><td>Website delivery</td><td>Delivery of the website and user interface</td><td>Technical connection logs (e.g. IP address)</td><td>Global content delivery network</td></tr>
+            <tr><td>Email delivery</td><td>Sending the service's emails</td><td>Recipient name and address, message content</td><td>EU (France)</td></tr>
+            <tr><td>Email and office services</td><td>Enquiries and support requests</td><td>Sender's contact details and message content</td><td>EU (Finland)</td></tr>
           </table>
         </div>
-        <p>Calendars stay in the user's own Microsoft or Google environment; only availability made up of time ranges is transferred to Meetsko. Where personal data is transferred outside the EU or EEA, the transfer relies on a European Commission adequacy decision (the EU–US Data Privacy Framework) or on standard contractual clauses. Customers are notified of new sub-processors in advance. Data is never sold or disclosed for marketing.</p>
+        <p>Data stored by the service is kept in the EU. Some providers are US companies, and website delivery may also involve processing technical connection data outside the EU and EEA. Such transfers rely on a European Commission adequacy decision (the EU–US Data Privacy Framework) or on standard contractual clauses. A list of named sub-processors is provided to customers with the data processing agreement, and customers are notified of new sub-processors in advance. Data is never sold or disclosed for marketing.</p>
+        <p>Microsoft is not a Meetsko sub-processor but the user's own service provider. The calendar stays in the user's own Microsoft environment; with the user's authorisation, Meetsko retrieves only availability made up of time ranges and creates meeting invitations at the organiser's own request.</p>
 
         <h2 id="retention">11. Retention and deletion</h2>
         <div class="policy-scroll">
@@ -217,35 +216,39 @@
             <tr><td>Projects, participants, groups, events and drafts</td><td>Until the project is deleted. Deleting a project deletes this data; invitations already sent remain in participants' calendars.</td></tr>
             <tr><td>User account and profile</td><td>For as long as the user belongs to a project or a customer organisation. After 12 months without either, the profile and sign-in account are deleted automatically without separate notice.</td></tr>
             <tr><td>Activity log</td><td>For the term of the customer agreement; kept after a project is deleted so that support access can be demonstrated</td></tr>
-            <tr><td>Technical logs and email delivery logs</td><td>According to the sub-processors' retention policies</td></tr>
+            <tr><td>Technical logs and email delivery logs</td><td>For a limited period, according to the providers' retention policies</td></tr>
           </table>
         </div>
-        <p>Users can remove their authorisation in the project settings or on the My profile page; Meetsko then stops fetching the calendar and the change notification subscription is removed. Authorisation can also be withdrawn in the Microsoft or Google account settings. When an agreement ends, the customer's data is deleted or returned as agreed; data is removed from backups as they rotate.</p>
+        <p>Users can remove their authorisation in the project settings or on the My profile page; Meetsko then stops fetching the calendar and the change notification subscription is removed. Authorisation can also be withdrawn in the Microsoft account's app settings. When an agreement ends, the customer's data is deleted or returned as agreed; data is removed from backups as they rotate.</p>
 
         <h2 id="security">12. Security</h2>
         <ul>
           <li>All traffic is encrypted (TLS), and data is encrypted at rest.</li>
-          <li>Sign-in takes place with Microsoft or Google; Meetsko never sees or stores passwords. Multi-factor authentication and conditional access follow the user's own organisation's policies.</li>
+          <li>Sign-in takes place with Microsoft; Meetsko never sees or stores your Microsoft account password. Multi-factor authentication and conditional access follow the user's own organisation's policies.</li>
           <li>Calendar refresh tokens are stored encrypted on the server, never in the browser.</li>
           <li>Calendar content is filtered on the server before storage.</li>
           <li>Meetsko writes only to the organiser's own calendar, at their own request.</li>
           <li>Access to production data is limited to named people, and support access to projects is logged.</li>
-          <li>Changes to production go through version control.</li>
         </ul>
 
-        <h2 id="rights">13. Your rights</h2>
+        <h2 id="cookies">13. Cookies and browser storage</h2>
+        <p>Meetsko does not use tracking, analytics or advertising cookies, and there is no third-party tracking on its pages. Fonts and other page resources are served from Meetsko's own service.</p>
+        <p>Only data that the service needs in order to work is stored in the browser: the app's sign-in session, the chosen language and view settings. It is not used for tracking, so no separate consent is requested. You can delete it in your browser settings; deleting the sign-in session signs you out.</p>
+
+        <h2 id="rights">14. Your rights</h2>
         <p>You have the right to access your data (Art. 15), to have inaccurate data rectified (Art. 16) and data erased (Art. 17), to restrict processing (Art. 18), to receive your data in a portable format (Art. 20) and to object to processing based on legitimate interest (Art. 21). You can withdraw your calendar authorisation at any time.</p>
         <p>Where Meetsko Oy acts as a processor, requests should primarily be addressed to the customer organisation, which is the controller. Meetsko Oy forwards any requests it receives to the customer without delay and helps with the response.</p>
         <p>Requests: <a href="mailto:support@meetsko.com">support@meetsko.com</a>. We respond within one month. You also have the right to lodge a complaint with the Office of the Data Protection Ombudsman in Finland (<a href="https://tietosuoja.fi/en" rel="noopener">tietosuoja.fi</a>) or with the supervisory authority in your own country.</p>
 
-        <h2 id="breaches">14. Personal data breaches</h2>
-        <p>Meetsko Oy notifies the customer of any personal data breach it becomes aware of without undue delay, and within 24 hours of discovery at the latest. As a controller, Meetsko Oy notifies the supervisory authority within 72 hours where required (Art. 33) and the data subjects if the breach is likely to result in a high risk (Art. 34).</p>
+        <h2 id="breaches">15. Personal data breaches</h2>
+        <p>Meetsko Oy notifies the customer of any personal data breach it becomes aware of without undue delay, as set out in the data processing agreement. As a controller, Meetsko Oy notifies the supervisory authority within 72 hours where required (Art. 33) and the data subjects if the breach is likely to result in a high risk (Art. 34).</p>
 
-        <h2 id="changes">15. Changes to this policy</h2>
+        <h2 id="changes">16. Changes to this policy</h2>
         <p>This policy is updated as the service evolves and legislation changes. Customers are notified of material changes in advance.</p>
         <div class="policy-scroll">
           <table class="policy-table">
             <tr><th style="width:14%">Version</th><th style="width:20%">Date</th><th>Change</th></tr>
+            <tr><td>2.3</td><td>27 October 2026</td><td>Google Calendar removed (not in use); legal basis for reading calendars; providers listed by type of service, and data location; new section on cookies and browser storage (fonts served by Meetsko); breach notification time as set out in the data processing agreement</td></tr>
             <tr><td>2.2</td><td>27 October 2026</td><td>Contact address support@meetsko.com</td></tr>
             <tr><td>2.1</td><td>25 October 2026</td><td>Scope of write access (Calendars.ReadWrite) and how it is technically limited to Meetsko's own events</td></tr>
             <tr><td>2.0</td><td>22 October 2026</td><td>Service name Meetsko; event creation and Outlook sync, visibility restrictions, organisation roles, activity log, authorisation reminders, Google Calendar and 12-month profile retention</td></tr>

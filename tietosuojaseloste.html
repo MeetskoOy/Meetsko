@@ -5,9 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Tietosuojaseloste — Meetsko</title>
 <meta name="description" content="Meetskon tietosuojaseloste: mitä henkilötietoja palvelu käsittelee, miksi, kuinka kauan ja miten kalenterien sisältö suojataan." />
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="preload" href="/fonts/manrope-latin.woff2" as="font" type="font/woff2" crossorigin />
 <link rel="canonical" href="https://meetsko.com/tietosuojaseloste.html" />
 <link rel="alternate" hreflang="fi" href="https://meetsko.com/tietosuojaseloste.html" />
 <link rel="alternate" hreflang="en" href="https://meetsko.com/en/privacy-policy.html" />
@@ -45,7 +43,7 @@
       <p class="eyebrow">Tietosuoja</p>
       <h1>Tietosuojaseloste</h1>
       <p>Meetsko näyttää projektin osallistujien vapaat ja varatut ajat yhteisessä näkymässä eri organisaatioiden välillä. Tässä selosteessa kerrotaan, mitä henkilötietoja palvelu käsittelee, miksi, kuinka kauan ja miten kalenterien sisältö suojataan.</p>
-      <p class="meta">Versio 2.2 · päivitetty 27.10.2026 · EU:n yleinen tietosuoja-asetus (GDPR) 13 ja 14 artikla</p>
+      <p class="meta">Versio 2.3 · päivitetty 27.10.2026 · EU:n yleinen tietosuoja-asetus (GDPR) 13 ja 14 artikla</p>
     </div>
   </div>
 
@@ -68,6 +66,7 @@
             <li><a href="#alikasittelijat">Alikäsittelijät ja tietojen sijainti</a></li>
             <li><a href="#sailytys">Säilytysajat ja poistaminen</a></li>
             <li><a href="#tietoturva">Tietoturva</a></li>
+            <li><a href="#evasteet">Evästeet ja selaimen tallennus</a></li>
             <li><a href="#oikeudet">Rekisteröidyn oikeudet</a></li>
             <li><a href="#loukkaukset">Tietoturvaloukkaukset</a></li>
             <li><a href="#muutokset">Selosteen muutokset</a></li>
@@ -85,39 +84,39 @@
         <p>Meetsko Oy käsittelee henkilötietoja kahdessa roolissa:</p>
         <ul>
           <li><b>Käsittelijänä (GDPR 28 art.)</b> asiakasorganisaation projekteissa käsiteltävien tietojen osalta. Rekisterinpitäjä on asiakasorganisaatio, joka päättää palvelun käytöstä omissa projekteissaan. Meetsko Oy käsittelee näitä tietoja vain asiakkaan ohjeiden ja tietojenkäsittelysopimuksen mukaisesti.</li>
-          <li><b>Rekisterinpitäjänä</b> käyttäjätilien, palvelun ylläpidon, tietoturvan ja lokien, asiakassuhteen ja laskutuksen osalta sekä projekteissa, jotka eivät kuulu millekään asiakasorganisaatiolle.</li>
+          <li><b>Rekisterinpitäjänä</b> käyttäjätilien, palvelun ylläpidon, tietoturvan ja lokien, asiakassuhteen ja laskutuksen osalta.</li>
         </ul>
         <p>Asiakassopimuksen liitteenä on erillinen tietojenkäsittelysopimus (DPA), jossa sovitaan käsittelyn kohteesta, kestosta, ohjeista, alikäsittelijöistä ja avustamisvelvollisuuksista.</p>
 
         <h2 id="palvelu">2. Palvelun kuvaus</h2>
-        <p>Vetäjäorganisaatio luo projektin ja kutsuu siihen osallistujia omasta ja muista organisaatioista. Jokainen osallistuja valtuuttaa Meetskon itse omalla Microsoft- tai Google-tilillään. Kukaan ei jaa toisen henkilön kalenteria hänen puolestaan, eikä organisaation järjestelmänvalvojalta vaadita yleistä kalenterioikeutta.</p>
+        <p>Vetäjäorganisaatio luo projektin ja kutsuu siihen osallistujia omasta ja muista organisaatioista. Jokainen osallistuja valtuuttaa Meetskon itse omalla Microsoft-tilillään. Kukaan ei jaa toisen henkilön kalenteria hänen puolestaan, eikä organisaation järjestelmänvalvojalta vaadita yleistä kalenterioikeutta.</p>
         <p>Meetsko näyttää projektin osallistujien vapaat ja varatut ajat, ehdottaa kaikille sopivia aikoja ja voi lähettää kokouskutsun järjestäjän omasta Outlook-kalenterista. Kalenteritapahtumien sisältöä (otsikko, sijainti, kuvaus, muut osallistujat) ei näytetä eikä tallenneta.</p>
 
         <h2 id="tiedot">3. Käsiteltävät henkilötiedot</h2>
         <div class="policy-scroll">
           <table class="policy-table">
             <tr><th style="width:26%">Tietoryhmä</th><th>Sisältö</th><th style="width:24%">Lähde</th></tr>
-            <tr><td>Käyttäjän perustiedot</td><td>Nimi, sähköpostiosoite, kirjautumistilin tunniste</td><td>Microsoft- tai Google-kirjautuminen</td></tr>
+            <tr><td>Käyttäjän perustiedot</td><td>Nimi, sähköpostiosoite, kirjautumistilin tunniste</td><td>Microsoft-kirjautuminen</td></tr>
             <tr><td>Profiilitiedot</td><td>Titteli, funktio tai tiimi, kieli</td><td>Käyttäjä itse</td></tr>
             <tr><td>Organisaatiotiedot</td><td>Asiakasorganisaatio, sen sähköpostidomainit, jäsenyys ja sovellusrooli (esim. organisaation pääkäyttäjä)</td><td>Asiakasorganisaatio, palveluntarjoaja</td></tr>
             <tr><td>Projektiosallistuminen</td><td>Projektit, projektirooli, ryhmät, kutsun tila, kutsun ja muistutusten ajankohdat</td><td>Projektin kutsuja ja ylläpitäjät</td></tr>
-            <tr><td>Kalenterin varaustilanne</td><td>Varattujen ja vapaiden jaksojen alku- ja loppuajat (vapaa / varattu) noin kolme kuukautta eteenpäin</td><td>Microsoft Graph tai Google Calendar, käyttäjän omalla valtuutuksella</td></tr>
+            <tr><td>Kalenterin varaustilanne</td><td>Varattujen ja vapaiden jaksojen alku- ja loppuajat (vapaa / varattu) noin kolme kuukautta eteenpäin</td><td>Microsoft, käyttäjän omalla valtuutuksella</td></tr>
             <tr><td>Näkyvyysrajaukset</td><td>Käyttäjän asettamat näkyvyysikkunat ja piilotetut jaksot projektikohtaisesti</td><td>Käyttäjä itse</td></tr>
-            <tr><td>Kalenteriyhteyden tunnisteet</td><td>Salattu uusintatunniste (refresh token), myönnetyt oikeudet (luku / luku ja kirjoitus), muutosilmoitusten tilaustunniste</td><td>Microsoft tai Google</td></tr>
+            <tr><td>Kalenteriyhteyden tunnisteet</td><td>Salattu uusintatunniste (refresh token), myönnetyt oikeudet (luku / luku ja kirjoitus), muutosilmoitusten tilaustunniste</td><td>Microsoft</td></tr>
             <tr><td>Meetskosta luodut tapahtumat ja luonnokset</td><td>Otsikko, viesti, aika, toistosääntö, järjestäjä, kutsutut, Teams-linkki, kalenterin tapahtumatunniste, peruutustieto</td><td>Tapahtuman luoja; aika ja peruutus järjestäjän kalenterista</td></tr>
             <tr><td>Tapahtumaloki</td><td>Projektin toimet: avaukset, osallistujien ja ryhmien muutokset, tapahtumien luonti ja peruminen, muistutukset; tekijä ja aika</td><td>Palvelun automaattinen kirjaus</td></tr>
             <tr><td>Tekniset lokit</td><td>Kirjautumiset, virhetilanteet, aikaleimat</td><td>Palvelun ja alikäsittelijöiden automaattinen kirjaus</td></tr>
             <tr><td>Sähköpostit</td><td>Vastaanottaja, viestin sisältö ja toimitustila</td><td>Palvelu ja sähköpostin välityspalvelu</td></tr>
           </table>
         </div>
-        <p>Palvelu ei käsittele erityisiin henkilötietoryhmiin kuuluvia tietoja (GDPR 9 art.).</p>
+        <p>Palvelua ei ole tarkoitettu erityisiin henkilötietoryhmiin kuuluvien tietojen (GDPR 9 art.) käsittelyyn, eikä se pyydä niitä. Tapahtumien otsikoihin ja viesteihin ei pidä kirjoittaa tällaisia tietoja.</p>
 
         <h2 id="tarkoitukset">4. Käsittelyn tarkoitukset ja oikeusperusteet</h2>
         <div class="policy-scroll">
           <table class="policy-table">
             <tr><th style="width:45%">Tarkoitus</th><th>Oikeusperuste</th></tr>
             <tr><td>Yhteisten aikojen löytäminen ja projektin tapahtumien hallinta organisaatiorajojen yli</td><td>Asiakasorganisaation ja Meetsko Oy:n välinen sopimus (6 art. 1 b) sekä asiakkaan oikeutettu etu toiminnan järjestämisessä (6 art. 1 f)</td></tr>
-            <tr><td>Kalenterin varaustilanteen lukeminen ja kokouskutsujen lähettäminen</td><td>Käyttäjän oma valtuutus: jokainen hyväksyy lukuoikeuden ja erikseen kirjoitusoikeuden itse ja voi perua ne milloin tahansa</td></tr>
+            <tr><td>Kalenterin varaustilanteen lukeminen ja kokouskutsujen lähettäminen</td><td>Asiakasorganisaation oikeutettu etu (6 art. 1 f). Kalenteria käsitellään vain, kun käyttäjä on itse valtuuttanut sen: lukuoikeus ja erikseen kirjoitusoikeus annetaan käyttäjän omalla tilillä, ja ne voi perua milloin tahansa (ks. kohta 11).</td></tr>
             <tr><td>Käyttäjätili ja pääsynhallinta</td><td>Sopimuksen täytäntöönpano (6 art. 1 b)</td></tr>
             <tr><td>Kutsut, valtuutusmuistutukset ja ilmoitukset</td><td>Sopimuksen täytäntöönpano (6 art. 1 b) ja asiakkaan oikeutettu etu (6 art. 1 f)</td></tr>
             <tr><td>Tapahtumaloki, ylläpidon pääsyjen kirjaus ja tietoturva</td><td>Oikeutettu etu (6 art. 1 f) ja käsittelyn turvallisuus (32 art.)</td></tr>
@@ -128,7 +127,7 @@
         <h2 id="lahteet">5. Tietolähteet</h2>
         <ol>
           <li><b>Käyttäjältä itseltään</b>: profiilitiedot, näkyvyysrajaukset ja palvelussa tehdyt valinnat.</li>
-          <li><b>Microsoftilta tai Googlelta</b>: nimi, sähköpostiosoite ja kalenterin varaustilanne, aina käyttäjän oman valtuutuksen perusteella.</li>
+          <li><b>Microsoftilta</b>: nimi, sähköpostiosoite ja kalenterin varaustilanne, aina käyttäjän oman valtuutuksen perusteella.</li>
           <li><b>Projektin kutsujalta tai organisaation pääkäyttäjältä</b>: kutsuttavan nimi ja sähköpostiosoite.</li>
         </ol>
         <p>Kutsujan on varmistettava, että hänellä on peruste käsitellä kutsuttavan yhteystietoja. Kutsuttu näkee ennen valtuutusta, kuka hänet on kutsunut ja mihin projektiin.</p>
@@ -146,7 +145,7 @@
             <tr><td>Yksityiseksi merkityt tapahtumat</td><td>Vain varattuna aikana, ilman tunnistetietoja</td></tr>
           </table>
         </div>
-        <p>Microsoftilta pyydetään lukuoikeus käyttäjän omaan kalenteriin (Calendars.Read) ja Googlelta vastaava lukuoikeus, koska suppeampi oikeustaso ei tuota luotettavasti saatavuustietoa. Koska oikeus antaisi teknisesti pääsyn myös tapahtumien sisältöön, palvelimella on suodatuskerros, joka karsii kaiken muun kuin ajan ja tilan heti kalenterivastauksen saavuttua, ennen kuin tieto tallennetaan tietokantaan tai lähetetään selaimeen.</p>
+        <p>Microsoftilta pyydetään lukuoikeus käyttäjän omaan kalenteriin (Calendars.Read), koska suppeampi oikeustaso ei tuota luotettavasti saatavuustietoa. Koska oikeus antaisi teknisesti pääsyn myös tapahtumien sisältöön, palvelin karsii kaiken muun kuin ajan ja tilan heti kalenterivastauksen saavuttua, ennen kuin tieto tallennetaan tai lähetetään selaimeen.</p>
         <p>Käyttäjä voi rajata projektikohtaisesti, milloin hänen kalenterinsa näkyy (näkyvyysikkunat ja piilotetut jaksot). Piilotettu aika näkyy muille varattuna, eikä sitä käytetä aikaehdotuksissa.</p>
         <p>Outlook-kalenterien muutoksista saadaan ilmoitus Microsoftin muutosilmoituksilla. Ilmoitus kertoo vain, että kalenteri on muuttunut; tämän jälkeen varaustilanne haetaan uudelleen saman suodatuksen kautta.</p>
 
@@ -185,7 +184,7 @@
             <tr><td>Sovelluksen ylläpitäjä (Meetsko Oy)</td><td>Tekninen ylläpitopääsy vikojen selvittämiseen ja tukipyyntöihin. Projektin avaus ilman osallistumista kirjataan tapahtumalokiin ylläpidon pääsynä, jotta ne voidaan osoittaa asiakkaalle.</td></tr>
           </table>
         </div>
-        <p>Pääsyoikeudet tarkistetaan palvelimella jokaisessa pyynnössä. Tietokannan taulut on suljettu suoralta käytöltä rivitason suojauksella (row level security), joten käyttöliittymän ohittaminen ei avaa pääsyä tietoihin.</p>
+        <p>Pääsyoikeudet tarkistetaan palvelimella jokaisessa pyynnössä. Selaimesta ei ole suoraa pääsyä tietokantaan, joten käyttöliittymän ohittaminen ei avaa pääsyä tietoihin.</p>
 
         <h2 id="sahkopostit">9. Sähköpostit ja muistutukset</h2>
         <ul>
@@ -198,15 +197,15 @@
         <h2 id="alikasittelijat">10. Alikäsittelijät ja tietojen sijainti</h2>
         <div class="policy-scroll">
           <table class="policy-table">
-            <tr><th style="width:18%">Alikäsittelijä</th><th>Tehtävä</th><th>Tiedot</th><th style="width:22%">Sijainti</th></tr>
-            <tr><td>Supabase</td><td>Tietokanta, kirjautuminen, palvelinlogiikka</td><td>Kaikki palvelun tallentamat tiedot</td><td>EU (Irlanti)</td></tr>
-            <tr><td>Netlify</td><td>Verkkosivujen ja käyttöliittymän jakelu</td><td>Tekniset yhteyslokit</td><td>Maailmanlaajuinen jakeluverkko (Yhdysvaltalainen yhtiö)</td></tr>
-            <tr><td>Resend</td><td>Sähköpostien lähetys</td><td>Vastaanottajan nimi ja osoite, viestin sisältö</td><td>Yhdysvaltalainen yhtiö</td></tr>
-            <tr><td>Microsoft</td><td>Kirjautuminen ja kalenterirajapinta</td><td>Kirjautuminen, varaustilanne, Meetskosta luodut kokoukset</td><td>Käyttäjän oma Microsoft-ympäristö</td></tr>
-            <tr><td>Google</td><td>Kalenterirajapinta (jos käyttäjä valtuuttaa Google-kalenterin)</td><td>Varaustilanne</td><td>Käyttäjän oma Google-tili</td></tr>
+            <tr><th style="width:24%">Palvelu</th><th>Tehtävä</th><th>Tiedot</th><th style="width:24%">Sijainti</th></tr>
+            <tr><td>Tietokanta- ja palvelinpalvelu</td><td>Tietokanta, kirjautuminen, palvelinlogiikka</td><td>Kaikki palvelun tallentamat tiedot</td><td>EU (Irlanti)</td></tr>
+            <tr><td>Verkkosivujen jakelupalvelu</td><td>Verkkosivujen ja käyttöliittymän jakelu</td><td>Tekniset yhteyslokit (esim. IP-osoite)</td><td>Maailmanlaajuinen jakeluverkko</td></tr>
+            <tr><td>Sähköpostin välityspalvelu</td><td>Palvelun sähköpostien lähetys</td><td>Vastaanottajan nimi ja osoite, viestin sisältö</td><td>EU (Ranska)</td></tr>
+            <tr><td>Sähköposti- ja toimistopalvelu</td><td>Yhteydenotot ja tukipyynnöt</td><td>Lähettäjän yhteystiedot ja viestin sisältö</td><td>EU (Suomi)</td></tr>
           </table>
         </div>
-        <p>Kalenterit pysyvät käyttäjän omassa Microsoft- tai Google-ympäristössä; Meetskoon siirtyy vain aikaväleistä koostuva saatavuustieto. Jos henkilötietoja siirretään EU- tai ETA-alueen ulkopuolelle, siirto perustuu Euroopan komission riittävyyspäätökseen (EU–Yhdysvallat-tietosuojakehys) tai vakiosopimuslausekkeisiin. Uusista alikäsittelijöistä ilmoitetaan asiakkaille etukäteen. Tietoja ei myydä eikä luovuteta markkinointiin.</p>
+        <p>Palvelun tallentamat tiedot säilytetään EU:ssa. Osa palveluntarjoajista on yhdysvaltalaisia yhtiöitä, ja verkkosivujen jakelupalvelussa teknisiä yhteystietoja voidaan käsitellä myös EU- ja ETA-alueen ulkopuolella. Tällaiset siirrot perustuvat Euroopan komission riittävyyspäätökseen (EU–Yhdysvallat-tietosuojakehys) tai vakiosopimuslausekkeisiin. Nimetty alikäsittelijäluettelo toimitetaan asiakkaille tietojenkäsittelysopimuksen yhteydessä, ja uusista alikäsittelijöistä ilmoitetaan asiakkaille etukäteen. Tietoja ei myydä eikä luovuteta markkinointiin.</p>
+        <p>Microsoft ei ole Meetskon alikäsittelijä vaan käyttäjän oma palveluntarjoaja. Kalenteri pysyy käyttäjän omassa Microsoft-ympäristössä; Meetsko hakee sieltä käyttäjän valtuutuksella vain aikaväleistä koostuvan saatavuustiedon ja luo kokouskutsut järjestäjän omasta pyynnöstä.</p>
 
         <h2 id="sailytys">11. Säilytysajat ja poistaminen</h2>
         <div class="policy-scroll">
@@ -217,35 +216,39 @@
             <tr><td>Projektit, osallistujat, ryhmät, tapahtumat ja luonnokset</td><td>Kunnes projekti poistetaan. Projektin poisto poistaa nämä tiedot; jo lähetetyt kokouskutsut jäävät osallistujien kalentereihin.</td></tr>
             <tr><td>Käyttäjätili ja profiili</td><td>Niin kauan kuin käyttäjä kuuluu projektiin tai asiakasorganisaatioon. Kun näin ei ole ollut 12 kuukauteen, profiili ja kirjautumistili poistetaan automaattisesti ilman erillistä ilmoitusta.</td></tr>
             <tr><td>Tapahtumaloki</td><td>Asiakassopimuksen voimassaolon ajan; säilyy projektin poiston jälkeen, jotta ylläpidon pääsyt voidaan osoittaa</td></tr>
-            <tr><td>Tekniset lokit ja sähköpostien toimituslokit</td><td>Alikäsittelijöiden säilytyskäytäntöjen mukaisesti</td></tr>
+            <tr><td>Tekniset lokit ja sähköpostien toimituslokit</td><td>Rajoitetun ajan palveluntarjoajien säilytyskäytäntöjen mukaisesti</td></tr>
           </table>
         </div>
-        <p>Käyttäjä voi poistaa valtuutuksensa projektin asetuksista tai Oma profiili -sivulta, jolloin Meetsko lakkaa hakemasta kalenteria ja muutosilmoitusten tilaus poistetaan. Valtuutuksen voi perua myös Microsoft- tai Google-tilin asetuksista. Sopimuksen päättyessä asiakkaan tiedot poistetaan tai palautetaan sopimuksen mukaisesti; varmuuskopioista tiedot poistuvat niiden normaalin kierron myötä.</p>
+        <p>Käyttäjä voi poistaa valtuutuksensa projektin asetuksista tai Oma profiili -sivulta, jolloin Meetsko lakkaa hakemasta kalenteria ja muutosilmoitusten tilaus poistetaan. Valtuutuksen voi perua myös Microsoft-tilin sovellusasetuksista. Sopimuksen päättyessä asiakkaan tiedot poistetaan tai palautetaan sopimuksen mukaisesti; varmuuskopioista tiedot poistuvat niiden normaalin kierron myötä.</p>
 
         <h2 id="tietoturva">12. Tietoturva</h2>
         <ul>
           <li>Kaikki liikenne on salattu (TLS), ja tiedot on salattu myös tallennettuina.</li>
-          <li>Kirjautuminen tapahtuu Microsoftin tai Googlen palvelussa; Meetsko ei näe eikä tallenna salasanoja. Monivaiheinen tunnistautuminen ja ehdollinen käyttö määräytyvät käyttäjän organisaation omien käytäntöjen mukaan.</li>
+          <li>Kirjautuminen tapahtuu Microsoftin palvelussa; Meetsko ei näe eikä tallenna Microsoft-tilin salasanaa. Monivaiheinen tunnistautuminen ja ehdollinen käyttö määräytyvät käyttäjän organisaation omien käytäntöjen mukaan.</li>
           <li>Kalenteriyhteyden uusintatunnisteet säilytetään palvelimella salattuina, eivät selaimessa.</li>
           <li>Kalenterisisällön suodatus tehdään palvelimella ennen tallennusta.</li>
           <li>Kalenteriin kirjoitetaan vain järjestäjän omaan kalenteriin hänen omalla pyynnöstään.</li>
           <li>Pääsy tuotantotietoihin on rajattu nimettyihin henkilöihin, ja ylläpidon pääsyt projekteihin kirjataan.</li>
-          <li>Muutokset tuotantoon tehdään versionhallinnan kautta.</li>
         </ul>
 
-        <h2 id="oikeudet">13. Rekisteröidyn oikeudet</h2>
+        <h2 id="evasteet">13. Evästeet ja selaimen tallennus</h2>
+        <p>Meetsko ei käytä seuranta-, analytiikka- eikä mainosevästeitä, eikä sivuilla ole kolmansien osapuolten seurantaa. Fontit ja muut sivujen osat ladataan Meetskon omasta palvelusta.</p>
+        <p>Selaimeen tallennetaan vain palvelun toiminnalle välttämättömiä tietoja: sovelluksen kirjautumisistunto, valittu kieli ja näkymäasetukset. Niitä ei käytetä seurantaan, eikä niistä siksi pyydetä erillistä suostumusta. Tiedot voi poistaa selaimen asetuksista; kirjautumisistunnon poistaminen kirjaa käyttäjän ulos.</p>
+
+        <h2 id="oikeudet">14. Rekisteröidyn oikeudet</h2>
         <p>Sinulla on oikeus saada pääsy tietoihisi (15 art.), pyytää virheellisten tietojen oikaisemista (16 art.) ja tietojen poistamista (17 art.), pyytää käsittelyn rajoittamista (18 art.), saada tiedot siirrettävässä muodossa (20 art.) ja vastustaa oikeutettuun etuun perustuvaa käsittelyä (21 art.). Voit perua kalenterivaltuutuksesi milloin tahansa.</p>
         <p>Kun Meetsko Oy toimii käsittelijänä, pyynnöt osoitetaan ensisijaisesti asiakasorganisaatiolle, joka on rekisterinpitäjä. Meetsko Oy välittää sille tulleet pyynnöt asiakkaalle viipymättä ja avustaa vastaamisessa.</p>
         <p>Pyynnöt: <a href="mailto:support@meetsko.com">support@meetsko.com</a>. Vastaamme kuukauden kuluessa. Sinulla on myös oikeus tehdä valitus tietosuojavaltuutetun toimistolle (<a href="https://tietosuoja.fi" rel="noopener">tietosuoja.fi</a>).</p>
 
-        <h2 id="loukkaukset">14. Tietoturvaloukkaukset</h2>
-        <p>Meetsko Oy ilmoittaa asiakkaalle tietoonsa tulleesta henkilötietojen tietoturvaloukkauksesta ilman aiheetonta viivytystä, viimeistään 24 tunnin kuluessa havaitsemisesta. Rekisterinpitäjänä Meetsko Oy ilmoittaa loukkauksesta tarvittaessa tietosuojavaltuutetulle 72 tunnin kuluessa (33 art.) ja rekisteröidyille, jos loukkaus todennäköisesti aiheuttaa korkean riskin (34 art.).</p>
+        <h2 id="loukkaukset">15. Tietoturvaloukkaukset</h2>
+        <p>Meetsko Oy ilmoittaa asiakkaalle tietoonsa tulleesta henkilötietojen tietoturvaloukkauksesta ilman aiheetonta viivytystä tietojenkäsittelysopimuksen mukaisesti. Rekisterinpitäjänä Meetsko Oy ilmoittaa loukkauksesta tarvittaessa tietosuojavaltuutetulle 72 tunnin kuluessa (33 art.) ja rekisteröidyille, jos loukkaus todennäköisesti aiheuttaa korkean riskin (34 art.).</p>
 
-        <h2 id="muutokset">15. Selosteen muutokset</h2>
+        <h2 id="muutokset">16. Selosteen muutokset</h2>
         <p>Selostetta päivitetään palvelun kehittyessä ja lainsäädännön muuttuessa. Olennaisista muutoksista ilmoitetaan asiakkaille etukäteen.</p>
         <div class="policy-scroll">
           <table class="policy-table">
             <tr><th style="width:14%">Versio</th><th style="width:20%">Päivämäärä</th><th>Muutos</th></tr>
+            <tr><td>2.3</td><td>27.10.2026</td><td>Google-kalenteri poistettu (ei käytössä); kalenterin lukemisen oikeusperuste; palveluntarjoajat palvelutyypeittäin ja tietojen sijainti; uusi kohta evästeistä ja selaimen tallennuksesta (fontit omasta palvelusta); tietoturvaloukkausten ilmoitusaika tietojenkäsittelysopimuksen mukaan</td></tr>
             <tr><td>2.2</td><td>27.10.2026</td><td>Yhteysosoite support@meetsko.com</td></tr>
             <tr><td>2.1</td><td>25.10.2026</td><td>Kirjoitusoikeuden (Calendars.ReadWrite) laajuus ja sen tekninen rajaus Meetskon omiin tapahtumiin</td></tr>
             <tr><td>2.0</td><td>22.10.2026</td><td>Palvelun nimi Meetsko; tapahtumien luonti ja Outlook-synkronointi, näkyvyysrajaukset, organisaatioroolit, tapahtumaloki, valtuutusmuistutukset, Google-kalenteri ja profiilien 12 kuukauden säilytysaika</td></tr>
