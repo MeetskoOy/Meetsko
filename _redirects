@@ -5,7 +5,8 @@
 # joten osoitekohtaiset säännöt ovat ensin. Kysymysmerkin jälkeinen osa
 # (esim. ?pid=…) säilyy ohjauksessa, joten vanhat kutsulinkit toimivat.
 
-# Sovellussivut myyntisivun osoitteesta sovelluksen osoitteeseen.
+# Sovellussivut myyntisivun osoitteesta sovelluksen osoitteeseen. Netlify
+# lyhentää linkit muotoon /login, joten mukana myös osoitteet ilman .html-päätettä.
 https://meetsko.com/login.html          https://app.meetsko.com/login.html          302!
 https://meetsko.com/kutsu.html          https://app.meetsko.com/kutsu.html          302!
 https://meetsko.com/projektit.html      https://app.meetsko.com/projektit.html      302!
@@ -15,6 +16,15 @@ https://meetsko.com/oma-profiili.html   https://app.meetsko.com/oma-profiili.htm
 https://meetsko.com/organisaatio.html   https://app.meetsko.com/organisaatio.html   302!
 https://meetsko.com/asiakkaat.html      https://app.meetsko.com/asiakkaat.html      302!
 https://meetsko.com/henkilot.html       https://app.meetsko.com/henkilot.html       302!
+https://meetsko.com/login               https://app.meetsko.com/login               302!
+https://meetsko.com/kutsu               https://app.meetsko.com/kutsu               302!
+https://meetsko.com/projektit           https://app.meetsko.com/projektit           302!
+https://meetsko.com/projekti            https://app.meetsko.com/projekti            302!
+https://meetsko.com/uusiprojekti        https://app.meetsko.com/uusiprojekti        302!
+https://meetsko.com/oma-profiili        https://app.meetsko.com/oma-profiili        302!
+https://meetsko.com/organisaatio        https://app.meetsko.com/organisaatio        302!
+https://meetsko.com/asiakkaat           https://app.meetsko.com/asiakkaat           302!
+https://meetsko.com/henkilot            https://app.meetsko.com/henkilot            302!
 
 # Sovelluksen osoitteen juuri avaa projektilistan (joka ohjaa tarvittaessa
 # kirjautumiseen) ja myyntisivut ohjataan myyntisivun osoitteeseen.
@@ -23,6 +33,7 @@ https://app.meetsko.com/index.html               https://meetsko.com/           
 https://app.meetsko.com/fi/*                     https://meetsko.com/fi/:splat                    302!
 https://app.meetsko.com/en/*                     https://meetsko.com/en/:splat                    302!
 https://app.meetsko.com/tietosuojaseloste.html   https://meetsko.com/tietosuojaseloste.html       302!
+https://app.meetsko.com/tietosuojaseloste        https://meetsko.com/tietosuojaseloste            302!
 
 # Myyntisivun kieliversiot: suomi osoitteessa /fi/ (sama tiedosto kuin
 # index.html), englanti osoitteessa /en/.
