@@ -4333,7 +4333,7 @@ async function openSettingsModal() {
   // Microsoftin suostumusikkuna kutsuu Calendars.ReadWritea täydeksi käyttöoikeudeksi;
   // kerrotaan, mihin Meetsko sitä käyttää, ja linkki selosteen tarkempaan kuvaukseen.
   function writeScopeNoteHtml() {
-    const href = getCurrentLanguage() === 'en' ? '/en/privacy-policy.html#write-access' : '/tietosuojaseloste.html#kirjoitusoikeus';
+    const href = getCurrentLanguage() === 'en' ? 'https://meetsko.com/en/privacy-policy.html#write-access' : 'https://meetsko.com/tietosuojaseloste.html#kirjoitusoikeus';
     return `<p class="empty-note" style="margin-top:6px;">${t('write_scope_note')} <a href="${href}" target="_blank" rel="noopener">${t('write_scope_link')}</a></p>`;
   }
 

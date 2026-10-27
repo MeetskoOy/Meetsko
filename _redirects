@@ -1,10 +1,38 @@
+# Sovellus on osoitteessa app.meetsko.com ja myyntisivu osoitteessa meetsko.com
+# (sama Netlify-sivusto, kaksi osoitetta). Erillinen osoite pitää kirjautumis-
+# tiedot (Supabase-istunto selaimen tallennustilassa) erillään myyntisivun
+# skripteistä. Säännöt käsitellään ylhäältä alas; ensimmäinen osuma voittaa,
+# joten osoitekohtaiset säännöt ovat ensin. Kysymysmerkin jälkeinen osa
+# (esim. ?pid=…) säilyy ohjauksessa, joten vanhat kutsulinkit toimivat.
+
+# Sovellussivut myyntisivun osoitteesta sovelluksen osoitteeseen.
+https://meetsko.com/login.html          https://app.meetsko.com/login.html          302!
+https://meetsko.com/kutsu.html          https://app.meetsko.com/kutsu.html          302!
+https://meetsko.com/projektit.html      https://app.meetsko.com/projektit.html      302!
+https://meetsko.com/projekti.html       https://app.meetsko.com/projekti.html       302!
+https://meetsko.com/uusiprojekti.html   https://app.meetsko.com/uusiprojekti.html   302!
+https://meetsko.com/oma-profiili.html   https://app.meetsko.com/oma-profiili.html   302!
+https://meetsko.com/organisaatio.html   https://app.meetsko.com/organisaatio.html   302!
+https://meetsko.com/asiakkaat.html      https://app.meetsko.com/asiakkaat.html      302!
+https://meetsko.com/henkilot.html       https://app.meetsko.com/henkilot.html       302!
+
+# Sovelluksen osoitteen juuri avaa projektilistan (joka ohjaa tarvittaessa
+# kirjautumiseen) ja myyntisivut ohjataan myyntisivun osoitteeseen.
+https://app.meetsko.com/                         /projektit.html                                  302!
+https://app.meetsko.com/index.html               https://meetsko.com/                             302!
+https://app.meetsko.com/fi/*                     https://meetsko.com/fi/:splat                    302!
+https://app.meetsko.com/en/*                     https://meetsko.com/en/:splat                    302!
+https://app.meetsko.com/tietosuojaseloste.html   https://meetsko.com/tietosuojaseloste.html       302!
+
 # Myyntisivun kieliversiot: suomi osoitteessa /fi/ (sama tiedosto kuin
 # index.html), englanti osoitteessa /en/.
 /fi/   /index.html   200
 
-# Etusivu (/): Suomesta tai suomenkieliseltä selaimelta suomeksi, muuten
-# englanniksi. Kielivalitsin asettaa nf_lang-evästeen, joka ohittaa selaimen
-# kielen. Säännöt käsitellään ylhäältä alas; ensimmäinen osuma voittaa.
-/      /index.html   200!  Country=fi
+# Etusivu (/): kielivalitsimen nf_lang-eväste ensin, sitten selaimen kieli ja
+# lopuksi maa. Language-ehto lukee nf_lang-evästeen (tai sen puuttuessa
+# selaimen kielen); Country-ehto ei lue evästettä, joten muu valittu kieli
+# ohjataan englantiin ennen maasääntöä.
 /      /index.html   200!  Language=fi
+/      /en/          302!  Cookie=nf_lang
+/      /index.html   200!  Country=fi
 /      /en/          302!
