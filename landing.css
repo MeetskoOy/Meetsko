@@ -120,6 +120,16 @@ section[id] { scroll-margin-top: 64px; }
 .cmp-foot { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line); font-family: var(--mono); font-size: 12.5px; color: var(--text-muted); }
 .cmp.after .cmp-foot { color: var(--ok); }
 
+/* Hyödyt */
+.benefit-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 40px; margin-top: 48px; }
+.benefit { border-top: 2px solid var(--mint); padding-top: 24px; }
+.benefit .ic { width: 44px; height: 44px; border-radius: 12px; background: var(--free-bg); color: var(--free-text); display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
+.benefit .ic svg { width: 22px; height: 22px; }
+.benefit h3 { font-size: 18px; margin: 0 0 10px; letter-spacing: -0.01em; }
+.benefit p { font-size: 15px; line-height: 1.65; color: var(--text-muted); margin: 0; }
+.benefits + section { border-top: 1px solid var(--line); }
+@media (max-width: 1000px) { .benefit-grid { grid-template-columns: 1fr; gap: 28px; } }
+
 /* Miten toimii */
 .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; align-items: start; margin-top: 52px; border-top: 1px solid var(--line); }
 /* Vaiheet jakavat rivit (subgrid), joten leipätekstit alkavat samalta korkeudelta. */
