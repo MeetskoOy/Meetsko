@@ -43,7 +43,7 @@
       <p class="eyebrow">Privacy</p>
       <h1>Privacy policy</h1>
       <p>Meetsko shows the free and busy times of a project's participants in one shared view, across organisations. This policy explains what personal data the service processes, why, for how long, and how calendar content is protected.</p>
-      <p class="meta">Version 2.3 · updated 27 October 2026 · Articles 13 and 14 of the EU General Data Protection Regulation (GDPR)</p>
+      <p class="meta">Version 1.0 · 27 October 2026 · Articles 13 and 14 of the EU General Data Protection Regulation (GDPR)</p>
     </div>
   </div>
 
@@ -222,13 +222,25 @@
         <p>Users can remove their authorisation in the project settings or on the My profile page; Meetsko then stops fetching the calendar and the change notification subscription is removed. Authorisation can also be withdrawn in the Microsoft account's app settings. When an agreement ends, the customer's data is deleted or returned as agreed; data is removed from backups as they rotate.</p>
 
         <h2 id="security">12. Security</h2>
+        <h3>Data protection</h3>
         <ul>
-          <li>All traffic is encrypted (TLS), and data is encrypted at rest.</li>
-          <li>Sign-in takes place with Microsoft; Meetsko never sees or stores your Microsoft account password. Multi-factor authentication and conditional access follow the user's own organisation's policies.</li>
-          <li>Calendar refresh tokens are stored encrypted on the server, never in the browser.</li>
-          <li>Calendar content is filtered on the server before storage.</li>
-          <li>Meetsko writes only to the organiser's own calendar, at their own request.</li>
-          <li>Access to production data is limited to named people, and support access to projects is logged.</li>
+          <li>Traffic is encrypted with TLS 1.2 or later, and encrypted connections are enforced (HSTS).</li>
+          <li>The database is encrypted at rest (AES-256).</li>
+          <li>Calendar credentials are also encrypted at application level (AES-GCM) with a key kept separately from the database.</li>
+          <li>Calendar content is stripped on the server before storage (section 6).</li>
+        </ul>
+        <h3>Access control</h3>
+        <ul>
+          <li>Sign-in through Microsoft Entra ID: Meetsko never sees passwords, and your organisation's multi-factor authentication (MFA) and conditional access policies apply.</li>
+          <li>Only per-user delegated permissions to the user's own calendar; no organisation-wide application permissions are requested.</li>
+          <li>Role-based access control, checked on the server for every request. Customers' and projects' data is kept separate.</li>
+          <li>Project actions and support access are recorded in the activity log. Access to production data is limited to named people.</li>
+        </ul>
+        <h3>Infrastructure</h3>
+        <ul>
+          <li>Established cloud providers' infrastructure, with the database in an EU data centre (Ireland).</li>
+          <li>DDoS protection from the providers.</li>
+          <li>No direct access to the database from the browser.</li>
         </ul>
 
         <h2 id="cookies">13. Cookies and browser storage</h2>
@@ -245,17 +257,6 @@
 
         <h2 id="changes">16. Changes to this policy</h2>
         <p>This policy is updated as the service evolves and legislation changes. Customers are notified of material changes in advance.</p>
-        <div class="policy-scroll">
-          <table class="policy-table">
-            <tr><th style="width:14%">Version</th><th style="width:20%">Date</th><th>Change</th></tr>
-            <tr><td>2.3</td><td>27 October 2026</td><td>Google Calendar removed (not in use); legal basis for reading calendars; providers listed by type of service, and data location; new section on cookies and browser storage (fonts served by Meetsko); breach notification time as set out in the data processing agreement</td></tr>
-            <tr><td>2.2</td><td>27 October 2026</td><td>Contact address support@meetsko.com</td></tr>
-            <tr><td>2.1</td><td>25 October 2026</td><td>Scope of write access (Calendars.ReadWrite) and how it is technically limited to Meetsko's own events</td></tr>
-            <tr><td>2.0</td><td>22 October 2026</td><td>Service name Meetsko; event creation and Outlook sync, visibility restrictions, organisation roles, activity log, authorisation reminders, Google Calendar and 12-month profile retention</td></tr>
-            <tr><td>1.0</td><td>19 September 2026</td><td>First version</td></tr>
-          </table>
-        </div>
-
       </article>
     </div>
   </section>

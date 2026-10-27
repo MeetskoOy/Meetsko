@@ -43,7 +43,7 @@
       <p class="eyebrow">Tietosuoja</p>
       <h1>Tietosuojaseloste</h1>
       <p>Meetsko näyttää projektin osallistujien vapaat ja varatut ajat yhteisessä näkymässä eri organisaatioiden välillä. Tässä selosteessa kerrotaan, mitä henkilötietoja palvelu käsittelee, miksi, kuinka kauan ja miten kalenterien sisältö suojataan.</p>
-      <p class="meta">Versio 2.3 · päivitetty 27.10.2026 · EU:n yleinen tietosuoja-asetus (GDPR) 13 ja 14 artikla</p>
+      <p class="meta">Versio 1.0 · 27.10.2026 · EU:n yleinen tietosuoja-asetus (GDPR) 13 ja 14 artikla</p>
     </div>
   </div>
 
@@ -222,13 +222,25 @@
         <p>Käyttäjä voi poistaa valtuutuksensa projektin asetuksista tai Oma profiili -sivulta, jolloin Meetsko lakkaa hakemasta kalenteria ja muutosilmoitusten tilaus poistetaan. Valtuutuksen voi perua myös Microsoft-tilin sovellusasetuksista. Sopimuksen päättyessä asiakkaan tiedot poistetaan tai palautetaan sopimuksen mukaisesti; varmuuskopioista tiedot poistuvat niiden normaalin kierron myötä.</p>
 
         <h2 id="tietoturva">12. Tietoturva</h2>
+        <h3>Tietojen suojaus</h3>
         <ul>
-          <li>Kaikki liikenne on salattu (TLS), ja tiedot on salattu myös tallennettuina.</li>
-          <li>Kirjautuminen tapahtuu Microsoftin palvelussa; Meetsko ei näe eikä tallenna Microsoft-tilin salasanaa. Monivaiheinen tunnistautuminen ja ehdollinen käyttö määräytyvät käyttäjän organisaation omien käytäntöjen mukaan.</li>
-          <li>Kalenteriyhteyden uusintatunnisteet säilytetään palvelimella salattuina, eivät selaimessa.</li>
-          <li>Kalenterisisällön suodatus tehdään palvelimella ennen tallennusta.</li>
-          <li>Kalenteriin kirjoitetaan vain järjestäjän omaan kalenteriin hänen omalla pyynnöstään.</li>
-          <li>Pääsy tuotantotietoihin on rajattu nimettyihin henkilöihin, ja ylläpidon pääsyt projekteihin kirjataan.</li>
+          <li>Liikenne salataan TLS 1.2:lla tai uudemmalla, ja salattu yhteys on pakotettu (HSTS).</li>
+          <li>Tietokanta on salattu tallennettuna (AES-256).</li>
+          <li>Kalenteriyhteyden tunnisteet salataan lisäksi sovellustasolla (AES-GCM) avaimella, jota säilytetään erillään tietokannasta.</li>
+          <li>Kalenterin sisältö karsitaan palvelimella ennen tallennusta (kohta 6).</li>
+        </ul>
+        <h3>Pääsynhallinta</h3>
+        <ul>
+          <li>Kirjautuminen Microsoft Entra ID:n kautta: Meetsko ei näe salasanoja, ja organisaation monivaiheinen tunnistautuminen (MFA) ja ehdollisen käytön säännöt ovat voimassa.</li>
+          <li>Vain käyttäjäkohtaiset delegoidut oikeudet omaan kalenteriin; organisaation laajuisia sovellusoikeuksia ei pyydetä.</li>
+          <li>Roolipohjainen pääsynhallinta, joka tarkistetaan palvelimella jokaisessa pyynnössä. Asiakkaiden ja projektien tiedot on eroteltu toisistaan.</li>
+          <li>Projektien toimet ja ylläpidon pääsyt kirjataan tapahtumalokiin. Pääsy tuotantotietoihin on rajattu nimettyihin henkilöihin.</li>
+        </ul>
+        <h3>Infrastruktuuri</h3>
+        <ul>
+          <li>Vakiintuneiden pilvipalveluntarjoajien infrastruktuuri, tietokanta EU-datakeskuksessa (Irlanti).</li>
+          <li>Palveluntarjoajien DDoS-suojaus.</li>
+          <li>Selaimesta ei ole suoraa pääsyä tietokantaan.</li>
         </ul>
 
         <h2 id="evasteet">13. Evästeet ja selaimen tallennus</h2>
@@ -245,17 +257,6 @@
 
         <h2 id="muutokset">16. Selosteen muutokset</h2>
         <p>Selostetta päivitetään palvelun kehittyessä ja lainsäädännön muuttuessa. Olennaisista muutoksista ilmoitetaan asiakkaille etukäteen.</p>
-        <div class="policy-scroll">
-          <table class="policy-table">
-            <tr><th style="width:14%">Versio</th><th style="width:20%">Päivämäärä</th><th>Muutos</th></tr>
-            <tr><td>2.3</td><td>27.10.2026</td><td>Google-kalenteri poistettu (ei käytössä); kalenterin lukemisen oikeusperuste; palveluntarjoajat palvelutyypeittäin ja tietojen sijainti; uusi kohta evästeistä ja selaimen tallennuksesta (fontit omasta palvelusta); tietoturvaloukkausten ilmoitusaika tietojenkäsittelysopimuksen mukaan</td></tr>
-            <tr><td>2.2</td><td>27.10.2026</td><td>Yhteysosoite support@meetsko.com</td></tr>
-            <tr><td>2.1</td><td>25.10.2026</td><td>Kirjoitusoikeuden (Calendars.ReadWrite) laajuus ja sen tekninen rajaus Meetskon omiin tapahtumiin</td></tr>
-            <tr><td>2.0</td><td>22.10.2026</td><td>Palvelun nimi Meetsko; tapahtumien luonti ja Outlook-synkronointi, näkyvyysrajaukset, organisaatioroolit, tapahtumaloki, valtuutusmuistutukset, Google-kalenteri ja profiilien 12 kuukauden säilytysaika</td></tr>
-            <tr><td>1.0</td><td>19.9.2026</td><td>Ensimmäinen versio</td></tr>
-          </table>
-        </div>
-
       </article>
     </div>
   </section>
