@@ -100,7 +100,7 @@
             <tr><td>Profiilitiedot</td><td>Titteli, funktio tai tiimi, kieli</td><td>Käyttäjä itse</td></tr>
             <tr><td>Organisaatiotiedot</td><td>Asiakasorganisaatio, sen sähköpostidomainit, jäsenyys ja sovellusrooli (esim. organisaation pääkäyttäjä)</td><td>Asiakasorganisaatio, palveluntarjoaja</td></tr>
             <tr><td>Projektiosallistuminen</td><td>Projektit, projektirooli, ryhmät, kutsun tila, kutsun ja muistutusten ajankohdat</td><td>Projektin kutsuja ja ylläpitäjät</td></tr>
-            <tr><td>Kalenterin varaustilanne</td><td>Varattujen ja vapaiden jaksojen alku- ja loppuajat (vapaa / varattu) noin kolme kuukautta eteenpäin</td><td>Microsoft, käyttäjän omalla valtuutuksella</td></tr>
+            <tr><td>Kalenterin varaustilanne</td><td>Varattujen ja vapaiden jaksojen alku- ja loppuajat (vapaa / varattu) rajatulta ajalta eteenpäin</td><td>Microsoft, käyttäjän omalla valtuutuksella</td></tr>
             <tr><td>Näkyvyysrajaukset</td><td>Käyttäjän asettamat näkyvyysikkunat ja piilotetut jaksot projektikohtaisesti</td><td>Käyttäjä itse</td></tr>
             <tr><td>Kalenteriyhteyden tunnisteet</td><td>Salattu uusintatunniste (refresh token), myönnetyt oikeudet (luku / luku ja kirjoitus), muutosilmoitusten tilaustunniste</td><td>Microsoft</td></tr>
             <tr><td>Meetskosta luodut tapahtumat ja luonnokset</td><td>Otsikko, viesti, aika, toistosääntö, järjestäjä, kutsutut, Teams-linkki, kalenterin tapahtumatunniste, peruutustieto</td><td>Tapahtuman luoja; aika ja peruutus järjestäjän kalenterista</td></tr>
@@ -145,7 +145,7 @@
             <tr><td>Yksityiseksi merkityt tapahtumat</td><td>Vain varattuna aikana, ilman tunnistetietoja</td></tr>
           </table>
         </div>
-        <p>Microsoftilta pyydetään lukuoikeus käyttäjän omaan kalenteriin (Calendars.Read), koska suppeampi oikeustaso ei tuota luotettavasti saatavuustietoa. Koska oikeus antaisi teknisesti pääsyn myös tapahtumien sisältöön, palvelin karsii kaiken muun kuin ajan ja tilan heti kalenterivastauksen saavuttua, ennen kuin tieto tallennetaan tai lähetetään selaimeen.</p>
+        <p>Microsoftilta pyydetään lukuoikeus käyttäjän omaan kalenteriin (Calendars.Read), koska lukuoikeus tarvitaan saatavuustiedon hakemiseen. Koska oikeus antaisi teknisesti pääsyn myös tapahtumien sisältöön, palvelin karsii kaiken muun kuin ajan ja tilan heti kalenterivastauksen saavuttua, ennen kuin tieto tallennetaan tai lähetetään selaimeen.</p>
         <p>Käyttäjä voi rajata projektikohtaisesti, milloin hänen kalenterinsa näkyy (näkyvyysikkunat ja piilotetut jaksot). Piilotettu aika näkyy muille varattuna, eikä sitä käytetä aikaehdotuksissa.</p>
         <p>Outlook-kalenterien muutoksista saadaan ilmoitus Microsoftin muutosilmoituksilla. Ilmoitus kertoo vain, että kalenteri on muuttunut; tämän jälkeen varaustilanne haetaan uudelleen saman suodatuksen kautta.</p>
 
@@ -163,7 +163,7 @@
         <p>Koska oikeus antaisi teknisesti pääsyn kaikkiin kalenterisi tapahtumiin, Meetskon käyttö on rajattu sovelluksen koodissa:</p>
         <ul>
           <li><b>Uusi tapahtuma vain pyynnöstäsi.</b> Tapahtuma luodaan vain, kun itse lähetät kutsun Meetskosta, ja vain omaan kalenteriisi.</li>
-          <li><b>Muutokset vain Meetskon omiin tapahtumiin.</b> Meetsko tallentaa luomiensa tapahtumien Microsoft-tunnisteet luontihetkellä. Peruminen ja muut muutokset kohdistetaan palvelimella vain näihin tallennettuihin tunnisteisiin. Selaimelta ei hyväksytä Microsoftin tapahtumatunnisteita, joten muihin tapahtumiin ei ole teknistä reittiä.</li>
+          <li><b>Muutokset vain Meetskon omiin tapahtumiin.</b> Peruminen ja muut muutokset kohdistuvat vain tapahtumiin, jotka Meetsko on itse luonut.</li>
           <li><b>Muita tapahtumia ei kosketa.</b> Meetsko ei muokkaa, poista eikä peru muita kalenterisi tapahtumia, eikä niiden sisältöä lueta (ks. kohta 6). Meetskon omista tapahtumista luetaan vain aika ja peruutustieto.</li>
           <li><b>Vain oma kalenteri, vain oma pyyntö.</b> Oikeuttasi käytetään vain sinun omiin pyyntöihisi ja vain sinun kalenteriisi. Toisen käyttäjän oikeudella ei kirjoiteta koskaan.</li>
           <li><b>Valinnainen ja projektikohtainen.</b> Kirjoitusoikeus annetaan erikseen projektin asetuksista, eikä sitä tarvita aikataulujen katseluun. Ilman sitä Meetsko kopioi osallistujat, ja kutsun voi luoda itse Outlookissa.</li>
@@ -189,7 +189,7 @@
         <h2 id="sahkopostit">9. Sähköpostit ja muistutukset</h2>
         <ul>
           <li><b>Kutsu projektiin</b> kertoo, kuka kutsui, mihin projektiin ja mitä osallistujalta pyydetään.</li>
-          <li><b>Valtuutusmuistutukset.</b> Projektin hallinta voi lähettää muistutuksen osallistujalle, joka ei ole vielä valtuuttanut kalenteriaan (enintään kerran vuorokaudessa). Lisäksi Meetsko lähettää enintään kaksi automaattista muistutusta: kaksi päivää kutsun jälkeen ja kolme päivää ensimmäisestä muistutuksesta. Organisaation pääkäyttäjä voi kytkeä automaattiset muistutukset pois organisaation projekteista.</li>
+          <li><b>Valtuutusmuistutukset.</b> Projektin hallinta voi lähettää muistutuksen osallistujalle, joka ei ole vielä valtuuttanut kalenteriaan. Lisäksi Meetsko lähettää rajatun määrän automaattisia muistutuksia, jotka organisaation pääkäyttäjä voi kytkeä pois.</li>
           <li><b>Organisaation ilmoitukset</b>, kuten tieto pääkäyttäjäksi tai projektinluontioikeuden saamisesta, ja tarvittaessa ilmoitus asiakkaan IT-yhteyshenkilölle palvelun käyttöönotosta.</li>
         </ul>
         <p>Sähköposteja ei käytetä markkinointiin.</p>
@@ -240,7 +240,6 @@
         <ul>
           <li>Vakiintuneiden pilvipalveluntarjoajien infrastruktuuri, tietokanta EU-datakeskuksessa (Irlanti).</li>
           <li>Palveluntarjoajien DDoS-suojaus.</li>
-          <li>Selaimesta ei ole suoraa pääsyä tietokantaan.</li>
         </ul>
 
         <h2 id="evasteet">13. Evästeet ja selaimen tallennus</h2>

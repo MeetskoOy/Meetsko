@@ -100,7 +100,7 @@
             <tr><td>Profile</td><td>Job title, function or team, language</td><td>The user</td></tr>
             <tr><td>Organisation data</td><td>Customer organisation, its email domains, membership and application role (e.g. organisation administrator)</td><td>The customer organisation, the service provider</td></tr>
             <tr><td>Project participation</td><td>Projects, project role, groups, invitation status, invitation and reminder dates</td><td>The inviter and project administrators</td></tr>
-            <tr><td>Calendar availability</td><td>Start and end times of busy and free periods (free / busy) for roughly three months ahead</td><td>Microsoft, with the user's own authorisation</td></tr>
+            <tr><td>Calendar availability</td><td>Start and end times of busy and free periods (free / busy) for a limited period ahead</td><td>Microsoft, with the user's own authorisation</td></tr>
             <tr><td>Visibility restrictions</td><td>Visibility windows and hidden periods set by the user for each project</td><td>The user</td></tr>
             <tr><td>Calendar connection credentials</td><td>Encrypted refresh token, granted permissions (read / read and write), change notification subscription identifier</td><td>Microsoft</td></tr>
             <tr><td>Events and drafts created in Meetsko</td><td>Title, message, time, recurrence, organiser, invitees, Teams link, calendar event identifier, cancellation status</td><td>The event's creator; time and cancellation from the organiser's calendar</td></tr>
@@ -145,7 +145,7 @@
             <tr><td>Events marked private</td><td>Shown only as busy time, with nothing identifying</td></tr>
           </table>
         </div>
-        <p>Meetsko requests read access to the user's own Microsoft calendar (Calendars.Read), because narrower permissions do not reliably return availability. As this permission would technically allow access to event content, the server strips everything except time and status as soon as the calendar response arrives, before anything is stored or sent to a browser.</p>
+        <p>Meetsko requests read access to the user's own Microsoft calendar (Calendars.Read), because read access is needed to retrieve availability. As this permission would technically allow access to event content, the server strips everything except time and status as soon as the calendar response arrives, before anything is stored or sent to a browser.</p>
         <p>Users can restrict, per project, when their calendar is visible (visibility windows and hidden periods). Hidden time is shown to others as busy and is not used for time suggestions.</p>
         <p>Changes to Outlook calendars are signalled through Microsoft change notifications. A notification only says that the calendar has changed; availability is then fetched again through the same filter.</p>
 
@@ -163,7 +163,7 @@
         <p>Because the permission would technically allow access to every event in your calendar, Meetsko's use of it is restricted in the application code:</p>
         <ul>
           <li><b>New events only at your request.</b> An event is created only when you send an invitation from Meetsko yourself, and only in your own calendar.</li>
-          <li><b>Changes only to Meetsko's own events.</b> Meetsko stores the Microsoft identifiers of the events it creates at the moment of creation. Cancellations and other changes are applied on the server only to these stored identifiers. Microsoft event identifiers are never accepted from the browser, so there is no technical route to any other event.</li>
+          <li><b>Changes only to Meetsko's own events.</b> Cancellations and other changes apply only to events that Meetsko has created itself.</li>
           <li><b>Other events are left alone.</b> Meetsko never edits, deletes or cancels any other event in your calendar, and their content is not read (see section 6). For Meetsko's own events, only the time and cancellation status are read.</li>
           <li><b>Your calendar, your request.</b> Your permission is used only for your own requests and only for your own calendar. Another user's permission is never used to write.</li>
           <li><b>Optional and per project.</b> Write access is granted separately in the project settings and is not needed for viewing schedules. Without it, Meetsko copies the attendees so you can create the invitation yourself in Outlook.</li>
@@ -189,7 +189,7 @@
         <h2 id="emails">9. Emails and reminders</h2>
         <ul>
           <li><b>Project invitations</b> say who sent the invitation, to which project, and what the participant is asked to do.</li>
-          <li><b>Authorisation reminders.</b> Project administrators can remind a participant who has not yet authorised their calendar (at most once a day). Meetsko also sends at most two automatic reminders: two days after the invitation and three days after the first reminder. Organisation administrators can switch automatic reminders off for their organisation's projects.</li>
+          <li><b>Authorisation reminders.</b> Project administrators can remind a participant who has not yet authorised their calendar. Meetsko also sends a limited number of automatic reminders, which organisation administrators can switch off.</li>
           <li><b>Organisation notifications</b>, such as being made an administrator or given the right to create projects, and, where needed, a notice to the customer's IT contact about the service being taken into use.</li>
         </ul>
         <p>Emails are not used for marketing.</p>
@@ -240,7 +240,6 @@
         <ul>
           <li>Established cloud providers' infrastructure, with the database in an EU data centre (Ireland).</li>
           <li>DDoS protection from the providers.</li>
-          <li>No direct access to the database from the browser.</li>
         </ul>
 
         <h2 id="cookies">13. Cookies and browser storage</h2>
