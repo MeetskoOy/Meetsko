@@ -214,10 +214,14 @@
 
   // Paluu alkuperäiselle sivulle (esim. istunto vanhentunut -ikkunasta ?next=/projekti.html?id=…).
   // Talletetaan sessionStorageen, jotta osoite säilyy Microsoft/Google-kirjautumisen
-  // uudelleenohjauksen yli. Vain saman sivuston polut kelpaavat.
+  // uudelleenohjauksen yli. Vain saman sivuston polut kelpaavat. Tarkistus tehdään selaimen
+  // omalla URL-jäsentimellä, koska selain tulkitsee esim. "/\x.fi" ja "/<sarkain>/x.fi" muotoon "//x.fi".
   const RETURN_KEY = 'meetsko_return_path';
   function isSafeReturnPath(path) {
-    return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//') && !path.startsWith('/login.html');
+    if (typeof path !== 'string' || !path.startsWith('/') || /[\\\u0000-\u001f]/.test(path)) return false;
+    let url;
+    try { url = new URL(path, window.location.origin); } catch (e) { return false; }
+    return url.origin === window.location.origin && url.pathname !== '/login.html' && url.pathname !== '/login';
   }
   (() => {
     const next = new URLSearchParams(window.location.search).get('next');
