@@ -30,6 +30,10 @@
   .card .add-range-btn { width: auto; padding: 6px 12px; font-size: 12.5px; margin: 4px 0 0; font-weight: 500; }
   .fully-hidden-row { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-top: 18px; color: var(--text); }
   .empty-note { color: var(--text-faint); font-size: 12.5px; }
+  .perm-block { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 12px; }
+  .perm-block h3, .perm-block .checkmark { margin: 0 0 4px; }
+  .perm-block .empty-note { margin: 4px 0 0; line-height: 1.45; }
+  .warn-text { color: var(--warn, #9A6200); font-size: 14px; margin: 0; }
 </style>
 </head>
 <body class="form-scope">
@@ -117,10 +121,10 @@
       return;
     }
 
+    // Valtuutuksen jälkeen palataan kutsusivulle (ei suoraan projektiin), jotta
+    // lukuoikeuden jälkeen voi antaa vielä kirjoitusoikeuden samasta näkymästä.
     if (inviteInfo.needsRegistration) {
       renderRegistrationStep();
-    } else if (status === 'ok') {
-      window.location.href = `/projekti.html?id=${inviteInfo.projectId}`;
     } else {
       renderProjectStep(status);
     }
@@ -209,7 +213,14 @@
     const GOOGLE_CLIENT_ID = "1023786751364-dbpmrjj0k1fggbfbb88r7p167o6bt84h.apps.googleusercontent.com";
   const GOOGLE_CALENDAR_REDIRECT_URI = "https://nrrhvbxvkizvkcwwglck.supabase.co/functions/v1/google-auth-callback";
 
-  async function startCalendarAuth() {
+  async function startWriteAuth() {
+    if (!(await AppDialog.confirm(t('confirm_write_auth')))) return;
+    startCalendarAuth(true);
+  }
+
+  // wantsWrite: pyydetään myös Calendars.ReadWrite (state "<pid>|rw|"). Paluukohde jätetään
+  // tyhjäksi, jolloin auth-callback palauttaa kutsusivulle.
+  async function startCalendarAuth(wantsWrite) {
     // Valtuutus siirtyy Microsoftiin/Googleen: tallennetaan näkyvyysrajaukset ensin,
     // muuten ne katoavat (sivu ladataan paluun jälkeen palvelimen tiedoista).
     if (settingsState) {
@@ -237,9 +248,56 @@
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('redirect_uri', CALENDAR_REDIRECT_URI);
     authUrl.searchParams.set('response_mode', 'query');
-    authUrl.searchParams.set('scope', 'User.Read Calendars.Read offline_access');
-    authUrl.searchParams.set('state', PID);
+    const write = !!wantsWrite;
+    authUrl.searchParams.set('scope', write
+      ? 'User.Read Calendars.Read Calendars.ReadWrite offline_access'
+      : 'User.Read Calendars.Read offline_access');
+    authUrl.searchParams.set('state', `${PID}|${write ? 'rw' : ''}|`);
     window.location.href = authUrl.toString();
+  }
+
+  // Luku- ja kirjoitusoikeus erillisinä kuten projektin asetuksissa. Kirjoitusoikeuden
+  // voi antaa vasta lukuoikeuden jälkeen; Google-kalenterille vain lukuoikeus.
+  function calendarSectionHtml(s, provider) {
+    if (s.calendarStatus === 'expired') {
+      return `
+        <div class="perm-block">
+          <p class="warn-text">${t('calendar_expired_warn')}</p>
+          <button type="button" onclick="startCalendarAuth(${s.calendarWrite})">${t('retry_auth_btn')}</button>
+        </div>
+      `;
+    }
+    const readGranted = s.calendarStatus === 'authorized';
+    const readHtml = readGranted
+      ? `<div class="perm-block">
+          <p class="checkmark">${t('perm_read_granted')}</p>
+          <p class="empty-note">${t('perm_read_explain')}</p>
+        </div>`
+      : `<div class="perm-block">
+          <h3>${t('read_section_title')}</h3>
+          <p class="empty-note">${t('perm_read_explain')}</p>
+          <button type="button" class="secondary" onclick="startCalendarAuth(false)">${t('grant_calendar_access')}</button>
+        </div>`;
+    if (provider === 'google') return readHtml;
+
+    const writeHtml = readGranted && s.calendarWrite
+      ? `<div class="perm-block">
+          <p class="checkmark">${t('perm_write_granted')}</p>
+          <p class="empty-note">${t('perm_write_explain')}</p>
+        </div>`
+      : `<div class="perm-block">
+          <h3>${t('write_section_title')}</h3>
+          <p class="empty-note">${t('write_section_explain')}</p>
+          ${writeScopeNoteHtml()}
+          <button type="button" class="secondary" ${readGranted ? 'onclick="startWriteAuth()"' : 'disabled'}>${t('grant_write_btn')}</button>
+          ${readGranted ? '' : `<p class="empty-note">${t('write_needs_read_first')}</p>`}
+        </div>`;
+    return readHtml + writeHtml;
+  }
+
+  function writeScopeNoteHtml() {
+    const href = getCurrentLanguage() === 'en' ? 'https://meetsko.com/en/privacy-policy.html#write-access' : 'https://meetsko.com/tietosuojaseloste.html#kirjoitusoikeus';
+    return `<p class="empty-note">${t('write_scope_note')} <a href="${href}" target="_blank" rel="noopener">${t('write_scope_link')}</a></p>`;
   }
 
   function statusBannerHtml(status) {
@@ -253,17 +311,13 @@
   async function renderProjectStep(status) {
     window.history.replaceState({}, '', `/kutsu.html?pid=${PID}`);
 
-    const calendarSectionHtml = inviteInfo.calendarAuthorized
-      ? `<p class="checkmark">${t('calendar_authorized_check')}</p>`
-      : `<button class="secondary" onclick="startCalendarAuth()">${t('grant_calendar_access')}</button>`;
-
     app().innerHTML = `
       <div class="card">
         <h1>${t('join_project_heading')}</h1>
         ${statusBannerHtml(status)}
         <p class="sub">${t('join_project_body', { projectName: '<strong>' + inviteInfo.projectName + '</strong>' })}</p>
 
-        ${calendarSectionHtml}
+        <div id="calendarArea"></div>
 
         <div id="settingsArea">${t('loading')}</div>
 
@@ -286,6 +340,9 @@
       document.getElementById('settingsArea').innerHTML = `<p class="empty-note">${t('error_prefix')}: ${data.error}</p>`;
       return;
     }
+
+    const { data: { session } } = await client.auth.getSession();
+    document.getElementById('calendarArea').innerHTML = calendarSectionHtml(data, session?.user?.app_metadata?.provider);
 
     settingsState = {
       fullyHidden: !!data.fullyHidden,
