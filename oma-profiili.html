@@ -17,12 +17,17 @@
   .field-grid .full { grid-column: 1 / -1; }
   .field-grid input { width: 100%; }
 
-  .project-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; border-top: 1px solid var(--line-soft); }
+  .project-row { padding: 14px 0; border-top: 1px solid var(--line-soft); }
   .project-row:first-child { border-top: none; padding-top: 0; }
   .project-row:last-child { padding-bottom: 0; }
+  .project-row .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .project-row .info { font-size: 14px; font-weight: 500; }
-  .project-row .meta { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12.5px; color: var(--text-muted); }
+  .project-row .meta { margin-top: 4px; font-size: 12.5px; color: var(--text-muted); }
   .project-row button { white-space: nowrap; }
+  .perm-line { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; }
+  .perm-line .perm-name { min-width: 120px; color: var(--text-muted); }
+  .perm-line button { margin-left: auto; }
+  .perm-hint { font-size: 12px; color: var(--text-faint); margin: 4px 0 0; text-align: right; }
   .empty-note { color: var(--text-faint); font-size: 13.5px; margin: 0; }
 
   @media (max-width: 900px) {
@@ -68,6 +73,7 @@
   const CALENDAR_REDIRECT_URI = "https://nrrhvbxvkizvkcwwglck.supabase.co/functions/v1/auth-callback";
 
   let currentAccessToken = null;
+  let currentProvider = null;
   let loadedProfile = null;
 
   AppNav.mount('settings');
@@ -115,6 +121,7 @@
       return false;
     }
     currentAccessToken = session.access_token;
+    currentProvider = session.user?.app_metadata?.provider || null;
     return true;
   }
 
@@ -230,29 +237,67 @@
     }
 
     card.innerHTML = data.projects.map((p) => {
-      const st = statusLabel(p.status);
       const orgPart = p.organizationName ? `${escapeHtml(p.organizationName)} / ` : '';
       const roleLabel = p.role === 'admin' ? t('role_admin') : t('role_guest');
 
-      let actionHtml = '';
-      if (p.status === 'authorized') {
-        actionHtml = `<button class="danger small" onclick="revokeAuth('${p.projectId}')">${t('revoke_auth_btn')}</button>`;
-      } else if (p.status === 'expired') {
-        actionHtml = `<button class="small" onclick="startAuth('${p.participantId}', ${!!p.calendarWrite})">${t('retry_auth_btn')}</button>`;
-      } else {
-        actionHtml = `<button class="small" onclick="startAuth('${p.participantId}', ${!!p.calendarWrite})">${t('grant_auth_short')}</button>`;
-      }
+      // Valtuutukset poistetaan aina yhdessä (Microsoftin suostumukset kasautuvat).
+      const revokeHtml = p.status === 'authorized'
+        ? `<button class="danger small" onclick="revokeAuth('${p.projectId}')">${t(p.calendarWrite ? 'perm_revoke_both_btn' : 'revoke_auth_btn')}</button>`
+        : '';
 
       return `
         <div class="project-row">
-          <div>
-            <div class="info">${orgPart}${escapeHtml(p.projectName)}</div>
-            <div class="meta"><span class="status-pill ${st.cls}">${st.text}</span><span>${roleLabel}</span></div>
+          <div class="head">
+            <div>
+              <div class="info">${orgPart}${escapeHtml(p.projectName)}</div>
+              <div class="meta">${roleLabel}</div>
+            </div>
+            ${revokeHtml}
           </div>
-          ${actionHtml}
+          ${permissionLinesHtml(p)}
         </div>
       `;
     }).join('');
+  }
+
+  // Luku- ja kirjoitusoikeus erillisinä kuten projektin asetuksissa ja kutsusivulla:
+  // kirjoitusoikeuden voi antaa vasta lukuoikeuden jälkeen, Google-kalenterille vain luku.
+  function permissionLinesHtml(p) {
+    const st = statusLabel(p.status);
+    let readAction = '';
+    if (p.status === 'expired') {
+      readAction = `<button class="small" onclick="startAuth('${p.participantId}', ${!!p.calendarWrite})">${t('retry_auth_btn')}</button>`;
+    } else if (p.status !== 'authorized') {
+      readAction = `<button class="small" onclick="startAuth('${p.participantId}', false)">${t('grant_auth_short')}</button>`;
+    }
+    const readLine = `
+      <div class="perm-line">
+        <span class="perm-name">${t('perm_read_short')}</span>
+        <span class="status-pill ${st.cls}">${st.text}</span>
+        ${readAction}
+      </div>`;
+    if (currentProvider === 'google') return readLine;
+
+    const readGranted = p.status === 'authorized';
+    const writeLine = p.calendarWrite
+      ? `
+      <div class="perm-line">
+        <span class="perm-name">${t('perm_write_short')}</span>
+        <span class="status-pill ok">${t('cal_status_write_granted')}</span>
+      </div>`
+      : `
+      <div class="perm-line">
+        <span class="perm-name">${t('perm_write_short')}</span>
+        <span class="status-pill pending">${t('cal_status_write_not_granted')}</span>
+        <button class="small" ${readGranted ? `onclick="startWriteAuth('${p.participantId}')"` : 'disabled'}>${t('grant_write_short')}</button>
+      </div>
+      ${readGranted ? '' : `<p class="perm-hint">${t('write_needs_read_first')}</p>`}`;
+    return readLine + writeLine;
+  }
+
+  async function startWriteAuth(participantId) {
+    if (!(await AppDialog.confirm(t('confirm_write_auth')))) return;
+    startAuth(participantId, true);
   }
 
   const GOOGLE_CLIENT_ID = "1023786751364-dbpmrjj0k1fggbfbb88r7p167o6bt84h.apps.googleusercontent.com";

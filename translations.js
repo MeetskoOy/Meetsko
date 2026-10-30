@@ -396,6 +396,11 @@ const TRANSLATIONS = {
     empty_no_projects_involved: "Et ole vielä minkään projektin osallistuja.",
     cal_status_not_authorized: "Ei valtuutettu",
     grant_auth_short: "Anna lupa",
+    perm_read_short: "Lukuoikeus",
+    perm_write_short: "Kirjoitusoikeus",
+    cal_status_write_granted: "Annettu",
+    cal_status_write_not_granted: "Ei annettu",
+    grant_write_short: "Anna kirjoitusoikeus",
 
     // uusiprojekti.html
     heading_new_project: "Uusi projekti",
@@ -988,6 +993,11 @@ const TRANSLATIONS = {
     empty_no_projects_involved: "You're not part of any project yet.",
     cal_status_not_authorized: "Not authorized",
     grant_auth_short: "Grant access",
+    perm_read_short: "Read access",
+    perm_write_short: "Write access",
+    cal_status_write_granted: "Granted",
+    cal_status_write_not_granted: "Not granted",
+    grant_write_short: "Grant write access",
 
     heading_new_project: "New project",
     project_name_label: "Project name",

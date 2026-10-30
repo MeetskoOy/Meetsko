@@ -4320,12 +4320,15 @@ async function openSettingsModal() {
         </div>
       `;
     }
+    // Kirjoitusoikeuden voi antaa vasta lukuoikeuden jälkeen (kuten kutsusivulla).
+    const readGranted = s.calendarStatus === 'authorized';
     return `
       <div class="calendar-section" style="margin-top:18px;">
         <label style="margin-top:0; color:var(--text); font-weight:600;">${t('write_section_title')}</label>
         <p class="empty-note">${t('write_section_explain')}</p>
         ${writeScopeNoteHtml()}
-        <button type="button" onclick="startWriteAuth()">${t('grant_write_btn')}</button>
+        <button type="button" ${readGranted ? 'onclick="startWriteAuth()"' : 'disabled'}>${t('grant_write_btn')}</button>
+        ${readGranted ? '' : `<p class="empty-note">${t('write_needs_read_first')}</p>`}
       </div>
     `;
   }
