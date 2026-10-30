@@ -20,12 +20,12 @@
   .project-row { padding: 14px 0; border-top: 1px solid var(--line-soft); }
   .project-row:first-child { border-top: none; padding-top: 0; }
   .project-row:last-child { padding-bottom: 0; }
-  .project-row .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .project-row .info { font-size: 14px; font-weight: 500; }
   .project-row .meta { margin-top: 4px; font-size: 12.5px; color: var(--text-muted); }
   .project-row button { white-space: nowrap; }
-  .perm-line { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; }
-  .perm-line .perm-name { min-width: 120px; color: var(--text-muted); }
+  .row-actions { display: flex; justify-content: flex-end; margin-top: 10px; }
+  .perm-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; }
+  .perm-line .perm-name { min-width: 190px; color: var(--text-muted); }
   .perm-line button { margin-left: auto; }
   .perm-hint { font-size: 12px; color: var(--text-faint); margin: 4px 0 0; text-align: right; }
   .empty-note { color: var(--text-faint); font-size: 13.5px; margin: 0; }
@@ -247,14 +247,10 @@
 
       return `
         <div class="project-row">
-          <div class="head">
-            <div>
-              <div class="info">${orgPart}${escapeHtml(p.projectName)}</div>
-              <div class="meta">${roleLabel}</div>
-            </div>
-            ${revokeHtml}
-          </div>
+          <div class="info">${orgPart}${escapeHtml(p.projectName)}</div>
+          <div class="meta">${roleLabel}</div>
           ${permissionLinesHtml(p)}
+          ${revokeHtml ? `<div class="row-actions">${revokeHtml}</div>` : ''}
         </div>
       `;
     }).join('');
@@ -268,11 +264,11 @@
     if (p.status === 'expired') {
       readAction = `<button class="small" onclick="startAuth('${p.participantId}', ${!!p.calendarWrite})">${t('retry_auth_btn')}</button>`;
     } else if (p.status !== 'authorized') {
-      readAction = `<button class="small" onclick="startAuth('${p.participantId}', false)">${t('grant_auth_short')}</button>`;
+      readAction = `<button class="small" onclick="startAuth('${p.participantId}', false)">${t('grant_calendar_access')}</button>`;
     }
     const readLine = `
-      <div class="perm-line">
-        <span class="perm-name">${t('perm_read_short')}</span>
+      <div class="perm-line" title="${escapeHtml(t('perm_read_explain'))}">
+        <span class="perm-name">${t('read_section_title')}</span>
         <span class="status-pill ${st.cls}">${st.text}</span>
         ${readAction}
       </div>`;
@@ -281,15 +277,15 @@
     const readGranted = p.status === 'authorized';
     const writeLine = p.calendarWrite
       ? `
-      <div class="perm-line">
-        <span class="perm-name">${t('perm_write_short')}</span>
-        <span class="status-pill ok">${t('cal_status_write_granted')}</span>
+      <div class="perm-line" title="${escapeHtml(t('perm_write_explain'))}">
+        <span class="perm-name">${t('write_section_title')}</span>
+        <span class="status-pill ok">${t('cal_status_authorized')}</span>
       </div>`
       : `
-      <div class="perm-line">
-        <span class="perm-name">${t('perm_write_short')}</span>
-        <span class="status-pill pending">${t('cal_status_write_not_granted')}</span>
-        <button class="small" ${readGranted ? `onclick="startWriteAuth('${p.participantId}')"` : 'disabled'}>${t('grant_write_short')}</button>
+      <div class="perm-line" title="${escapeHtml(t('perm_write_explain'))}">
+        <span class="perm-name">${t('write_section_title')}</span>
+        <span class="status-pill pending">${t('cal_status_not_authorized')}</span>
+        <button class="small" ${readGranted ? `onclick="startWriteAuth('${p.participantId}')"` : 'disabled'}>${t('grant_write_btn')}</button>
       </div>
       ${readGranted ? '' : `<p class="perm-hint">${t('write_needs_read_first')}</p>`}`;
     return readLine + writeLine;

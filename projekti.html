@@ -1268,7 +1268,7 @@ async function loadStatus() {
             <p class="sub">${t('calendar_expired_body', { projectName: '<strong>' + latestStatus.project.name + '</strong>' })}</p>
             <div class="actions">
               <button class="secondary" onclick="closeModal()">${t('close')}</button>
-                            <button onclick="startCalendarAuthForParticipant('${mine.id}', ${canWriteCalendar})">${t('attach_calendar_btn')}</button>
+                            <button onclick="startCalendarAuthForParticipant('${mine.id}', ${canWriteCalendar})">${t('retry_auth_btn')}</button>
             </div>
           </div>
         </div>
@@ -4248,37 +4248,42 @@ async function openSettingsModal() {
     `;
   }
 
+  // Valtuutuslaatikot samalla rakenteella kuin kutsusivulla ja Oma profiili -sivulla:
+  // otsikko (Kalenterin luku-/kirjoitusoikeus), lyhyt selite, tila tai nappi.
+  function permTitleHtml(key, extraStyle = '') {
+    return `<label style="margin-top:0; color:var(--text); font-weight:600;${extraStyle}">${t(key)}</label>`;
+  }
+
   function calendarSectionHtml() {
     const s = settingsState;
     const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
-    if (s.calendarStatus === 'authorized' && s.calendarWrite && currentAuthProvider !== 'google') {
-      // Luku- ja kirjoitusoikeus yhdessä laatikossa: kirjoitusoikeutta ei voi perua
-      // erikseen (Microsoftin suostumukset kasautuvat), joten tarjotaan vain molempien poisto.
-      return `
-        <div class="calendar-section">
-          <p class="ok-text" style="margin-bottom:2px;">${t('perm_read_granted')}</p>
-          <p class="empty-note" style="margin-top:0;">${t('perm_read_explain')}</p>
-          <p class="ok-text" style="margin:12px 0 2px;">${t('perm_write_granted')}</p>
-          <p class="empty-note" style="margin-top:0;">${t('perm_write_explain')}</p>
-          ${writeScopeNoteHtml()}
-          <button class="danger" type="button" style="margin-top:12px;" onclick="revokeCalendarAuth()">${t('perm_revoke_both_btn')}</button>
-          <p class="empty-note">${t('perm_revoke_both_explain')}</p>
-        </div>
-      `;
-    }
     if (s.calendarStatus === 'authorized') {
       const updated = s.tokenUpdatedAt ? new Date(s.tokenUpdatedAt).toLocaleString(locale) : '–';
+      // Kun kirjoitusoikeuskin on annettu, molemmat ovat samassa laatikossa: kirjoitusoikeutta
+      // ei voi perua erikseen (Microsoftin suostumukset kasautuvat), joten tarjotaan vain molempien poisto.
+      const bothGranted = s.calendarWrite && currentAuthProvider !== 'google';
+      const writePart = bothGranted ? `
+          ${permTitleHtml('write_section_title', ' display:block; margin-top:16px;')}
+          <p class="empty-note">${t('perm_write_explain')}</p>
+          ${writeScopeNoteHtml()}
+          <p class="ok-text">${t('perm_granted')}</p>` : '';
       return `
         <div class="calendar-section">
-          <p class="ok-text">${t('calendar_authorized_ok')}</p>
+          ${permTitleHtml('read_section_title')}
+          <p class="empty-note">${t('perm_read_explain')}</p>
+          <p class="ok-text">${t('perm_granted')}</p>
           <p class="meta">${t('last_updated_label')}: ${updated}</p>
-          <button class="danger" type="button" onclick="revokeCalendarAuth()">${t('revoke_auth_btn')}</button>
+          ${writePart}
+          <button class="danger" type="button" style="margin-top:12px;" onclick="revokeCalendarAuth()">${t(bothGranted ? 'perm_revoke_both_btn' : 'revoke_auth_btn')}</button>
+          ${bothGranted ? `<p class="empty-note">${t('perm_revoke_both_explain')}</p>` : ''}
         </div>
       `;
     }
     if (s.calendarStatus === 'expired') {
       return `
         <div class="calendar-section">
+          ${permTitleHtml('read_section_title')}
+          <p class="empty-note">${t('perm_read_explain')}</p>
           <p class="warn-text">${t('calendar_expired_warn')}</p>
           <button type="button" onclick="startCalendarAuthForParticipant('${s.participantId}', ${s.calendarWrite})">${t('retry_auth_btn')}</button>
         </div>
@@ -4286,7 +4291,8 @@ async function openSettingsModal() {
     }
     return `
       <div class="calendar-section">
-        <p class="empty-note">${t('calendar_not_authorized')}</p>
+        ${permTitleHtml('read_section_title')}
+        <p class="empty-note">${t('perm_read_explain')}</p>
         <button type="button" onclick="startCalendarAuthForParticipant('${s.participantId}', ${s.calendarWrite})">${t('grant_calendar_access')}</button>
       </div>
     `;
@@ -4315,8 +4321,9 @@ async function openSettingsModal() {
     if (s.calendarWrite) {
       return `
         <div class="calendar-section" style="margin-top:18px;">
-          <label style="margin-top:0; color:var(--text); font-weight:600;">${t('write_section_title')}</label>
-          <p class="ok-text">${t('write_granted_ok')}</p>
+          ${permTitleHtml('write_section_title')}
+          <p class="empty-note">${t('perm_write_explain')}</p>
+          <p class="ok-text">${t('perm_granted')}</p>
         </div>
       `;
     }
@@ -4324,8 +4331,8 @@ async function openSettingsModal() {
     const readGranted = s.calendarStatus === 'authorized';
     return `
       <div class="calendar-section" style="margin-top:18px;">
-        <label style="margin-top:0; color:var(--text); font-weight:600;">${t('write_section_title')}</label>
-        <p class="empty-note">${t('write_section_explain')}</p>
+        ${permTitleHtml('write_section_title')}
+        <p class="empty-note">${t('perm_write_explain')}</p>
         ${writeScopeNoteHtml()}
         <button type="button" ${readGranted ? 'onclick="startWriteAuth()"' : 'disabled'}>${t('grant_write_btn')}</button>
         ${readGranted ? '' : `<p class="empty-note">${t('write_needs_read_first')}</p>`}
