@@ -308,6 +308,9 @@ const TRANSLATIONS = {
     hide_calendar_fully: "Rajoita kalenterini näkyminen projektille",
     save_btn: "Tallenna",
     leave_project_btn: "Poistu projektista",
+    owner_change_first: "Vaihda vastuuhenkilö ensin.",
+    owner_missing_choose: "— Valitse vastuuhenkilö —",
+    owner_missing: "Vastuuhenkilö puuttuu",
     confirm_revoke_auth: "Poistetaanko kalenterin oikeudet tästä projektista? Muut eivät enää näe vapaa/varattu-aikojasi, ennen kuin annat kalenterin lukuoikeuden uudelleen.",
     confirm_leave_project: "Haluatko varmasti poistua tästä projektista? Tätä ei voi perua.",
 
@@ -896,6 +899,9 @@ const TRANSLATIONS = {
     hide_calendar_fully: "Restrict my calendar from being visible to the project",
     save_btn: "Save",
     leave_project_btn: "Leave project",
+    owner_change_first: "Change the project owner first.",
+    owner_missing_choose: "— Choose the project owner —",
+    owner_missing: "No project owner",
     confirm_revoke_auth: "Remove calendar access from this project? Others will no longer see your free/busy times until you grant calendar read access again.",
     confirm_leave_project: "Are you sure you want to leave this project? This cannot be undone.",
 

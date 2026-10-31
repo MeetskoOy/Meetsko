@@ -334,6 +334,7 @@
   .calendar-section .meta { color: var(--text-faint); font-size: 12px; margin-top: 4px; }
 
   .danger-zone { border-top: 1px solid var(--line-soft); margin-top: 18px; padding-top: 14px; }
+  .owner-missing-flag { display: inline-block; font-size: 12px; font-weight: 600; color: #9C2C22; background: var(--danger-soft); padding: 2px 10px; border-radius: 999px; }
     .settings-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--line-soft); }
   .settings-tab-btn { background: none; border: none; padding: 8px 4px; font-size: 13.5px; color: var(--text-faint); cursor: pointer; border-bottom: 2px solid transparent; margin: 0; }
   .settings-tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
@@ -1014,7 +1015,7 @@ function bufferDates(anchor) {
   function isAdminForProject(status) {
     if (!status) return false;
     if (status.viewerAccess) return !!status.viewerAccess.canManage;
-    if (status.project.owner_email.toLowerCase() === currentUserEmail) return true;
+    if ((status.project.owner_email || '').toLowerCase() === currentUserEmail) return true;
     return status.participants.some(
       (p) => p.email.toLowerCase() === currentUserEmail && p.role === 'admin' && p.status === 'authorized'
     );
@@ -1025,6 +1026,10 @@ function bufferDates(anchor) {
   function canOwnProject(status) {
     const va = status && status.viewerAccess;
     return !!va && (va.isOwner || va.isOrgSuperuser || va.isSuperadmin);
+  }
+
+  function isCurrentUserProjectOwner() {
+    return !!latestStatus && (latestStatus.project.owner_email || '').toLowerCase() === currentUserEmail;
   }
 
   function isParticipantInProject(status) {
@@ -1301,16 +1306,22 @@ async function loadStatus() {
 
     document.getElementById('projectName').textContent = data.project.name;
     // Vastuuhenkilö nimellä ja sähköpostilla, jos hän on osallistuja (nimi profiilista).
-    const ownerRow = data.participants.find((p) => p.email.toLowerCase() === data.project.owner_email.toLowerCase());
+    const ownerEmail = data.project.owner_email || '';
+    const ownerRow = data.participants.find((p) => p.email.toLowerCase() === ownerEmail.toLowerCase());
     const ownerName = ownerRow && (ownerRow.firstName || ownerRow.lastName) ? `${ownerRow.firstName || ''} ${ownerRow.lastName || ''}`.trim() : '';
-    document.getElementById('projectOwner').textContent = t('responsible_person') + ' '
-      + (ownerName ? `${ownerName} (${data.project.owner_email})` : data.project.owner_email);
+    const ownerEl = document.getElementById('projectOwner');
+    // Vastuuhenkilö voi puuttua, jos hänet on poistettu Meetskosta eikä muita ylläpitäjiä ollut.
+    if (ownerEmail) {
+      ownerEl.textContent = t('responsible_person') + ' ' + (ownerName ? `${ownerName} (${ownerEmail})` : ownerEmail);
+    } else {
+      ownerEl.innerHTML = `<span class="owner-missing-flag">${t('owner_missing')}</span>`;
+    }
     const authorizedCount = data.participants.filter((p) => p.status === 'authorized').length;
     document.getElementById('projectCounts').textContent =
       t('meta_participants', { count: data.participants.length }) + ' · ' + t('meta_authorized', { count: authorizedCount });
 
     const mine = data.participants.find((p) => p.email.toLowerCase() === currentUserEmail);
-    const isOwner = data.project.owner_email.toLowerCase() === currentUserEmail;
+    const isOwner = (data.project.owner_email || '').toLowerCase() === currentUserEmail;
     const roleBadge = document.getElementById('myRoleBadge');
     const va = data.viewerAccess || {};
     if (mine || isOwner) {
@@ -4495,22 +4506,30 @@ async function openSettingsModal() {
       </div>
 
       <div class="danger-zone">
-        <button class="danger" type="button" onclick="leaveProjectConfirm()">${t('leave_project_btn')}</button>
+        ${isCurrentUserProjectOwner()
+          ? `<button class="danger" type="button" disabled>${t('leave_project_btn')}</button>
+             <span class="empty-note" style="margin-left:8px;">${t('owner_change_first')}</span>`
+          : `<button class="danger" type="button" onclick="leaveProjectConfirm()">${t('leave_project_btn')}</button>`}
       </div>
     `;
   }
 
   function renderProjectSettingsTabHtml() {
-    const membersHtml = latestStatus.participants.map((p) => `
-      <div class="member-manage-row">
-        <span class="mm-name">${nameLabelFor(p)}</span>
-        <select onchange="changeParticipantRole('${p.id}', this.value)">
+    // Vastuuhenkilö on aina ylläpitäjä: roolia ei voi laskea eikä häntä poistaa ennen vaihtoa.
+    const ownerLower = (latestStatus.project.owner_email || '').toLowerCase();
+    const membersHtml = latestStatus.participants.map((p) => {
+      const isOwnerRow = p.email.toLowerCase() === ownerLower;
+      return `
+      <div class="member-manage-row" ${isOwnerRow ? `title="${escapeHtmlText(t('owner_change_first'))}"` : ''}>
+        <span class="mm-name">${nameLabelFor(p)}${isOwnerRow ? ` <span class="empty-note">· ${t('responsible_person')}</span>` : ''}</span>
+        <select onchange="changeParticipantRole('${p.id}', this.value)" ${isOwnerRow ? 'disabled' : ''}>
           <option value="guest" ${p.role === 'guest' ? 'selected' : ''}>${t('role_guest')}</option>
-          <option value="admin" ${p.role === 'admin' ? 'selected' : ''}>${t('role_admin')}</option>
+          <option value="admin" ${p.role === 'admin' || isOwnerRow ? 'selected' : ''}>${t('role_admin')}</option>
         </select>
-        <button type="button" class="danger" style="padding:5px 10px; font-size:12px;" onclick="removeParticipantFromProject('${p.id}','${nameLabelFor(p).replace(/'/g, "\\'")}')">${t('remove_participant_btn')}</button>
+        <button type="button" class="danger" style="padding:5px 10px; font-size:12px;" ${isOwnerRow ? 'disabled' : `onclick="removeParticipantFromProject('${p.id}','${nameLabelFor(p).replace(/'/g, "\\'")}')"`}>${t('remove_participant_btn')}</button>
       </div>
-    `).join('');
+    `;
+    }).join('');
 
     return `
       <label style="margin-top:0;">${t('project_name_label')}</label>
@@ -4526,9 +4545,10 @@ async function openSettingsModal() {
   }
 
   function ownerAndDeleteSectionHtml() {
-    const currentOwner = latestStatus.project.owner_email.toLowerCase();
+    const currentOwner = (latestStatus.project.owner_email || '').toLowerCase();
     const ownerIsParticipant = latestStatus.participants.some((p) => p.email.toLowerCase() === currentOwner);
-    const options = (ownerIsParticipant ? [] : [`<option value="" selected>${escapeHtmlText(latestStatus.project.owner_email)}</option>`])
+    const placeholder = currentOwner ? escapeHtmlText(latestStatus.project.owner_email) : t('owner_missing_choose');
+    const options = (ownerIsParticipant ? [] : [`<option value="" selected>${placeholder}</option>`])
       .concat(latestStatus.participants.map((p) => `
         <option value="${escapeHtmlText(p.email)}" ${p.email.toLowerCase() === currentOwner ? 'selected' : ''}>${escapeHtmlText(nameLabelFor(p))} (${escapeHtmlText(p.email)})</option>
       `)).join('');
@@ -4549,7 +4569,7 @@ async function openSettingsModal() {
 
   async function saveProjectOwner() {
     const ownerEmail = document.getElementById('projectOwnerSelect').value;
-    if (!ownerEmail || ownerEmail.toLowerCase() === latestStatus.project.owner_email.toLowerCase()) return;
+    if (!ownerEmail || ownerEmail.toLowerCase() === (latestStatus.project.owner_email || '').toLowerCase()) return;
     if (!(await AppDialog.confirm(t('confirm_owner_change', { email: ownerEmail })))) return;
 
     const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-project`, {
