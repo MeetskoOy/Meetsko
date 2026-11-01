@@ -61,6 +61,7 @@
 </main>
 
 <script src="/translations.js"></script>
+<script src="/timezone.js"></script>
 <script src="/dialogs.js"></script>
 <script src="/nav.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -177,6 +178,11 @@
           <label>${t('email_label')}</label>
           <input type="text" value="${escapeHtml(data.email)}" disabled />
         </div>
+        <div class="full">
+          <label for="timeZoneInput">${t('time_zone_label')}</label>
+          <select id="timeZoneInput" style="width:100%;">${MeetskoTZ.optionsHtml(MeetskoTZ.isValid(data.timeZone) ? data.timeZone : MeetskoTZ.browserZone())}</select>
+          <p class="empty-note" style="margin-top:4px;">${t('time_zone_profile_note')}</p>
+        </div>
       </div>
       <div class="btn-row">
         <button onclick="saveProfile()">${t('save_btn')}</button>
@@ -194,6 +200,7 @@
            organization: document.getElementById('organizationInput').value,
       team: document.getElementById('teamInput').value,
       language: getCurrentLanguage(),
+      timeZone: document.getElementById('timeZoneInput').value,
     };
 
     const res = await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {

@@ -502,6 +502,7 @@
 <div id="modalHost"></div>
 
 <script src="/translations.js"></script>
+<script src="/timezone.js"></script>
 <script src="/dialogs.js"></script>
 <script src="/recurrence.js"></script>
 <script src="/nav.js"></script>
@@ -4192,14 +4193,6 @@ function openGroupModal() {
 
 
   
-function isoToDatetimeLocal(iso) {
-    return iso.slice(0, 16);
-  }
-
-  function datetimeLocalToIso(value) {
-    return value + ':00.000Z';
-  }
-
 async function openSettingsModal() {
     settingsActiveTab = 'own';
 
@@ -4229,15 +4222,22 @@ async function openSettingsModal() {
       calendarWrite: !!data.calendarWrite,
       tokenUpdatedAt: data.tokenUpdatedAt,
       fullyHidden: !!data.fullyHidden,
+      // Piilotusajat ja rajoitusjaksot näytetään käyttäjän aikavyöhykkeessä (oletus selaimen).
+      timeZone: MeetskoTZ.isValid(data.timeZone) ? data.timeZone : MeetskoTZ.browserZone(),
       windowsByDay: { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
       blackouts: [],
     };
 
-    (data.windows || []).forEach((w) => {
-      settingsState.windowsByDay[w.weekday].push({ start: w.start_time.slice(0, 5), end: w.end_time.slice(0, 5) });
+    (data.hiddenWindows || []).forEach((w) => {
+      // Vuorokauden loppu (24:00) näytetään aikakentässä muodossa 00:00.
+      const end = w.end_time.slice(0, 5) === '24:00' ? '00:00' : w.end_time.slice(0, 5);
+      settingsState.windowsByDay[w.weekday].push({ start: w.start_time.slice(0, 5), end });
     });
     (data.blackouts || []).forEach((b) => {
-      settingsState.blackouts.push({ startAt: isoToDatetimeLocal(b.start_at), endAt: isoToDatetimeLocal(b.end_at) });
+      settingsState.blackouts.push({
+        startAt: MeetskoTZ.isoToLocalInput(b.start_at, settingsState.timeZone),
+        endAt: MeetskoTZ.isoToLocalInput(b.end_at, settingsState.timeZone),
+      });
     });
 
     renderSettingsModal();
@@ -4379,7 +4379,7 @@ async function openSettingsModal() {
   function toggleSettingsDay(day, checked) {
     if (checked) {
       if (settingsState.windowsByDay[day].length === 0) {
-        settingsState.windowsByDay[day].push({ start: '09:00', end: '17:00' });
+        settingsState.windowsByDay[day].push({ start: '00:00', end: '00:00' });
       }
     } else {
       settingsState.windowsByDay[day] = [];
@@ -4388,7 +4388,7 @@ async function openSettingsModal() {
   }
 
   function addSettingsRange(day) {
-    settingsState.windowsByDay[day].push({ start: '09:00', end: '17:00' });
+    settingsState.windowsByDay[day].push({ start: '17:00', end: '00:00' });
     renderSettingsModal();
   }
 
@@ -4488,7 +4488,11 @@ async function openSettingsModal() {
       ${calendarSectionHtml()}
       ${writeAccessSectionHtml()}
 
-      <label style="margin-top:0;">${t('show_calendar_to_others')}</label>
+      <label style="margin-top:0;">${t('time_zone_label')}</label>
+      <select style="width:100%;" onchange="settingsState.timeZone = this.value; renderSettingsModal();">${MeetskoTZ.optionsHtml(settingsState.timeZone)}</select>
+      <p class="empty-note" style="margin-top:4px;">${t('time_zone_note')}${settingsState.timeZone !== MeetskoTZ.browserZone() ? ' ' + t('time_zone_browser_note', { zone: MeetskoTZ.label(MeetskoTZ.browserZone()) }) : ''}</p>
+
+      <label style="margin-top:16px;">${t('show_calendar_to_others')}</label>
       <p class="empty-note" style="margin-top:-2px;">${t('show_calendar_note')}</p>
       ${daysHtml}
 
@@ -4649,11 +4653,15 @@ async function openSettingsModal() {
 
   // Tallentaa asetusikkunan näkyvyysrajaukset. Palauttaa false, jos tallennus ei onnistunut.
   async function persistSettings() {
-    const windows = [];
+    const hiddenWindows = [];
     for (let d = 0; d < 7; d++) {
-      settingsState.windowsByDay[d].forEach((r) => {
-        if (r.start && r.end) windows.push({ weekday: d, startTime: r.start + ':00', endTime: r.end + ':00' });
-      });
+      for (const r of settingsState.windowsByDay[d]) {
+        if (!r.start || !r.end) continue;
+        // Loppuaika 00:00 = vuorokauden loppu.
+        const end = r.end === '00:00' ? '24:00' : r.end;
+        if (end <= r.start) { AppDialog.alert(t('hidden_window_end_before_start')); return false; }
+        hiddenWindows.push({ weekday: d, startTime: r.start + ':00', endTime: end + ':00' });
+      }
     }
 
     const filledBlackouts = settingsState.blackouts.filter((b) => b.startAt && b.endAt);
@@ -4662,16 +4670,19 @@ async function openSettingsModal() {
       AppDialog.alert(t('blackout_end_before_start'));
       return false;
     }
+    // Rajoitusjaksot tallennetaan ajanhetkinä valitun aikavyöhykkeen mukaan.
+    const tz = settingsState.timeZone;
     const blackouts = filledBlackouts
-      .map((b) => ({ startAt: datetimeLocalToIso(b.startAt), endAt: datetimeLocalToIso(b.endAt) }));
+      .map((b) => ({ startAt: MeetskoTZ.localInputToIso(b.startAt, tz), endAt: MeetskoTZ.localInputToIso(b.endAt, tz) }));
 
     const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-participant-settings`, {
       method: 'POST',
       body: JSON.stringify({
         projectId: PROJECT_ID,
         fullyHidden: settingsState.fullyHidden,
-        windows,
+        hiddenWindows,
         blackouts,
+        timeZone: tz,
       }),
     });
     const data = await res.json();
