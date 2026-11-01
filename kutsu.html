@@ -356,8 +356,10 @@
     const { data: { session } } = await client.auth.getSession();
     document.getElementById('calendarArea').innerHTML = calendarSectionHtml(data, session?.user?.app_metadata?.provider);
 
-    // Piilotusajat ja rajoitusjaksot näytetään käyttäjän aikavyöhykkeessä (oletus selaimen).
+    // Kaikki ajat näytetään ja syötetään näyttöaikavyöhykkeessä (profiili, oletus selaimen).
+    // Viikoittaiset piilotusajat muunnetaan siitä aikavyöhykkeestä, jossa ne tallennettiin.
     const timeZone = MeetskoTZ.isValid(data.timeZone) ? data.timeZone : MeetskoTZ.browserZone();
+    const windowsTimeZone = MeetskoTZ.isValid(data.windowsTimeZone) ? data.windowsTimeZone : timeZone;
     settingsState = {
       fullyHidden: !!data.fullyHidden,
       timeZone,
@@ -370,6 +372,7 @@
       const end = w.end_time.slice(0, 5) === '24:00' ? '00:00' : w.end_time.slice(0, 5);
       settingsState.windowsByDay[w.weekday].push({ start: w.start_time.slice(0, 5), end });
     });
+    settingsState.windowsByDay = MeetskoTZ.convertWindowsByDay(settingsState.windowsByDay, windowsTimeZone, timeZone);
     (data.blackouts || []).forEach((b) => {
       settingsState.blackouts.push({ startAt: MeetskoTZ.isoToLocalInput(b.start_at, timeZone), endAt: MeetskoTZ.isoToLocalInput(b.end_at, timeZone) });
     });
@@ -492,20 +495,34 @@
     const res = await fetch(`${SUPABASE_URL}/functions/v1/update-participant-settings`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ projectId: inviteInfo.projectId, fullyHidden: settingsState.fullyHidden, hiddenWindows, blackouts, timeZone: tz }),
+      body: JSON.stringify({ projectId: inviteInfo.projectId, fullyHidden: settingsState.fullyHidden, hiddenWindows, blackouts, timeZone: tz, windowsTimeZone: tz }),
     });
     const data = await res.json().catch(() => ({}));
     if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return false; }
     return true;
   }
 
-  // Aikavyöhyke, jossa piilotusajat ja rajoitusjaksot tulkitaan (tallentuu profiiliin).
+  // Aikavyöhykkeen vaihto: kentät muunnetaan, jotta ne kuvaavat samoja hetkiä uudessa ajassa
+  // (esim. Helsingin 9–17 → Lissabonin 7–15).
+  function changeSettingsTimeZone(newTz) {
+    const oldTz = settingsState.timeZone;
+    if (!MeetskoTZ.isValid(newTz) || newTz === oldTz) return;
+    settingsState.windowsByDay = MeetskoTZ.convertWindowsByDay(settingsState.windowsByDay, oldTz, newTz);
+    settingsState.blackouts = settingsState.blackouts.map((b) => ({
+      startAt: b.startAt ? MeetskoTZ.isoToLocalInput(MeetskoTZ.localInputToIso(b.startAt, oldTz), newTz) : '',
+      endAt: b.endAt ? MeetskoTZ.isoToLocalInput(MeetskoTZ.localInputToIso(b.endAt, oldTz), newTz) : '',
+    }));
+    settingsState.timeZone = newTz;
+    renderSettingsInline();
+  }
+
+  // Näyttöaikavyöhyke: kaikki ajat syötetään tässä; tallentuu profiiliin (Oma profiili ei
+  // ole vielä käytettävissä kutsusivulla).
   function timeZoneFieldHtml(tz) {
-    const browserTz = MeetskoTZ.browserZone();
     return `
       <h3>${t('time_zone_label')}</h3>
-      <select class="tz-select" onchange="settingsState.timeZone = this.value; renderSettingsInline();">${MeetskoTZ.optionsHtml(tz)}</select>
-      <p class="empty-note">${t('time_zone_note')}${tz !== browserTz ? ' ' + t('time_zone_browser_note', { zone: MeetskoTZ.label(browserTz) }) : ''}</p>
+      <select class="tz-select" onchange="changeSettingsTimeZone(this.value)">${MeetskoTZ.optionsHtml(tz)}</select>
+      <p class="empty-note">${t('time_zone_note')}</p>
     `;
   }
 

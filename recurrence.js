@@ -8,6 +8,11 @@
 //   nth:     1–4 = kuukauden n:s viikonpäivä, 5 = viimeinen (monthly, yearly)
 //   month:   1–12                           (yearly)
 
+// Päivämäärät näyttöaikavyöhykkeessä (timezone.js), jos se on ladattu; muuten tavallinen Date.
+function recDate(...args) {
+  return typeof MeetskoTZ !== 'undefined' ? MeetskoTZ.zdate(...args) : new Date(...args);
+}
+
 const RECURRENCE_MAX_OCCURRENCES = 52;
 
 const RECURRENCE_TIME_WINDOWS = {
@@ -31,20 +36,20 @@ function recIsWeekend(date) {
 }
 
 function recStartOfDay(date) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  return recDate(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 function recAddDays(date, n) {
-  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + n);
+  return recDate(date.getFullYear(), date.getMonth(), date.getDate() + n);
 }
 
 // Kuukauden n:s viikonpäivä; nth = 5 tarkoittaa viimeistä.
 function recNthWeekdayOfMonth(year, monthIdx, weekday, nth) {
   if (nth === 5) {
-    const last = new Date(year, monthIdx + 1, 0);
+    const last = recDate(year, monthIdx + 1, 0);
     return recAddDays(last, -((recWeekdayOf(last) - weekday + 7) % 7));
   }
-  const first = new Date(year, monthIdx, 1);
+  const first = recDate(year, monthIdx, 1);
   return recAddDays(first, ((weekday - recWeekdayOf(first) + 7) % 7) + (nth - 1) * 7);
 }
 
@@ -151,7 +156,7 @@ function recSearchDays(freq, date) {
 // smart = true  → varatulle kerralle haetaan lähin vapaa aika sallituilta
 //                 päiviltä; jos ei löydy, pidetään alkuperäinen aika.
 function recBuildOccurrences({ rule, firstStartMs, durationMs, count, endDate, smart }, ctx) {
-  const first = new Date(firstStartMs);
+  const first = recDate(firstStartMs);
   const standardMinutes = first.getHours() * 60 + first.getMinutes();
   const dates = recOccurrenceDates(rule, first, { count, endDate });
 
@@ -159,7 +164,7 @@ function recBuildOccurrences({ rule, firstStartMs, durationMs, count, endDate, s
   let prevEndMs = 0;
 
   dates.forEach((date, idx) => {
-    const target = new Date(date);
+    const target = recDate(date);
     target.setMinutes(standardMinutes);
     const targetStartMs = idx === 0 ? firstStartMs : target.getTime();
     let startMs = targetStartMs;
@@ -188,7 +193,7 @@ function recFindNearestFree(targetStartMs, durationMs, days, notBeforeMs, ctx) {
   let best = null;
   days.forEach((day) => {
     for (let min = RECURRENCE_DAY_START_HOUR * 60; min + durationMs / 60000 <= RECURRENCE_DAY_END_HOUR * 60; min += RECURRENCE_STEP_MS / 60000) {
-      const s = new Date(day);
+      const s = recDate(day);
       s.setMinutes(min);
       const startMs = s.getTime();
       const endMs = startMs + durationMs;

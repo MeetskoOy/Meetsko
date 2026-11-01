@@ -334,6 +334,8 @@
   .calendar-section .meta { color: var(--text-faint); font-size: 12px; margin-top: 4px; }
 
   .danger-zone { border-top: 1px solid var(--line-soft); margin-top: 18px; padding-top: 14px; }
+  .tz-indicator { font-size: 12px; color: var(--text-faint); text-decoration: none; margin-left: 10px; white-space: nowrap; }
+  .tz-indicator:hover { color: var(--primary); text-decoration: underline; }
   .owner-missing-flag { display: inline-block; font-size: 12px; font-weight: 600; color: #9C2C22; background: var(--danger-soft); padding: 2px 10px; border-radius: 999px; }
     .settings-tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid var(--line-soft); }
   .settings-tab-btn { background: none; border: none; padding: 8px 4px; font-size: 13.5px; color: var(--text-faint); cursor: pointer; border-bottom: 2px solid transparent; margin: 0; }
@@ -461,6 +463,7 @@
       <div class="bt-left">
         <button type="button" class="date-title" id="dateTitle" onclick="openDatePicker()"></button>
         <input type="date" id="viewDate" class="date-picker-input" tabindex="-1" onchange="onViewDateChange()" />
+        <a class="tz-indicator" id="tzIndicator" href="/oma-profiili.html" data-i18n-title="tz_indicator_title"></a>
       </div>
       <div class="bt-right">
         <span class="fetched" id="fetchedSummary"></span>
@@ -508,6 +511,12 @@
 <script src="/nav.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  // Ajat näytetään käyttäjän valitsemassa aikavyöhykkeessä (Oma profiili), ei selaimen
+  // (timezone.js: zdate toimii kuten new Date näyttöaikavyöhykkeessä). Viimeksi käytetty
+  // aikavyöhyke otetaan muistista heti, ja tilakysely (viewerTimeZone) vahvistaa sen.
+  const zdate = MeetskoTZ.zdate;
+  const VIEW_TZ_KEY = 'meetsko_view_tz';
+  try { MeetskoTZ.setViewZone(localStorage.getItem(VIEW_TZ_KEY)); } catch (e) {}
 AppNav.mount('projects');
 const paramsUrl = new URLSearchParams(window.location.search);
   const PROJECT_ID = paramsUrl.get('id');
@@ -672,11 +681,11 @@ const paramsUrl = new URLSearchParams(window.location.search);
   }
 
   function todayDateStr() {
-    return toDateStr(new Date());
+    return toDateStr(zdate());
   }
 
   function stepDay(dateStr, direction) {
-    const d = new Date(dateStr + 'T00:00:00');
+    const d = zdate(dateStr + 'T00:00:00');
     do {
       d.setDate(d.getDate() + direction);
     } while (hideWeekends && (d.getDay() === 0 || d.getDay() === 6));
@@ -702,7 +711,7 @@ function bufferDates(anchor) {
   }
 
   function itemDateStr(item) {
-    const d = new Date(item.start.dateTime + 'Z');
+    const d = zdate(item.start.dateTime + 'Z');
     return toDateStr(d);
   }
 
@@ -713,7 +722,7 @@ function bufferDates(anchor) {
     const wdShort = weekdayShortArr();
     let html = '';
     dates.forEach((dateStr, i) => {
-      const d = new Date(dateStr + 'T00:00:00');
+      const d = zdate(dateStr + 'T00:00:00');
       const label = wdShort[(d.getDay() + 6) % 7] + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.';
       if (showDayLabels) {
         html += `<div class="day-label" style="left:${i * DAY_VISIBLE_PX}px; width:${DAY_VISIBLE_PX}px;">${label}</div>`;
@@ -748,60 +757,70 @@ function bufferDates(anchor) {
     return html;
   }
 
-  function busyBlocksHtml(items, anchor, who) {
-    const dates = bufferDates(anchor);
+  // Jakso näyttöaikavyöhykkeen päiville: keskiyön ylittävä varaus tai rajaus piirretään
+  // jokaiselle päivälle, jolle se osuu (aikavyöhykkeiden välillä tällaisia syntyy usein).
+  function daySegments(startMs, endMs) {
+    const segs = [];
+    let cur = startMs;
+    while (cur < endMs && segs.length < 400) {
+      const d = zdate(cur);
+      const next = zdate(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+      const segEnd = Math.min(endMs, next);
+      const e = zdate(segEnd);
+      segs.push({
+        dateStr: toDateStr(d),
+        startMin: d.getHours() * 60 + d.getMinutes(),
+        endMin: segEnd === next ? 1440 : e.getHours() * 60 + e.getMinutes(),
+      });
+      cur = segEnd;
+    }
+    return segs;
+  }
+
+  // Näkyvän ikkunan (8–18 / 24 h) lohkot jaksolle; dates = puskurin päivät.
+  function blockPositions(startMs, endMs, dates) {
     const winStart = HOURS_START * 60;
     const winEnd = HOURS_END * 60;
+    const out = [];
+    daySegments(startMs, endMs).forEach((seg) => {
+      const dayIdx = dates.indexOf(seg.dateStr);
+      if (dayIdx === -1) return;
+      if (seg.endMin <= winStart || seg.startMin >= winEnd) return;
+      const startMin = Math.max(seg.startMin, winStart);
+      const endMin = Math.min(seg.endMin, winEnd);
+      if (endMin <= startMin) return;
+      out.push({ leftPx: dayIdx * DAY_VISIBLE_PX + (startMin - winStart) * PX_PER_MIN, widthPx: (endMin - startMin) * PX_PER_MIN });
+    });
+    return out;
+  }
+
+  function busyBlocksHtml(items, anchor, who) {
+    const dates = bufferDates(anchor);
+    const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
     let html = '';
     (items || []).forEach((item) => {
       if (item.status !== 'busy') return;
-      const dateStr = itemDateStr(item);
-      const dayIdx = dates.indexOf(dateStr);
-      if (dayIdx === -1) return;
-
-      const start = new Date(item.start.dateTime + 'Z');
-      const end = new Date(item.end.dateTime + 'Z');
-      let startMin = start.getHours() * 60 + start.getMinutes();
-      let endMin = end.getHours() * 60 + end.getMinutes();
-      if (endMin <= startMin) endMin = 1440;
-
-      if (endMin <= winStart || startMin >= winEnd) return;
-      startMin = Math.max(startMin, winStart);
-      endMin = Math.min(endMin, winEnd);
-
-      const leftPx = dayIdx * DAY_VISIBLE_PX + (startMin - winStart) * PX_PER_MIN;
-      const widthPx = (endMin - startMin) * PX_PER_MIN;
-      const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
+      const start = zdate(item.start.dateTime + 'Z');
+      const end = zdate(item.end.dateTime + 'Z');
       const startLabel = start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
       const endLabel = end.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
       const tip = who
         ? `${who} · ${t('busy_lower')} ${startLabel}–${endLabel}`
         : `${t('legend_busy')} ${startLabel}–${endLabel}`;
-      html += `<div class="busy-block" style="left:${leftPx}px; width:${widthPx}px;" data-tip="${escapeAttr(tip)}"></div>`;
+      blockPositions(start.getTime(), end.getTime(), dates).forEach((b) => {
+        html += `<div class="busy-block" style="left:${b.leftPx}px; width:${b.widthPx}px;" data-tip="${escapeAttr(tip)}"></div>`;
+      });
     });
     return html;
   }
 
     function restrictedBlocksHtml(ranges, anchor) {
     const dates = bufferDates(anchor);
-    const winStart = HOURS_START * 60;
-    const winEnd = HOURS_END * 60;
     let html = '';
     (ranges || []).forEach((r) => {
-      const dateStr = itemDateStr({ start: { dateTime: r.start } });
-      const dayIdx = dates.indexOf(dateStr);
-      if (dayIdx === -1) return;
-      const start = new Date(r.start + 'Z');
-      const end = new Date(r.end + 'Z');
-      let startMin = start.getHours() * 60 + start.getMinutes();
-      let endMin = end.getHours() * 60 + end.getMinutes();
-      if (endMin <= startMin) endMin = 1440;
-      if (endMin <= winStart || startMin >= winEnd) return;
-      startMin = Math.max(startMin, winStart);
-      endMin = Math.min(endMin, winEnd);
-      const leftPx = dayIdx * DAY_VISIBLE_PX + (startMin - winStart) * PX_PER_MIN;
-      const widthPx = (endMin - startMin) * PX_PER_MIN;
-      html += `<div class="restricted-block" style="left:${leftPx}px; width:${widthPx}px;"></div>`;
+      blockPositions(Date.parse(r.start + 'Z'), Date.parse(r.end + 'Z'), dates).forEach((b) => {
+        html += `<div class="restricted-block" style="left:${b.leftPx}px; width:${b.widthPx}px;"></div>`;
+      });
     });
     return html;
   }
@@ -810,7 +829,7 @@ function bufferDates(anchor) {
     const dates = bufferDates(anchor);
     const todayIdx = dates.indexOf(todayDateStr());
     if (todayIdx === -1) return '';
-    const now = new Date();
+    const now = zdate();
     const nowMin = now.getHours() * 60 + now.getMinutes();
     if (nowMin < HOURS_START * 60 || nowMin >= HOURS_END * 60) return '';
     const leftPx = todayIdx * DAY_VISIBLE_PX + (nowMin - HOURS_START * 60) * PX_PER_MIN;
@@ -831,7 +850,7 @@ function bufferDates(anchor) {
   function intervalToBlocks(startMs, endMs) {
     const blocks = [];
     bufferDates().forEach((dateStr, dayIdx) => {
-      const day = new Date(dateStr + 'T00:00:00').getTime();
+      const day = zdate(dateStr + 'T00:00:00').getTime();
       const winStart = day + HOURS_START * 3600000;
       const winEnd = day + HOURS_END * 3600000;
       const s0 = Math.max(startMs, winStart);
@@ -938,13 +957,13 @@ function bufferDates(anchor) {
     participants.forEach((p) => {
       (p.scheduleItems || []).forEach((i) => {
         if (i.status !== 'busy') return;
-        busy.push({ s: new Date(i.start.dateTime + 'Z').getTime(), e: new Date(i.end.dateTime + 'Z').getTime() });
+        busy.push({ s: zdate(i.start.dateTime + 'Z').getTime(), e: zdate(i.end.dateTime + 'Z').getTime() });
       });
     });
 
     let html = '';
     bufferDates(anchor).forEach((dateStr, dayIdx) => {
-      const day = new Date(dateStr + 'T00:00:00');
+      const day = zdate(dateStr + 'T00:00:00');
       const winStartMs = day.getTime() + HOURS_START * 3600000;
       const winEndMs = day.getTime() + HOURS_END * 3600000;
       const toPx = (ms) => dayIdx * DAY_VISIBLE_PX + (ms - winStartMs) / 60000 * PX_PER_MIN;
@@ -962,7 +981,7 @@ function bufferDates(anchor) {
         });
 
       merged.forEach((b) => {
-        const tip = `${t('legend_someone_busy')} ${formatHourMinute(new Date(b.s))}–${formatHourMinute(new Date(b.e))}`;
+        const tip = `${t('legend_someone_busy')} ${formatHourMinute(zdate(b.s))}–${formatHourMinute(zdate(b.e))}`;
         html += `<div class="someone-busy-block" style="left:${toPx(b.s)}px; width:${toPx(b.e) - toPx(b.s)}px;" data-tip="${tip}"></div>`;
       });
 
@@ -981,7 +1000,7 @@ function bufferDates(anchor) {
       gaps
         .filter((g) => g.e - g.s >= ALL_FREE_MIN_MINUTES * 60000)
         .forEach((g) => {
-          const label = `${formatHourMinute(new Date(g.s))}–${formatHourMinute(new Date(g.e))}`;
+          const label = `${formatHourMinute(zdate(g.s))}–${formatHourMinute(zdate(g.e))}`;
           const width = toPx(g.e) - toPx(g.s);
           html += `<div class="all-free-block" style="left:${toPx(g.s)}px; width:${width}px;" data-tip="${t('legend_all_free')} ${label}">${width >= 56 ? label : ''}</div>`;
         });
@@ -995,7 +1014,7 @@ function bufferDates(anchor) {
     if (!el) return;
     const dates = bufferDates();
     const todayIdx = dates.indexOf(todayDateStr());
-    const now = new Date();
+    const now = zdate();
     const nowMin = now.getHours() * 60 + now.getMinutes();
     if (todayIdx === -1 || nowMin < HOURS_START * 60 || nowMin >= HOURS_END * 60) {
       el.innerHTML = '';
@@ -1073,7 +1092,7 @@ function bufferDates(anchor) {
     const wdFull = weekdayFullArr();
     let html = '';
     bufferDates().forEach((dateStr, i) => {
-      const d = new Date(dateStr + 'T00:00:00');
+      const d = zdate(dateStr + 'T00:00:00');
       const wd = wdFull[(d.getDay() + 6) % 7];
       const label = wd.charAt(0).toUpperCase() + wd.slice(1) + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.';
       if (i > 0) html += `<div class="ruler-day-divider" style="left:${i * DAY_VISIBLE_PX}px;"></div>`;
@@ -1182,7 +1201,7 @@ function bufferDates(anchor) {
 
   function updateDateTitle(dateStr) {
     if (!dateStr) return;
-    const d = new Date(dateStr + 'T00:00:00');
+    const d = zdate(dateStr + 'T00:00:00');
     const wdName = weekdayFullArr()[(d.getDay() + 6) % 7];
     document.getElementById('dateTitle').textContent =
       wdName.charAt(0).toUpperCase() + wdName.slice(1) + ' ' + d.getDate() + '. ' + monthFullArr()[d.getMonth()] + ' ' + d.getFullYear();
@@ -1247,6 +1266,7 @@ async function loadStatus() {
     }
 
       sortParticipantsByName(data);
+      applyViewTimeZone(data.viewerTimeZone);
       latestStatus = data;
     currentUserEmail = data.currentUserEmail;
     canWriteCalendar = !!data.currentUserCanWrite;
@@ -1284,6 +1304,18 @@ async function loadStatus() {
         </div>
       `;
     }
+  }
+
+  // Katsojan aikavyöhyke profiilista (tyhjä = selaimen). Muistetaan seuraavaa latausta varten.
+  function applyViewTimeZone(tz) {
+    const zone = MeetskoTZ.isValid(tz) ? tz : MeetskoTZ.browserZone();
+    MeetskoTZ.setViewZone(zone);
+    try { localStorage.setItem(VIEW_TZ_KEY, zone); } catch (e) {}
+    const el = document.getElementById('tzIndicator');
+    if (!el) return;
+    const browserZone = MeetskoTZ.browserZone();
+    el.textContent = t('tz_indicator', { zone: MeetskoTZ.label(zone) })
+      + (browserZone !== zone ? ' · ' + t('tz_indicator_browser', { zone: browserZone.replace(/_/g, ' ') }) : '');
   }
 
   // Osallistujat aakkosjärjestykseen etunimen mukaan (ilman nimeä sähköpostin mukaan) kaikissa
@@ -1372,7 +1404,7 @@ async function loadStatus() {
     if (authorized.length === 0) {
       fetchedEl.textContent = t('no_schedules_fetched');
     } else {
-      const latest = new Date(authorized.reduce((a, b) => (new Date(a.fetchedAt) > new Date(b.fetchedAt) ? a : b)).fetchedAt);
+      const latest = zdate(authorized.reduce((a, b) => (zdate(a.fetchedAt) > zdate(b.fetchedAt) ? a : b)).fetchedAt);
       fetchedEl.textContent = t('fetched_at') + ' ' + latest.getDate() + '.' + (latest.getMonth() + 1) + '. '
         + String(latest.getHours()).padStart(2, '0') + '.' + String(latest.getMinutes()).padStart(2, '0');
     }
@@ -1655,9 +1687,9 @@ async function loadStatus() {
       return;
     }
 
-    const now = new Date();
-    const localStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
-    const localEnd = new Date(now.getFullYear(), now.getMonth() + 3, now.getDate(), 0, 0, 0);
+    const now = zdate();
+    const localStart = zdate(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const localEnd = zdate(now.getFullYear(), now.getMonth() + 3, now.getDate(), 0, 0, 0);
     const startTime = localStart.toISOString().slice(0, 19);
     const endTime = localEnd.toISOString().slice(0, 19);
 
@@ -1907,7 +1939,7 @@ function openGroupModal() {
   // enintään kerran vuorokaudessa; palvelin tarkistaa saman).
   function reminderSectionHtml(p) {
     if (p.status === 'authorized' || !isAdminForProject(latestStatus)) return '';
-    const last = p.lastReminderAt ? new Date(p.lastReminderAt) : null;
+    const last = p.lastReminderAt ? zdate(p.lastReminderAt) : null;
     const recent = last && (Date.now() - last.getTime()) < 24 * 3600 * 1000;
     const lastText = last
       ? t('reminder_last_sent', { when: last.toLocaleString(getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' }) })
@@ -2037,8 +2069,8 @@ function openGroupModal() {
       const data = await res.json();
       projectEvents = (data.events || []).map((e) => ({
         ...e,
-        startMs: new Date(e.start_at).getTime(),
-        endMs: new Date(e.end_at).getTime(),
+        startMs: zdate(e.start_at).getTime(),
+        endMs: zdate(e.end_at).getTime(),
       }));
     } catch (err) {
       console.error('Tapahtumien haku epäonnistui', err);
@@ -2065,12 +2097,12 @@ function openGroupModal() {
 
   function formatTimeRange(startMs, endMs) {
     const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
-    const f = (ms) => new Date(ms).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    const f = (ms) => zdate(ms).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
     return `${f(startMs)}–${f(endMs)}`;
   }
 
   function formatDayHeading(ms) {
-    const d = new Date(ms);
+    const d = zdate(ms);
     const wd = weekdayFullArr()[(d.getDay() + 6) % 7];
     return wd.charAt(0).toUpperCase() + wd.slice(1) + ' ' + d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
   }
@@ -2182,7 +2214,7 @@ function openGroupModal() {
       rangeFrom: '', rangeTo: '', preferMorning: false, preferMidday: false, preferAfternoon: false,
       mode: 'single', rec: defaultRecurrenceState(), recRule: null, recCtx: null, occurrences: null,
       results: [{ startMs: e.startMs, endMs: e.endMs }], selectedResultIdx: 0,
-      calAnchor: toDateStr(new Date(e.startMs)), selStart: e.startMs, selEnd: e.endMs,
+      calAnchor: toDateStr(zdate(e.startMs)), selStart: e.startMs, selEnd: e.endMs,
       draftId: null, draftRemovedCount: 0,
       inviteTitle: e.title || '', inviteBody: e.body || '', inviteHidden: !!e.hidden,
       editEvent: {
@@ -2220,8 +2252,8 @@ function openGroupModal() {
     const changes = {};
     const summary = [];
     if (slot.startMs !== o.startMs || slot.endMs !== o.endMs) {
-      changes.startIso = new Date(slot.startMs).toISOString();
-      changes.endIso = new Date(slot.endMs).toISOString();
+      changes.startIso = zdate(slot.startMs).toISOString();
+      changes.endIso = zdate(slot.endMs).toISOString();
       summary.push({ label: t('edit_change_time'), from: formatEventSpan(o.startMs, o.endMs), to: formatEventSpan(slot.startMs, slot.endMs) });
     }
     const title = (s.inviteTitle || '').trim();
@@ -2392,13 +2424,13 @@ function openGroupModal() {
 
   function formatClock(ms) {
     const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
-    return new Date(ms).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
+    return zdate(ms).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   }
 
   // Koko aikaväli: samana päivänä "Ma 19.10.2026 10.00–11.00", useana päivänä
   // "Ke 15.10.2026 10.00 – Ti 21.10.2026 11.00".
   function formatEventSpan(startMs, endMs) {
-    if (toDateStr(new Date(startMs)) === toDateStr(new Date(endMs - 1))) {
+    if (toDateStr(zdate(startMs)) === toDateStr(zdate(endMs - 1))) {
       return `${formatDayHeading(startMs)} ${formatTimeRange(startMs, endMs)}`;
     }
     return `${formatDayHeading(startMs)} ${formatClock(startMs)} – ${formatDayHeading(endMs)} ${formatClock(endMs)}`;
@@ -2409,9 +2441,9 @@ function openGroupModal() {
   // viimeinen 00.00–loppu.
   function eventDaySegments(e) {
     const segs = [];
-    let dayStart = new Date(e.startMs); dayStart.setHours(0, 0, 0, 0);
+    let dayStart = zdate(e.startMs); dayStart.setHours(0, 0, 0, 0);
     while (dayStart.getTime() < e.endMs) {
-      const next = new Date(dayStart); next.setDate(next.getDate() + 1);
+      const next = zdate(dayStart); next.setDate(next.getDate() + 1);
       const segStart = Math.max(e.startMs, dayStart.getTime());
       const segEnd = Math.min(e.endMs, next.getTime());
       if (segEnd > segStart) {
@@ -2431,7 +2463,7 @@ function openGroupModal() {
     let html = '';
     let currentDay = null;
     segments.forEach((seg) => {
-      const day = toDateStr(new Date(seg.startMs));
+      const day = toDateStr(zdate(seg.startMs));
       if (day !== currentDay) {
         currentDay = day;
         html += `<div class="ev-day">${formatDayHeading(seg.startMs)}</div>`;
@@ -2605,8 +2637,8 @@ function openGroupModal() {
           draftId: s.draftId || null,
           title: s.inviteTitle || '',
           payload,
-          firstStartAt: intervals.length ? new Date(intervals[0].startMs).toISOString() : null,
-          lastEndAt: intervals.length ? new Date(intervals[intervals.length - 1].endMs).toISOString() : null,
+          firstStartAt: intervals.length ? zdate(intervals[0].startMs).toISOString() : null,
+          lastEndAt: intervals.length ? zdate(intervals[intervals.length - 1].endMs).toISOString() : null,
         }),
       });
       const data = await res.json();
@@ -2653,7 +2685,7 @@ function openGroupModal() {
     const s = eventModalState;
     if (s.selStart && s.selEnd) {
       s.results = [{ startMs: s.selStart, endMs: s.selEnd }];
-      s.calAnchor = toDateStr(new Date(s.selStart));
+      s.calAnchor = toDateStr(zdate(s.selStart));
     }
     if (Object.keys(s.peopleRoles).length + Object.keys(s.groupRoles).length === 0) return true;
 
@@ -2738,7 +2770,7 @@ function openGroupModal() {
     s.selEnd = clicked + durationMs;
     s.results = [{ startMs: s.selStart, endMs: s.selEnd }];
     s.selectedResultIdx = 0;
-    s.calAnchor = toDateStr(new Date(clicked));
+    s.calAnchor = toDateStr(zdate(clicked));
     renderEventResultsStep({ scroll: 'selection' });
   }
 
@@ -2775,7 +2807,7 @@ function openGroupModal() {
   }
 
   function defaultRecurrenceState() {
-    const next = new Date();
+    const next = zdate();
     next.setMonth(next.getMonth() + 1);
     return {
       freq: 'weekly',
@@ -2944,6 +2976,7 @@ function openGroupModal() {
         <div class="modal event-modal">
           ${modalCloseButtonHtml()}
           <h3>${s.editEvent ? t('edit_event_heading') : t('modal_new_event')}</h3>
+          <p class="empty-note" style="margin:-4px 0 10px;">${t('tz_indicator', { zone: MeetskoTZ.label(MeetskoTZ.getViewZone()) })}</p>
           ${draftEditNoteHtml()}
 
           <div class="event-two-col" style="margin-top:14px;">
@@ -2999,7 +3032,7 @@ function openGroupModal() {
     if (!p || !p.scheduleItems) return [];
     return withoutEditedEvent(p.scheduleItems
       .filter((i) => i.status === 'busy')
-      .map((i) => ({ startMs: new Date(i.start.dateTime + 'Z').getTime(), endMs: new Date(i.end.dateTime + 'Z').getTime() })));
+      .map((i) => ({ startMs: zdate(i.start.dateTime + 'Z').getTime(), endMs: zdate(i.end.dateTime + 'Z').getTime() })));
   }
 
   function resolveGroupBusy(id) {
@@ -3007,7 +3040,7 @@ function openGroupModal() {
     if (!g) return [];
     return withoutEditedEvent(groupMergedItems(g)
       .filter((i) => i.status === 'busy')
-      .map((i) => ({ startMs: new Date(i.start.dateTime + 'Z').getTime(), endMs: new Date(i.end.dateTime + 'Z').getTime() })));
+      .map((i) => ({ startMs: zdate(i.start.dateTime + 'Z').getTime(), endMs: zdate(i.end.dateTime + 'Z').getTime() })));
   }
 
   function overlapsMs(s1, e1, s2, e2) {
@@ -3021,7 +3054,7 @@ function openGroupModal() {
     const dayStartHour = 8;
     const dayEndHour = 18;
 
-    let cursor = new Date(searchStart);
+    let cursor = zdate(searchStart);
     cursor.setSeconds(0, 0);
     const rem = cursor.getMinutes() % 15;
     if (rem !== 0) cursor.setMinutes(cursor.getMinutes() + (15 - rem));
@@ -3049,7 +3082,7 @@ function openGroupModal() {
           candidates.push({ startMs: slotStart, endMs: slotEnd, optionalConflicts, prefersMatch });
         }
       }
-      cursor = new Date(cursor.getTime() + stepMs);
+      cursor = zdate(cursor.getTime() + stepMs);
     }
 
     candidates.sort((a, b) => {
@@ -3101,9 +3134,9 @@ function openGroupModal() {
     if (!busy) return;
     const { requiredBusy, optionalBusyLists } = busy;
 
-    const now = new Date();
-    const searchStart = s.rangeFrom ? new Date(s.rangeFrom) : now;
-    const searchEnd = s.rangeTo ? new Date(s.rangeTo) : new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+    const now = zdate();
+    const searchStart = s.rangeFrom ? zdate(s.rangeFrom) : now;
+    const searchEnd = s.rangeTo ? zdate(s.rangeTo) : zdate(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
     const preferWindows = [];
     if (s.preferMorning) preferWindows.push({ start: 8, end: 11 });
@@ -3128,21 +3161,21 @@ function openGroupModal() {
     s.selectedResultIdx = 0;
     s.selStart = results[0].startMs;
     s.selEnd = results[0].endMs;
-    s.calAnchor = toDateStr(new Date(results[0].startMs));
+    s.calAnchor = toDateStr(zdate(results[0].startMs));
     renderEventResultsStep();
   }
 
   // Kalenteridata haetaan 3 kk eteenpäin (ks. kalenterien päivitys) —
   // sen jälkeisiä aikoja ei voi tarkistaa.
   function scheduleHorizonMs() {
-    const now = new Date();
-    return new Date(now.getFullYear(), now.getMonth() + 3, now.getDate()).getTime();
+    const now = zdate();
+    return zdate(now.getFullYear(), now.getMonth() + 3, now.getDate()).getTime();
   }
 
   function parseDateInput(value) {
     if (!value) return null;
     const [y, m, d] = value.split('-').map(Number);
-    return new Date(y, m - 1, d);
+    return zdate(y, m - 1, d);
   }
 
   function recRuleFromState(r) {
@@ -3160,7 +3193,7 @@ function openGroupModal() {
       return { count, endDate: null };
     }
     const endDate = parseDateInput(r.endDate);
-    const startFrom = parseDateInput(r.startFrom) || new Date();
+    const startFrom = parseDateInput(r.startFrom) || zdate();
     if (!endDate || endDate <= recStartOfDay(startFrom)) {
       AppDialog.alert(t('rec_alert_end_date'));
       return null;
@@ -3178,7 +3211,7 @@ function openGroupModal() {
     if (!recEndCondition(r)) return;
 
     // Aikaisintaan huomisesta, ettei ensimmäiseksi ehdoteta jo mennyttä aikaa.
-    const tomorrow = recAddDays(recStartOfDay(new Date()), 1);
+    const tomorrow = recAddDays(recStartOfDay(zdate()), 1);
     const startFrom = parseDateInput(r.startFrom);
     const from = startFrom && startFrom > tomorrow ? startFrom : tomorrow;
     const firstDate = recNextMatchingDate(recRuleFromState(r), from);
@@ -3187,7 +3220,7 @@ function openGroupModal() {
     const win = RECURRENCE_TIME_WINDOWS[r.window];
     const durationMinutes = Number(s.duration) || 30;
     const searchDays = r.freq === 'monthly' || r.freq === 'yearly' ? 4 : 1;
-    const searchStart = new Date(Math.max(firstDate.getTime(), Date.now()));
+    const searchStart = zdate(Math.max(firstDate.getTime(), Date.now()));
     const searchEnd = recAddDays(firstDate, searchDays);
 
     let results = findAvailableSlots({
@@ -3201,7 +3234,7 @@ function openGroupModal() {
 
     // Ei vapaata: näytetään silti säännön mukainen aika, jota käyttäjä voi siirtää.
     if (results.length === 0) {
-      const start = new Date(firstDate);
+      const start = zdate(firstDate);
       start.setHours(win.start, 0, 0, 0);
       results = [{ startMs: start.getTime(), endMs: start.getTime() + durationMinutes * 60000 }];
     }
@@ -3210,7 +3243,7 @@ function openGroupModal() {
     s.selectedResultIdx = 0;
     s.selStart = results[0].startMs;
     s.selEnd = results[0].endMs;
-    s.calAnchor = toDateStr(new Date(results[0].startMs));
+    s.calAnchor = toDateStr(zdate(results[0].startMs));
     s.occurrences = null;
     renderEventResultsStep();
   }
@@ -3225,7 +3258,7 @@ function openGroupModal() {
     const busy = collectEventBusy();
     if (!busy) return false;
 
-    const firstDate = new Date(s.selStart);
+    const firstDate = zdate(s.selStart);
     const rule = recDeriveRuleFromDate(recRuleFromState(r), firstDate);
     if (!recMatchesRule(firstDate, rule)) {
       AppDialog.alert(t('rec_alert_weekday_only'));
@@ -3303,7 +3336,7 @@ function openGroupModal() {
     s.selectedResultIdx = 0;
     s.selStart = o.startMs;
     s.selEnd = o.endMs;
-    s.calAnchor = toDateStr(new Date(o.startMs));
+    s.calAnchor = toDateStr(zdate(o.startMs));
     renderEventResultsStep({ scroll: 'selection' });
   }
 
@@ -3325,7 +3358,7 @@ function openGroupModal() {
 
   function updateOccurrenceStart(idx, value) {
     const s = eventModalState;
-    const startMs = new Date(value).getTime();
+    const startMs = zdate(value).getTime();
     if (isNaN(startMs)) return;
     const o = s.occurrences[idx];
     const durationMs = o.endMs - o.startMs;
@@ -3344,7 +3377,7 @@ function openGroupModal() {
   }
 
   function formatDateShort(ms) {
-    const d = new Date(ms);
+    const d = zdate(ms);
     return d.getDate() + '.' + (d.getMonth() + 1) + '.' + d.getFullYear();
   }
 
@@ -3357,10 +3390,10 @@ function openGroupModal() {
       nth: t('rec_nth_' + rule.nth),
       month: t('rec_month_nom_' + rule.month),
     };
-    const first = new Date(occ[0].startMs);
+    const first = zdate(occ[0].startMs);
     const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
     const fmt = (d) => d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
-    const time = fmt(first) + '–' + fmt(new Date(occ[0].endMs));
+    const time = fmt(first) + '–' + fmt(zdate(occ[0].endMs));
     return t('rec_summary_' + rule.freq, vars) + ' · ' + t('rec_summary_details', {
       time,
       count: occ.length,
@@ -3374,8 +3407,8 @@ function openGroupModal() {
   }
 
   function formatSlotLabel(slot) {
-    const start = new Date(slot.startMs);
-    const end = new Date(slot.endMs);
+    const start = zdate(slot.startMs);
+    const end = zdate(slot.endMs);
     const wd = weekdayShortArr()[(start.getDay() + 6) % 7];
     const dateStr = start.getDate() + '.' + (start.getMonth() + 1) + '.';
     const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
@@ -3403,7 +3436,7 @@ function openGroupModal() {
   // ---- Valitun ajan raahaus/venytys-toiminnot ----
 
   function pxForTimestamp(ms, anchor) {
-    const d = new Date(ms);
+    const d = zdate(ms);
     const dayIdx = bufferDates(anchor).indexOf(toDateStr(d));
     if (dayIdx === -1) return null;
     const minutes = d.getHours() * 60 + d.getMinutes();
@@ -3417,13 +3450,13 @@ function openGroupModal() {
     const right = pxForTimestamp(s.selEnd, s.calAnchor);
     if (left === null || right === null) return '';
     const conflict = (items || []).some((i) =>
-      i.status === 'busy' && overlapsMs(s.selStart, s.selEnd, new Date(i.start.dateTime + 'Z').getTime(), new Date(i.end.dateTime + 'Z').getTime())
+      i.status === 'busy' && overlapsMs(s.selStart, s.selEnd, zdate(i.start.dateTime + 'Z').getTime(), zdate(i.end.dateTime + 'Z').getTime())
     );
     return `<div class="sel-overlay ${conflict ? 'sel-overlay-conflict' : 'sel-overlay-free'}" style="left:${left}px; width:${right - left}px;"></div>`;
   }
 
   function formatDatetimeLocal(ms) {
-    const d = new Date(ms);
+    const d = zdate(ms);
     return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0')
       + 'T' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
   }
@@ -3437,7 +3470,7 @@ function openGroupModal() {
     const minutesFromWindowStart = withinDayPx / PX_PER_MIN;
     const totalMinutes = HOURS_START * 60 + minutesFromWindowStart;
     const snappedMinutes = Math.round(totalMinutes / 15) * 15;
-    const d = new Date(dateStr + 'T00:00:00');
+    const d = zdate(dateStr + 'T00:00:00');
     d.setMinutes(snappedMinutes);
     return d.getTime();
   }
@@ -3555,7 +3588,7 @@ function openGroupModal() {
   }
 
   function dtFieldInner(value) {
-    const label = value ? formatDtValue(new Date(value).getTime()) : t('dtp_optional_placeholder');
+    const label = value ? formatDtValue(zdate(value).getTime()) : t('dtp_optional_placeholder');
     return `${CAL_ICON_HTML}<span style="flex:1;">${label}</span>`;
   }
 
@@ -3567,14 +3600,14 @@ function openGroupModal() {
   function dtpValue(which) {
     const s = eventModalState;
     if (dtp.kind === 'sel') return which === 'end' ? s.selEnd : s.selStart;
-    return s[dtp.kind] ? new Date(s[dtp.kind]).getTime() : null;
+    return s[dtp.kind] ? zdate(s[dtp.kind]).getTime() : null;
   }
 
   function openDtp(kind) {
     const s = eventModalState;
-    const base = kind === 'sel' ? s.selStart : (s[kind] ? new Date(s[kind]).getTime() : Date.now());
-    const d = new Date(base);
-    dtp = { kind, active: 'start', view: new Date(d.getFullYear(), d.getMonth(), 1), error: '' };
+    const base = kind === 'sel' ? s.selStart : (s[kind] ? zdate(s[kind]).getTime() : Date.now());
+    const d = zdate(base);
+    dtp = { kind, active: 'start', view: zdate(d.getFullYear(), d.getMonth(), 1), error: '' };
     renderDtp(true);
   }
 
@@ -3590,24 +3623,24 @@ function openGroupModal() {
 
   function dtpSetActive(which) {
     dtp.active = which;
-    const d = new Date(dtpValue(which));
-    dtp.view = new Date(d.getFullYear(), d.getMonth(), 1);
+    const d = zdate(dtpValue(which));
+    dtp.view = zdate(d.getFullYear(), d.getMonth(), 1);
     dtp.error = '';
     renderDtp(true);
   }
 
   function dtpShiftMonth(delta) {
-    dtp.view = new Date(dtp.view.getFullYear(), dtp.view.getMonth() + delta, 1);
+    dtp.view = zdate(dtp.view.getFullYear(), dtp.view.getMonth() + delta, 1);
     renderDtp(false);
   }
 
   function minutesOfDay(ms) {
-    const d = new Date(ms);
+    const d = zdate(ms);
     return d.getHours() * 60 + d.getMinutes();
   }
 
   function atDateAndMinutes(dateStr, minutes) {
-    const d = new Date(dateStr + 'T00:00:00');
+    const d = zdate(dateStr + 'T00:00:00');
     d.setMinutes(minutes);
     return d.getTime();
   }
@@ -3619,7 +3652,7 @@ function openGroupModal() {
     if (dtp.kind !== 'sel') {
       const cur = dtpValue('start');
       const defaultMinutes = dtp.kind === 'rangeFrom' ? 8 * 60 : 18 * 60;
-      const date = dateStr || toDateStr(new Date(cur || Date.now()));
+      const date = dateStr || toDateStr(zdate(cur || Date.now()));
       const mins = minutes !== null ? minutes : (cur !== null ? minutesOfDay(cur) : defaultMinutes);
       s[dtp.kind] = formatDatetimeLocal(atDateAndMinutes(date, mins));
       const field = document.getElementById(dtpTriggerId(dtp.kind));
@@ -3628,11 +3661,11 @@ function openGroupModal() {
       return;
     }
     if (dtp.active === 'start') {
-      const date = dateStr || toDateStr(new Date(s.selStart));
+      const date = dateStr || toDateStr(zdate(s.selStart));
       const newStart = atDateAndMinutes(date, minutes !== null ? minutes : minutesOfDay(s.selStart));
       applySelection(newStart, newStart + (s.selEnd - s.selStart));
     } else {
-      const date = dateStr || toDateStr(new Date(s.selEnd));
+      const date = dateStr || toDateStr(zdate(s.selEnd));
       const newEnd = atDateAndMinutes(date, minutes !== null ? minutes : minutesOfDay(s.selEnd));
       if (newEnd <= s.selStart) {
         dtp.error = t('dtp_end_before_start');
@@ -3667,16 +3700,16 @@ function openGroupModal() {
     const activeMs = dtpValue(dtp.active);
     const startMs = dtpValue('start');
     const endMs = isSel ? dtpValue('end') : null;
-    const startDay = startMs !== null ? toDateStr(new Date(startMs)) : null;
-    const endDay = endMs !== null ? toDateStr(new Date(endMs)) : null;
+    const startDay = startMs !== null ? toDateStr(zdate(startMs)) : null;
+    const endDay = endMs !== null ? toDateStr(zdate(endMs)) : null;
 
     // Kuukausikalenteri, viikko alkaa maanantaista.
     const first = dtp.view;
     const offset = (first.getDay() + 6) % 7;
-    const gridStart = new Date(first.getFullYear(), first.getMonth(), 1 - offset);
+    const gridStart = zdate(first.getFullYear(), first.getMonth(), 1 - offset);
     let days = '';
     for (let i = 0; i < 42; i++) {
-      const d = new Date(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i);
+      const d = zdate(gridStart.getFullYear(), gridStart.getMonth(), gridStart.getDate() + i);
       const ds = toDateStr(d);
       const cls = ['dtp-day'];
       if (d.getMonth() !== first.getMonth()) cls.push('other');
@@ -3850,7 +3883,7 @@ function openGroupModal() {
   }
 
   function isInEventBuffer(ms) {
-    return bufferDates(eventModalState.calAnchor).includes(toDateStr(new Date(ms)));
+    return bufferDates(eventModalState.calAnchor).includes(toDateStr(zdate(ms)));
   }
 
   // Valinta keskelle näkyvää aluetta vain, jos se ei jo näy.
@@ -3876,7 +3909,7 @@ function openGroupModal() {
     if (isInEventBuffer(startMs)) {
       renderEventResultsStep({ scroll: 'keep' });
     } else {
-      s.calAnchor = toDateStr(new Date(startMs));
+      s.calAnchor = toDateStr(zdate(startMs));
       renderEventResultsStep({ scroll: 'selection' });
     }
   }
@@ -3905,7 +3938,7 @@ function openGroupModal() {
   function scrollEventCalToSelected() {
     const el = document.getElementById('eventTimelineCol');
     if (!el) return;
-    const start = new Date(eventModalState.selStart);
+    const start = zdate(eventModalState.selStart);
     const minutesFromWindowStart = (start.getHours() * 60 + start.getMinutes()) - HOURS_START * 60;
     el.scrollLeft = DAY_VISIBLE_PX + Math.max(0, minutesFromWindowStart) * PX_PER_MIN;
   }
@@ -4131,24 +4164,25 @@ function openGroupModal() {
       optionalIds: optional.map((a) => a.id),
       subject: s.inviteTitle,
       body: s.inviteBody || '',
-      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Helsinki',
+      // Kutsu Outlookiin näyttöaikavyöhykkeessä: toistuva sarja pysyy samassa kellonajassa.
+      timeZone: MeetskoTZ.getViewZone(),
       hidden: !!s.inviteHidden,
     };
-    const isoOf = (ms) => new Date(ms).toISOString();
+    const isoOf = (ms) => zdate(ms).toISOString();
 
     if (isRecurringSeries() && s.rec.smart) {
       // Älykäs aikataulutus: erilliset kokoukset, koska kellonajat voivat vaihdella.
       payload.occurrences = s.occurrences.map((o) => ({
-        start: localDateTimeString(new Date(o.startMs)),
-        end: localDateTimeString(new Date(o.endMs)),
+        start: localDateTimeString(zdate(o.startMs)),
+        end: localDateTimeString(zdate(o.endMs)),
         startIso: isoOf(o.startMs),
         endIso: isoOf(o.endMs),
       }));
       payload.seriesInfo = { ...s.recRule, smart: true };
     } else {
       const slot = isRecurringSeries() ? s.occurrences[0] : selectedSlot();
-      payload.start = localDateTimeString(new Date(slot.startMs));
-      payload.end = localDateTimeString(new Date(slot.endMs));
+      payload.start = localDateTimeString(zdate(slot.startMs));
+      payload.end = localDateTimeString(zdate(slot.endMs));
       payload.startIso = isoOf(slot.startMs);
       payload.endIso = isoOf(slot.endMs);
       if (isRecurringSeries()) {
@@ -4196,7 +4230,7 @@ function openGroupModal() {
         ? t('rec_sent_series_body', { occurrences: s.occurrences.length, count: data.attendeeCount })
         : t('invite_sent_body', { count: data.attendeeCount });
     const failedHtml = (data.failed || []).length
-      ? `<p class="invite-note">${t('rec_sent_failed_label')}<br>${data.failed.map((f) => `${formatDateShort(new Date(f.start).getTime())} ${f.start.slice(11, 16)} – ${f.error}`).join('<br>')}</p>`
+      ? `<p class="invite-note">${t('rec_sent_failed_label')}<br>${data.failed.map((f) => `${formatDateShort(zdate(f.start).getTime())} ${f.start.slice(11, 16)} – ${f.error}`).join('<br>')}</p>`
       : '';
     // Erillisillä kokouksilla jokaisella on oma Teams-linkki — ne löytyvät kalenterista.
     const teamsHtml = !separate && data.teamsUrl
@@ -4255,8 +4289,8 @@ async function openSettingsModal() {
       calendarWrite: !!data.calendarWrite,
       tokenUpdatedAt: data.tokenUpdatedAt,
       fullyHidden: !!data.fullyHidden,
-      // Piilotusajat ja rajoitusjaksot näytetään käyttäjän aikavyöhykkeessä (oletus selaimen).
-      timeZone: MeetskoTZ.isValid(data.timeZone) ? data.timeZone : MeetskoTZ.browserZone(),
+      // Kaikki ajat näytetään ja syötetään näyttöaikavyöhykkeessä (sama kuin aikajanalla).
+      timeZone: MeetskoTZ.getViewZone(),
       windowsByDay: { 0: [], 1: [], 2: [], 3: [], 4: [], 5: [], 6: [] },
       blackouts: [],
     };
@@ -4266,6 +4300,9 @@ async function openSettingsModal() {
       const end = w.end_time.slice(0, 5) === '24:00' ? '00:00' : w.end_time.slice(0, 5);
       settingsState.windowsByDay[w.weekday].push({ start: w.start_time.slice(0, 5), end });
     });
+    // Viikoittaiset piilotusajat muunnetaan aikavyöhykkeestä, jossa ne tallennettiin.
+    const windowsTimeZone = MeetskoTZ.isValid(data.windowsTimeZone) ? data.windowsTimeZone : settingsState.timeZone;
+    settingsState.windowsByDay = MeetskoTZ.convertWindowsByDay(settingsState.windowsByDay, windowsTimeZone, settingsState.timeZone);
     (data.blackouts || []).forEach((b) => {
       settingsState.blackouts.push({
         startAt: MeetskoTZ.isoToLocalInput(b.start_at, settingsState.timeZone),
@@ -4302,7 +4339,7 @@ async function openSettingsModal() {
     const s = settingsState;
     const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
     if (s.calendarStatus === 'authorized') {
-      const updated = s.tokenUpdatedAt ? new Date(s.tokenUpdatedAt).toLocaleString(locale) : '–';
+      const updated = s.tokenUpdatedAt ? zdate(s.tokenUpdatedAt).toLocaleString(locale) : '–';
       // Kun kirjoitusoikeuskin on annettu, molemmat ovat samassa laatikossa: kirjoitusoikeutta
       // ei voi perua erikseen (Microsoftin suostumukset kasautuvat), joten tarjotaan vain molempien poisto.
       const bothGranted = s.calendarWrite && currentAuthProvider !== 'google';
@@ -4521,9 +4558,7 @@ async function openSettingsModal() {
       ${calendarSectionHtml()}
       ${writeAccessSectionHtml()}
 
-      <label style="margin-top:0;">${t('time_zone_label')}</label>
-      <select style="width:100%;" onchange="settingsState.timeZone = this.value; renderSettingsModal();">${MeetskoTZ.optionsHtml(settingsState.timeZone)}</select>
-      <p class="empty-note" style="margin-top:4px;">${t('time_zone_note')}${settingsState.timeZone !== MeetskoTZ.browserZone() ? ' ' + t('time_zone_browser_note', { zone: MeetskoTZ.label(MeetskoTZ.browserZone()) }) : ''}</p>
+      <p class="empty-note" style="margin:0 0 4px;">${t('settings_tz_info', { zone: MeetskoTZ.label(settingsState.timeZone) })} <a href="/oma-profiili.html">${t('settings_tz_change')}</a></p>
 
       <label style="margin-top:16px;">${t('show_calendar_to_others')}</label>
       <p class="empty-note" style="margin-top:-2px;">${t('show_calendar_note')}</p>
@@ -4715,7 +4750,7 @@ async function openSettingsModal() {
         fullyHidden: settingsState.fullyHidden,
         hiddenWindows,
         blackouts,
-        timeZone: tz,
+        windowsTimeZone: tz,
       }),
     });
     const data = await res.json();
