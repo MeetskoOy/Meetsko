@@ -169,6 +169,7 @@
         <div>
           <label for="organizationInput">${t('organization_label')} *</label>
           <input type="text" id="organizationInput" value="${escapeHtml(data.organization)}" ${data.orgLocked ? 'disabled' : ''} />
+          ${data.orgLocked ? `<p class="empty-note" style="margin-top:4px;">${t('org_locked_note')}</p>` : ''}
         </div>
         <div>
           <label for="teamInput">${t('team_label')}</label>

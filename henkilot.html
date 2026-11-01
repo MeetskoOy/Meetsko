@@ -168,7 +168,7 @@
       const name = (p.firstName || p.lastName) ? `${p.firstName || ''} ${p.lastName || ''}`.trim() : '';
 
       const orgTags = p.organizations.map((o) =>
-        `<span class="tag">${escapeHtml(o.organizationName)} — ${o.role === 'superuser' ? t('role_suffix_superuser') : t('role_suffix_member')}</span>`
+        `<span class="tag">${escapeHtml(o.organizationName)} — ${t({ superuser: 'role_suffix_superuser', domain_creator: 'role_suffix_domain_creator', domain_user: 'role_suffix_domain_user' }[o.role] || 'role_suffix_member')}</span>`
       ).join('') || `<span class="muted">${t('empty_no_org_memberships')}</span>`;
 
       const projectTags = p.projects.map((pr) => {

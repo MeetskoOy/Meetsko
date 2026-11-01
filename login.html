@@ -126,7 +126,8 @@
     const profileData = await profileRes.json();
 
     if (!profileData.profileCompleted) {
-      showFirstLoginProfilePopup(data.organizationName || null);
+      // Asiakasorganisaation jäsenellä (listattu tai domain) organisaatio on lukittu sen nimeen.
+      showFirstLoginProfilePopup(profileData.orgLocked ? profileData.organization : (data.organizationName || null));
       return;
     }
 

@@ -190,7 +190,8 @@
         <label>${t('title_label')}</label>
         <input type="text" id="regTitle" value="${p.title}" />
         <label>${t('organization_label')} *</label>
-        <input type="text" id="regOrganization" value="${p.organization}" />
+        <input type="text" id="regOrganization" value="${p.organization}" ${inviteInfo.orgLocked ? 'disabled' : ''} />
+        ${inviteInfo.orgLocked ? `<p class="empty-note">${t('org_locked_note')}</p>` : ''}
 
         <p id="regError" style="color:var(--danger); font-size:13px; margin:10px 0 0;"></p>
         <button onclick="saveProfile()">${t('save_and_continue_btn')}</button>
