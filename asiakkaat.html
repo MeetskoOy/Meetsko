@@ -257,11 +257,12 @@
           <button type="button" class="secondary small" onclick="addSuperuser()">${t('add_superuser_btn')}</button>
         </div>
 
-        <div class="field">
+        <div class="field" id="membersField" style="${org.access_mode === 'domain' ? 'display:none;' : ''}">
           <label>${t('other_members_label')}</label>
           <div id="memberRows">${memberRows}</div>
           <button type="button" class="secondary small" onclick="addMember()">${t('add_member_btn')}</button>
         </div>
+        <p class="note" id="membersDomainNote" style="${org.access_mode === 'domain' ? '' : 'display:none;'}">${t('members_domain_all_note')}</p>
 
         <div class="btn-row">
           <button class="secondary" onclick="renderList()">${t('cancel')}</button>
@@ -280,6 +281,9 @@
   function toggleDomainField() {
     const mode = document.querySelector('input[name="accessMode"]:checked').value;
     document.getElementById('domainsNote').textContent = t(mode === 'domain' ? 'email_domains_note_domain' : 'email_domains_note_restricted');
+    // "Koko domain": kaikilla domainin käyttäjillä on projektinluontioikeus, erillistä listaa ei tarvita.
+    document.getElementById('membersField').style.display = mode === 'domain' ? 'none' : '';
+    document.getElementById('membersDomainNote').style.display = mode === 'domain' ? '' : 'none';
   }
 
   // Organisaation domainit: lomakkeen kenttä (pilkulla tai välilyönnillä erotettuna).

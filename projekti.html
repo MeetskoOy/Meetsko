@@ -606,8 +606,11 @@ const paramsUrl = new URLSearchParams(window.location.search);
   // toistaiseksi aina false, jolloin lähetysnappi on harmaa.
   let canWriteCalendar = false;
 
-  // null = automaattinen: osio on kiinni, jos se on tyhjä. Käyttäjän valinta ohittaa.
+  // null = automaattinen: osio on kiinni, jos se on tyhjä. Käyttäjän valinta ohittaa ja
+  // muistetaan projektikohtaisesti selaimessa (kuten laajennetut ryhmät).
+  const SECTIONS_KEY = 'meetsko_sections_' + PROJECT_ID;
   let sectionCollapsed = { people: null, owngroups: null, projectgroups: null };
+  try { Object.assign(sectionCollapsed, JSON.parse(localStorage.getItem(SECTIONS_KEY) || '{}')); } catch (e) {}
   const sectionCounts = {};
 
   function isSectionCollapsed(section) {
@@ -1243,6 +1246,7 @@ async function loadStatus() {
       return;
     }
 
+      sortParticipantsByName(data);
       latestStatus = data;
     currentUserEmail = data.currentUserEmail;
     canWriteCalendar = !!data.currentUserCanWrite;
@@ -1282,8 +1286,19 @@ async function loadStatus() {
     }
   }
 
+  // Osallistujat aakkosjärjestykseen etunimen mukaan (ilman nimeä sähköpostin mukaan) kaikissa
+  // listoissa: aikajana, ryhmien jäsenet, asetukset ja tapahtuman osallistujavalinnat.
+  function sortParticipantsByName(data) {
+    const key = (p) => `${p.firstName || ''} ${p.lastName || ''}`.trim() || p.email;
+    (data.participants || []).sort((a, b) => key(a).localeCompare(key(b), 'fi', { sensitivity: 'base' }));
+    const order = new Map((data.participants || []).map((p, i) => [p.id, i]));
+    (data.groups || []).forEach((g) => (g.members || []).sort(
+      (a, b) => (order.has(a.participantId) ? order.get(a.participantId) : 1e9) - (order.has(b.participantId) ? order.get(b.participantId) : 1e9)));
+  }
+
   function toggleSection(section) {
     sectionCollapsed[section] = !isSectionCollapsed(section);
+    try { localStorage.setItem(SECTIONS_KEY, JSON.stringify(sectionCollapsed)); } catch (e) {}
     renderAll();
   }
 
@@ -1574,16 +1589,34 @@ async function loadStatus() {
 
     const links = [];
     const errors = [];
+    const newDomains = new Set();
 
     for (const r of rowsToSend) {
       const data = await submitParticipantInvite(r.email.trim(), r.firstName, r.lastName, r.title, r.role);
-      if (data.error) errors.push(`${r.email}: ${data.error}`);
-      else links.push(`${t('invite_link_label')} (${r.email}): <a href="${data.inviteLink}" target="_blank">${data.inviteLink}</a>`);
+      if (data.error) { errors.push(`${r.email}: ${data.error}`); continue; }
+      (data.newDomains || []).forEach((d) => newDomains.add(d));
+      if (!data.self) links.push(`${t('invite_link_label')} (${r.email}): <a href="${data.inviteLink}" target="_blank">${data.inviteLink}</a>`);
     }
 
     closeModal();
-    document.getElementById('inviteResult').innerHTML = links.join('<br>') + (errors.length ? '<br>' + t('error_prefix') + ': ' + errors.join(', ') : '');
+    document.getElementById('inviteResult').innerHTML = links.join('<br>');
+    // Virheet (esim. sama osoite jo projektissa) näkyvät selvästi omassa ikkunassa.
+    if (errors.length) await AppDialog.alert(t('add_participant_errors') + '\n\n' + errors.join('\n'));
+    // Uusi domain: IT-yhteyshenkilö tietosuojailmoitusta varten, kuten projektin luonnissa.
+    if (newDomains.size) await askItContacts([...newDomains]);
     loadStatus();
+  }
+
+  async function askItContacts(domains) {
+    const entries = [];
+    for (const domain of domains) {
+      const contact = (await AppDialog.prompt(t('new_domain_prompt_project', { domain }))) || '';
+      entries.push({ domain, itContactEmail: contact.trim() });
+    }
+    await AppNav.fetch(`${SUPABASE_URL}/functions/v1/register-domain-contacts`, {
+      method: 'POST',
+      body: JSON.stringify({ entries, context: `project:${PROJECT_ID}` }),
+    });
   }
 
   async function addMyselfToProject() {

@@ -9,8 +9,6 @@
 <link rel="stylesheet" href="/app.css" />
 <style>
   .form-scope input[type=text], .form-scope input[type=email] { width: 100%; }
-  .client-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
-  .client-row input { flex: 1; }
 
   .member-header, .member-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1.4fr 130px 28px; gap: 8px; align-items: center; }
   .member-header { font-size: 12px; font-weight: 500; color: var(--text-faint); margin-bottom: 6px; }
@@ -57,17 +55,6 @@
         <select id="orgPicker" style="width:100%;"></select>
         <p class="note" data-i18n="owning_org_note"></p>
       </div>
-    </div>
-
-    <div class="card-section">
-      <h2 data-i18n="heading_client_orgs"></h2>
-      <div id="clientRows">
-        <div class="client-row">
-          <input type="text" data-i18n-placeholder="client_name_placeholder" />
-          <button type="button" class="icon-remove" onclick="removeClientRow(this)">✕</button>
-        </div>
-      </div>
-      <button class="secondary small add-row" type="button" onclick="addClientRow()" data-i18n="add_new_btn"></button>
     </div>
 
     <div class="card-section">
@@ -175,21 +162,6 @@
     window.location.reload();
   }
 
-  function addClientRow() {
-    const div = document.createElement('div');
-    div.className = 'client-row';
-    div.innerHTML = `
-      <input type="text" placeholder="${t('client_name_placeholder')}" />
-      <button type="button" class="icon-remove" onclick="removeClientRow(this)">✕</button>
-    `;
-    document.getElementById('clientRows').appendChild(div);
-  }
-
-  function removeClientRow(btn) {
-    const rows = document.getElementById('clientRows');
-    if (rows.children.length > 1) btn.parentElement.remove();
-  }
-
   function addMemberRow() {
     const div = document.createElement('div');
     div.className = 'member-row';
@@ -222,9 +194,8 @@
       return;
     }
 
-    const clientOrganizations = Array.from(document.querySelectorAll('#clientRows .client-row input'))
-      .map((el) => el.value.trim())
-      .filter((v) => v !== '');
+    // Asiakasorganisaatiot-kenttä poistettiin (UAT 11/2026): projektin organisaatio on omistava organisaatio.
+    const clientOrganizations = [];
 
     if (!document.getElementById('addMyselfCheckbox').checked && adminMembers().length === 0) {
       errorEl.textContent = t('owner_required_error');
@@ -336,6 +307,8 @@
     data.invites.forEach((inv) => {
       if (inv.error) {
         html += `<div class="invite-card"><span class="email">${inv.email}</span><span class="status-pill warn">${t('error_prefix')}: ${inv.error}</span></div>`;
+      } else if (inv.self) {
+        html += `<div class="invite-card"><span class="email">${inv.email}</span><div><span class="status-pill ok">${t('invite_self_note')}</span></div></div>`;
       } else {
         const statusHtml = inv.emailSent
           ? `<span class="status-pill ok">✓ ${t('email_sent_ok')}</span>`

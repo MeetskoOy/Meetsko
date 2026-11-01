@@ -440,7 +440,7 @@ const TRANSLATIONS = {
     banner_auth_ok: "Kalenterin valtuutus onnistui.",
     banner_auth_denied: "Valtuutus peruutettiin.",
     banner_auth_error: "Valtuutus epäonnistui, yritä uudelleen.",
-    banner_email_mismatch: "Kirjauduit kalenterivaltuutuksessa eri Microsoft-tilillä kuin kutsu on osoitettu. Käytä samaa tiliä molemmissa vaiheissa.",
+    banner_email_mismatch: "Kirjauduit kalenterin valtuutuksessa eri Microsoft-tilillä kuin projektiin liitetty käyttäjä. Kirjaudu samalla tilillä, jolla kirjauduit Meetskoon, ja yritä uudelleen.",
     invite_not_found: "Kutsua ei löytynyt",
     // Istunto (nav.js) ja organisaatio.html
     error_generic: "Jotain meni pieleen. Yritä uudelleen.",
@@ -459,6 +459,12 @@ const TRANSLATIONS = {
     org_section_creators: "Käyttäjät, joilla on projektinluontioikeus",
     org_section_people: "Organisaation Meetsko-käyttäjät",
     org_superusers_note_member: "Pääkäyttäjät hallitsevat organisaation käyttäjiä ja projekteja. Ota heihin yhteyttä, jos tarvitset projektinluontioikeuden.",
+    required_fields_error: "Etunimi, sukunimi ja organisaatio ovat pakollisia.",
+    add_participant_errors: "Kaikkia osallistujia ei voitu lisätä:",
+    new_domain_prompt_project: "Domain {{domain}} on uusi Meetskossa. Anna halutessasi domainin IT-yhteyshenkilön sähköposti tietosuojailmoitusta varten (voit jättää tyhjäksi):",
+    invite_self_note: "Sinä – kutsua ei lähetetty",
+    org_superusers_note_member_domain: "Pääkäyttäjät hallitsevat organisaation käyttäjiä ja projekteja. Kaikilla organisaation domainin käyttäjillä on projektinluontioikeus.",
+    members_domain_all_note: "Kaikilla organisaation domainin käyttäjillä on projektinluontioikeus, joten erillistä listaa ei tarvita.",
     org_creators_domain_note: "Kaikki organisaation osoitteilla ({{domains}}) kirjautuvat voivat luoda projekteja, joten erillistä listaa ei tarvita.",
     org_creators_note: "Listatut käyttäjät voivat luoda projekteja. Muut organisaation henkilöt osallistuvat projekteihin kutsulla.",
     org_people_note: "Kaikki organisaation osoitteilla Meetskoon kirjautuneet, myös pelkällä projektikutsulla tulleet.",
@@ -1030,7 +1036,7 @@ const TRANSLATIONS = {
     banner_auth_ok: "Calendar authorization succeeded.",
     banner_auth_denied: "Authorization was cancelled.",
     banner_auth_error: "Authorization failed, please try again.",
-    banner_email_mismatch: "You authorized the calendar with a different Microsoft account than the invitation was sent to. Use the same account for both steps.",
+    banner_email_mismatch: "You authorised the calendar with a different Microsoft account than the user added to the project. Sign in with the same account you use for Meetsko and try again.",
     invite_not_found: "Invitation not found",
     team_label: "Function / team",
 
@@ -1074,6 +1080,12 @@ const TRANSLATIONS = {
     org_section_creators: "Users who can create projects",
     org_section_people: "Meetsko users in this organisation",
     org_superusers_note_member: "Administrators manage the organisation's users and projects. Contact them if you need permission to create projects.",
+    required_fields_error: "First name, last name and organisation are required.",
+    add_participant_errors: "Some participants could not be added:",
+    new_domain_prompt_project: "The domain {{domain}} is new to Meetsko. You can optionally give the IT contact email for a privacy notice (or leave blank):",
+    invite_self_note: "You – no invitation sent",
+    org_superusers_note_member_domain: "Administrators manage the organisation's users and projects. Everyone on the organisation's domain can create projects.",
+    members_domain_all_note: "Everyone on the organisation's domain can create projects, so no separate list is needed.",
     org_creators_domain_note: "Anyone signing in with the organisation's addresses ({{domains}}) can create projects, so no separate list is needed.",
     org_creators_note: "Listed users can create projects. Others in the organisation take part in projects by invitation.",
     org_people_note: "Everyone who has signed in to Meetsko with the organisation's addresses, including those who joined through a project invitation only.",
@@ -1246,13 +1258,27 @@ const TRANSLATIONS = {
   },
 };
 
+// Kieli: tallennettu valinta; ensimmäisellä käynnillä selaimen kieli (suomi → fi, muut → en).
+// Sähköpostien englanninkielisen osan linkit tuovat ?lang=en, joka tallennetaan valinnaksi.
+// Kirjautuneen käyttäjän profiilin kieli ohittaa nämä (sivut asettavat sen latauksessa).
 function getCurrentLanguage() {
-  return localStorage.getItem('yhteisikkuna_lang') || 'fi';
+  let stored = null;
+  try { stored = localStorage.getItem('yhteisikkuna_lang'); } catch (e) {}
+  if (stored === 'fi' || stored === 'en') return stored;
+  const nav = (typeof navigator !== 'undefined' && (navigator.language || '')).toLowerCase();
+  return nav.startsWith('fi') ? 'fi' : 'en';
 }
 
 function setCurrentLanguage(lang) {
-  localStorage.setItem('yhteisikkuna_lang', lang);
+  try { localStorage.setItem('yhteisikkuna_lang', lang); } catch (e) {}
 }
+
+(() => {
+  try {
+    const lang = new URLSearchParams(window.location.search).get('lang');
+    if (lang === 'fi' || lang === 'en') setCurrentLanguage(lang);
+  } catch (e) {}
+})();
 
 // t(key, vars) — hakee käännöksen nykyisellä kielellä, tukee {{muuttuja}}-korvausta.
 function t(key, vars) {

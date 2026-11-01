@@ -31,6 +31,10 @@
   .fully-hidden-row { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-top: 18px; color: var(--text); }
   .empty-note { color: var(--text-faint); font-size: 12.5px; }
   .tz-select { width: 100%; }
+  .flag-picker { margin-left: auto; display: flex; gap: 6px; }
+  .flag-btn { background: none; border: 1px solid transparent; border-radius: 6px; font-size: 18px; padding: 3px 7px; margin: 0; cursor: pointer; line-height: 1; width: auto; }
+  .flag-btn:hover { background: rgba(255,255,255,0.08); border-color: transparent; }
+  .flag-btn.active { border-color: #7DA2D6; background: rgba(255,255,255,0.06); }
   .perm-block { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-top: 12px; }
   .perm-block h3 { margin: 0 0 4px; }
   .perm-block .checkmark { margin: 8px 0 0; }
@@ -46,6 +50,10 @@
       <svg width="28" height="28" viewBox="0 0 64 64" aria-hidden="true"><rect x="4" y="4" width="36" height="36" rx="8" fill="#FFFFFF"/><rect x="24" y="24" width="36" height="36" rx="8" fill="#8FB3E8"/><path d="M24 32A8 8 0 0 1 32 24H40V32A8 8 0 0 1 32 40H24Z" fill="#2BB39A"/></svg>
       Meetsko
     </span>
+    <div class="flag-picker">
+      <button type="button" class="flag-btn" id="flagFi" onclick="setInviteLanguage('fi')" aria-label="Suomi">🇫🇮</button>
+      <button type="button" class="flag-btn" id="flagEn" onclick="setInviteLanguage('en')" aria-label="English">🇬🇧</button>
+    </div>
   </div>
 </header>
 
@@ -175,15 +183,16 @@
         <h1>${t('complete_profile_heading')}</h1>
         <p class="sub">${t('project_label')}: <strong>${inviteInfo.projectName}</strong></p>
 
-        <label>${t('first_name_label')}</label>
+        <label>${t('first_name_label')} *</label>
         <input type="text" id="regFirstName" value="${p.firstName}" />
-        <label>${t('last_name_label')}</label>
+        <label>${t('last_name_label')} *</label>
         <input type="text" id="regLastName" value="${p.lastName}" />
         <label>${t('title_label')}</label>
         <input type="text" id="regTitle" value="${p.title}" />
-        <label>${t('organization_label')}</label>
+        <label>${t('organization_label')} *</label>
         <input type="text" id="regOrganization" value="${p.organization}" />
 
+        <p id="regError" style="color:var(--danger); font-size:13px; margin:10px 0 0;"></p>
         <button onclick="saveProfile()">${t('save_and_continue_btn')}</button>
       </div>
     `;
@@ -196,7 +205,13 @@
       lastName: document.getElementById('regLastName').value,
       title: document.getElementById('regTitle').value,
       organization: document.getElementById('regOrganization').value,
+      language: getCurrentLanguage(),
     };
+    // Etunimi, sukunimi ja organisaatio ovat pakollisia (muut näkevät ne projektissa).
+    if (!body.firstName.trim() || !body.lastName.trim() || !body.organization.trim()) {
+      document.getElementById('regError').textContent = t('required_fields_error');
+      return;
+    }
 
     const res = await fetch(`${SUPABASE_URL}/functions/v1/update-invite-profile`, {
       method: 'POST',
@@ -502,6 +517,20 @@
     window.location.href = `/projekti.html?id=${inviteInfo.projectId}`;
   }
 
+  // Kielivalitsin kuten kirjautumissivulla; valinta piirtää nykyisen vaiheen uudelleen.
+  function updateFlagActiveState() {
+    const lang = getCurrentLanguage();
+    document.getElementById('flagFi').classList.toggle('active', lang === 'fi');
+    document.getElementById('flagEn').classList.toggle('active', lang === 'en');
+  }
+
+  function setInviteLanguage(lang) {
+    setCurrentLanguage(lang);
+    updateFlagActiveState();
+    init();
+  }
+
+  updateFlagActiveState();
   init();
 </script>
 

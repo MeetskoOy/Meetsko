@@ -142,11 +142,12 @@
       <div id="profilePopupOverlay" class="modal-overlay">
         <div class="modal-card">
           <h3>${t('complete_profile_heading')}</h3>
-          <div class="field"><label for="fpFirstName">${t('first_name_label')}</label><input type="text" id="fpFirstName" /></div>
-          <div class="field"><label for="fpLastName">${t('last_name_label')}</label><input type="text" id="fpLastName" /></div>
+          <div class="field"><label for="fpFirstName">${t('first_name_label')} *</label><input type="text" id="fpFirstName" /></div>
+          <div class="field"><label for="fpLastName">${t('last_name_label')} *</label><input type="text" id="fpLastName" /></div>
           <div class="field"><label for="fpTitle">${t('title_label')}</label><input type="text" id="fpTitle" /></div>
-          <div class="field"><label for="fpOrganization">${t('organization_label')}</label>${orgFieldHtml}</div>
+          <div class="field"><label for="fpOrganization">${t('organization_label')} *</label>${orgFieldHtml}</div>
           <div class="field"><label for="fpTeam">${t('team_label')}</label><input type="text" id="fpTeam" /></div>
+          <p id="fpError" class="error-text" style="color:var(--danger); font-size:13px; margin:8px 0 0;"></p>
           <div class="btn-row">
             <button onclick="submitFirstLoginProfile('${organizationName ? organizationName.replace(/'/g, "\\'") : ''}')">${t('save_and_continue_btn')}</button>
           </div>
@@ -164,6 +165,11 @@
       team: document.getElementById('fpTeam').value,
       language: getCurrentLanguage(),
     };
+    // Etunimi, sukunimi ja organisaatio ovat pakollisia (muut näkevät ne projekteissa).
+    if (!body.firstName.trim() || !body.lastName.trim() || !body.organization.trim()) {
+      document.getElementById('fpError').textContent = t('required_fields_error');
+      return;
+    }
 
     await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
       method: 'POST',

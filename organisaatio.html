@@ -218,7 +218,7 @@
     return `
       <section class="card-section">
         <h2>${t('org_section_superusers')} <span class="count">${orgData.superusers.length}</span></h2>
-        ${orgData.canManage ? '' : `<p class="section-note">${t('org_superusers_note_member')}</p>`}
+        ${orgData.canManage ? '' : `<p class="section-note">${t(org.accessMode === 'domain' ? 'org_superusers_note_member_domain' : 'org_superusers_note_member')}</p>`}
         ${rows}
         ${orgData.canManage ? addForm('superuser', 'org_add_superuser_btn') : ''}
       </section>

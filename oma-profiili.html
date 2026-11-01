@@ -155,11 +155,11 @@
       </div>
       <div class="field-grid">
         <div>
-          <label for="firstNameInput">${t('first_name_label')}</label>
+          <label for="firstNameInput">${t('first_name_label')} *</label>
           <input type="text" id="firstNameInput" value="${escapeHtml(data.firstName)}" />
         </div>
         <div>
-          <label for="lastNameInput">${t('last_name_label')}</label>
+          <label for="lastNameInput">${t('last_name_label')} *</label>
           <input type="text" id="lastNameInput" value="${escapeHtml(data.lastName)}" />
         </div>
         <div class="full">
@@ -167,7 +167,7 @@
           <input type="text" id="titleInput" value="${escapeHtml(data.title)}" />
         </div>
         <div>
-          <label for="organizationInput">${t('organization_label')}</label>
+          <label for="organizationInput">${t('organization_label')} *</label>
           <input type="text" id="organizationInput" value="${escapeHtml(data.organization)}" ${data.orgLocked ? 'disabled' : ''} />
         </div>
         <div>
@@ -202,6 +202,10 @@
       language: getCurrentLanguage(),
       timeZone: document.getElementById('timeZoneInput').value,
     };
+    if (!body.firstName.trim() || !body.lastName.trim() || !body.organization.trim()) {
+      AppDialog.alert(t('required_fields_error'));
+      return;
+    }
 
     const res = await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
       method: 'POST',
@@ -214,6 +218,15 @@
       AppDialog.alert(t('error_prefix') + ': ' + data.error);
       return;
     }
+
+    // Uusi nimi näkyy heti yläpalkissa ja profiilikortissa ilman sivun päivitystä.
+    loadedProfile = { ...loadedProfile, ...body, firstName: body.firstName.trim(), lastName: body.lastName.trim() };
+    AppNav.setProfile(loadedProfile);
+    const displayName = `${loadedProfile.firstName} ${loadedProfile.lastName}`.trim() || loadedProfile.email;
+    const nameEl = document.querySelector('#profileCard .ph-name');
+    if (nameEl) nameEl.textContent = displayName;
+    const avatarEl = document.querySelector('#profileCard .profile-avatar');
+    if (avatarEl) avatarEl.textContent = AppNav.initials(displayName);
 
     AppDialog.alert(t('alert_profile_saved'));
   }
