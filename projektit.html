@@ -8,6 +8,12 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='36' height='36' rx='8' fill='%231B3A6B'/%3E%3Crect x='24' y='24' width='36' height='36' rx='8' fill='%238FB3E8'/%3E%3Cpath d='M24 32A8 8 0 0 1 32 24H40V32A8 8 0 0 1 32 40H24Z' fill='%232BB39A'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="/app.css" />
 <style>
+  .section-toggle { display: inline-flex; align-items: baseline; gap: 8px; padding: 0; border: 0; background: none; font: inherit; color: inherit; cursor: pointer; }
+  .section-toggle .chevron { display: inline-flex; align-self: center; color: var(--text-muted); transition: transform 0.15s; }
+  .project-section:not(.collapsed) .section-toggle .chevron { transform: rotate(90deg); }
+  .project-section.collapsed .section-body { display: none; }
+  .project-section .section-title { margin-top: 0; }
+  .project-section + .project-section { margin-top: 32px; }
   .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
   .project-card { position: relative; display: flex; flex-direction: column; gap: 14px; min-height: 132px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; color: inherit; text-decoration: none; box-sizing: border-box; transition: border-color 0.15s, box-shadow 0.15s; }
   .project-card:hover { border-color: var(--primary); box-shadow: 0 4px 14px rgba(15,27,45,0.08); }
@@ -93,6 +99,21 @@
   // Muun organisaation projekti merkitään keltaisella (organisaation jäsenille) tai
   // organisaation nimellä (vieraat, joilla ei ole omaa organisaatiota).
   let ownOrganizationId = null;
+
+  // Osioiden pienennys nuolesta. Oletuksena "Oman organisaation kaikki projektit" on
+  // pienennetty; käyttäjän valinta muistetaan selaimessa.
+  const SECTIONS_KEY = 'meetsko_projectSections';
+  const sectionCollapsed = { own: false, all: false, orgall: true };
+  try { Object.assign(sectionCollapsed, JSON.parse(localStorage.getItem(SECTIONS_KEY) || '{}')); } catch (e) {}
+
+  function toggleSection(key) {
+    sectionCollapsed[key] = !sectionCollapsed[key];
+    try { localStorage.setItem(SECTIONS_KEY, JSON.stringify(sectionCollapsed)); } catch (e) {}
+    const el = document.querySelector(`.project-section[data-section="${key}"]`);
+    if (!el) return;
+    el.classList.toggle('collapsed', sectionCollapsed[key]);
+    el.querySelector('.section-toggle').setAttribute('aria-expanded', String(!sectionCollapsed[key]));
+  }
   function orgTagHtml(p) {
     const orgName = p.organizations && p.organizations.name;
     if (!p.organization_id || !orgName) return '';
@@ -123,15 +144,25 @@
     `;
   }
 
-  function sectionHtml(title, projects, showBadge, emptyText, emptyWithButton) {
-    let html = `<h2 class="section-title">${title}<span class="count">${projects.length}</span></h2>`;
+  function sectionHtml(key, title, projects, showBadge, emptyText, emptyWithButton) {
+    const collapsed = !!sectionCollapsed[key];
+    let body;
     if (projects.length === 0) {
       const btn = emptyWithButton && canCreateProjects() ? `<a class="btn secondary" href="/uusiprojekti.html">${t('new_project_link')}</a>` : '';
-      html += `<div class="empty-state"><span>${emptyText}</span>${btn}</div>`;
+      body = `<div class="empty-state"><span>${emptyText}</span>${btn}</div>`;
     } else {
-      html += `<div class="project-grid">${projects.map((p) => projectCardHtml(p, showBadge)).join('')}</div>`;
+      body = `<div class="project-grid">${projects.map((p) => projectCardHtml(p, showBadge)).join('')}</div>`;
     }
-    return html;
+    return `
+      <section class="project-section${collapsed ? ' collapsed' : ''}" data-section="${key}">
+        <h2 class="section-title">
+          <button type="button" class="section-toggle" aria-expanded="${!collapsed}" onclick="toggleSection('${key}')">
+            <span class="chevron"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m4.5 2.5 3.5 3.5-3.5 3.5"/></svg></span>
+            <span>${title}</span><span class="count">${projects.length}</span>
+          </button>
+        </h2>
+        <div class="section-body">${body}</div>
+      </section>`;
   }
 
   async function loadProjects() {
@@ -149,7 +180,7 @@
     if (data.isSuperadmin) {
       const all = data.projects || [];
       document.getElementById('pageSub').textContent = t('meta_projects_count', { count: all.length });
-      content.innerHTML = sectionHtml(t('back_all_projects'), all, false, t('empty_no_projects'), false);
+      content.innerHTML = sectionHtml('all', t('back_all_projects'), all, false, t('empty_no_projects'), false);
       return;
     }
 
@@ -167,9 +198,9 @@
       return;
     }
 
-    let html = sectionHtml(t('section_own_projects'), own, false, t('empty_not_involved'), true);
+    let html = sectionHtml('own', t('section_own_projects'), own, false, t('empty_not_involved'), true);
     if (data.isOrgSuperuser && data.ownOrganizationName) {
-      html += sectionHtml(`${escapeHtml(data.ownOrganizationName)} — ${t('section_org_all_projects')}`, orgAll, true, t('empty_org_no_projects'), false);
+      html += sectionHtml('orgall', `${escapeHtml(data.ownOrganizationName)} — ${t('section_org_all_projects')}`, orgAll, true, t('empty_org_no_projects'), false);
     }
     content.innerHTML = html;
   }
