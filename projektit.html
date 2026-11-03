@@ -12,6 +12,7 @@
   .project-card { position: relative; display: flex; flex-direction: column; gap: 14px; min-height: 132px; padding: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; color: inherit; text-decoration: none; box-sizing: border-box; transition: border-color 0.15s, box-shadow 0.15s; }
   .project-card:hover { border-color: var(--primary); box-shadow: 0 4px 14px rgba(15,27,45,0.08); }
   .project-card .pc-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .project-card .pc-badges { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
   .project-card .pc-icon { width: 36px; height: 36px; border-radius: 8px; background: var(--primary-soft); color: var(--primary); display: flex; align-items: center; justify-content: center; flex: 0 0 36px; }
   .project-card .pc-icon svg { width: 18px; height: 18px; }
   .project-card .pc-name { font-size: 16px; font-weight: 600; line-height: 1.3; word-break: break-word; }
@@ -20,6 +21,8 @@
   .project-card .pc-arrow { color: var(--text-faint); transition: transform 0.15s, color 0.15s; }
   .project-card:hover .pc-arrow { color: var(--primary); transform: translateX(3px); }
   .owner-missing-flag { font-size: 11.5px; font-weight: 600; color: #9C2C22; background: var(--danger-soft); padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+  .other-org-badge { font-size: 11.5px; font-weight: 600; color: #7A5A00; background: #FFF3C4; padding: 3px 10px; border-radius: 999px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+  .org-tag { font-size: 11.5px; font-weight: 600; color: var(--text-muted); background: var(--surface-muted); padding: 3px 10px; border-radius: 999px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
   .involved-badge { font-size: 11.5px; font-weight: 600; color: var(--ok); background: var(--ok-soft); padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
 
   .no-projects { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 28px; max-width: 720px; }
@@ -87,16 +90,29 @@
   const PROJECT_ICON = '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><rect x="2" y="3" width="12" height="11" rx="1.5"/><path d="M2 6.5h12M5.5 1.8v2.4M10.5 1.8v2.4"/></svg>';
   const ARROW_ICON = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4"/></svg>';
 
+  // Muun organisaation projekti merkitään keltaisella (organisaation jäsenille) tai
+  // organisaation nimellä (vieraat, joilla ei ole omaa organisaatiota).
+  let ownOrganizationId = null;
+  function orgTagHtml(p) {
+    const orgName = p.organizations && p.organizations.name;
+    if (!p.organization_id || !orgName) return '';
+    if (ownOrganizationId && p.organization_id === ownOrganizationId) return '';
+    return ownOrganizationId
+      ? `<span class="other-org-badge">${t('other_org_project', { org: escapeHtml(orgName) })}</span>`
+      : `<span class="org-tag">${escapeHtml(orgName)}</span>`;
+  }
+
   function projectCardHtml(p, showBadge) {
     const created = new Date(p.created_at).toLocaleDateString(getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI');
-    const badge = showBadge && p.involved ? `<span class="involved-badge">${t('involved_badge')}</span>` : '';
+    const badge = showBadge && p.involved ? `<span class="involved-badge">${t('involved_badge')}</span>` : orgTagHtml(p);
     // Vastuuhenkilö puuttuu, kun hänet on poistettu Meetskosta eikä projektissa ollut muita ylläpitäjiä.
-    const ownerFlag = 'owner_email' in p && !p.owner_email ? `<span class="owner-missing-flag">${t('owner_missing')}</span>` : '';
+    const ownerFlag = 'owner_email' in p && !p.owner_email ? `<span class="owner-missing-flag">${t('owner_missing')}</span>`
+      : p.ownerOutsideOrg ? `<span class="owner-missing-flag">${t('owner_outside_org')}</span>` : '';
     return `
       <a class="project-card" href="/projekti.html?id=${encodeURIComponent(p.id)}">
         <div class="pc-top">
           <span class="pc-icon">${PROJECT_ICON}</span>
-          ${ownerFlag || badge}
+          <span class="pc-badges">${ownerFlag}${badge}</span>
         </div>
         <div class="pc-name">${escapeHtml(p.name)}</div>
         <div class="pc-foot">
@@ -137,13 +153,16 @@
       return;
     }
 
-    const own = data.groupOwnInvolved || [];
+    ownOrganizationId = data.ownOrganizationId || null;
+    // Omat projektit yhtenä listana: myös muiden organisaatioiden projektit, joihin on
+    // kutsuttu (merkitty keltaisella). Uusin ensin.
+    const own = [...(data.groupOwnInvolved || []), ...(data.groupOtherOrgsInvolved || [])]
+      .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
     const orgAll = data.groupOwnOrgAll || [];
-    const others = data.groupOtherOrgsInvolved || [];
-    document.getElementById('pageSub').textContent = t('meta_projects_count', { count: own.length + others.length });
+    document.getElementById('pageSub').textContent = t('meta_projects_count', { count: own.length });
 
     // Ei yhtään projektia eikä luontioikeutta: kerrotaan, miten pääsee mukaan.
-    if (own.length === 0 && others.length === 0 && !data.isOrgSuperuser && !canCreateProjects()) {
+    if (own.length === 0 && !data.isOrgSuperuser && !canCreateProjects()) {
       content.innerHTML = noProjectsHtml();
       return;
     }
@@ -151,9 +170,6 @@
     let html = sectionHtml(t('section_own_projects'), own, false, t('empty_not_involved'), true);
     if (data.isOrgSuperuser && data.ownOrganizationName) {
       html += sectionHtml(`${escapeHtml(data.ownOrganizationName)} — ${t('section_org_all_projects')}`, orgAll, true, t('empty_org_no_projects'), false);
-    }
-    if (others.length > 0) {
-      html += sectionHtml(t('section_other_orgs_projects'), others, false, '', false);
     }
     content.innerHTML = html;
   }

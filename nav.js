@@ -169,6 +169,39 @@ const AppNav = {
     `);
   },
 
+  // Lyhyt ilmoitus yläreunaan onnistuneesta (kind 'ok', vihreä) tai epäonnistuneesta
+  // ('error', punainen) toiminnosta; häviää itsestään. Sama tyyli kaikilla sivuilla.
+  toast(message, kind = 'ok') {
+    let host = document.getElementById('appToastHost');
+    if (!host) {
+      host = document.createElement('div');
+      host.id = 'appToastHost';
+      host.className = 'app-toast-host';
+      host.setAttribute('role', 'status');
+      host.setAttribute('aria-live', 'polite');
+      document.body.appendChild(host);
+    }
+    const el = document.createElement('div');
+    el.className = 'app-toast ' + (kind === 'error' ? 'error' : 'ok');
+    el.textContent = message;
+    host.appendChild(el);
+    setTimeout(() => { el.classList.add('hide'); setTimeout(() => el.remove(), 300); }, kind === 'error' ? 7000 : 4000);
+  },
+
+  // Sivu, jolle käyttäjällä ei ole pääsyä: koko sisältö korvataan neutraalilla näkymällä
+  // (ei sivun rakennetta, ei tietoa siitä, onko esim. projektia olemassa).
+  showNoAccess() {
+    AppNav.noAccess = true;
+    const main = document.querySelector('main') || document.body;
+    main.innerHTML = `
+      <div class="no-access">
+        <h1>${AppNav.escape(t('no_access_title'))}</h1>
+        <p>${AppNav.escape(t('no_access_body'))}</p>
+        <a class="btn" href="/projektit.html">${AppNav.escape(t('no_access_back'))}</a>
+      </div>
+    `;
+  },
+
   escape(str) {
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   },

@@ -1249,6 +1249,7 @@ function bufferDates(anchor) {
   }
 
 async function loadStatus() {
+    if (AppNav.noAccess) return; // "Ei pääsyä" -näkymä: ei automaattista päivitystä
     if (!PROJECT_ID) {
       document.getElementById('projectName').textContent = t('error_project_id_missing');
       return;
@@ -1261,6 +1262,8 @@ async function loadStatus() {
     const data = await res.json();
 
     if (data.error) {
+      // Ei pääsyä tai projektia ei ole: sama näkymä (ei paljasteta, onko projektia olemassa).
+      if (res.status === 403 || res.status === 404) { AppNav.showNoAccess(); return; }
       document.getElementById('projectName').textContent = t('error_prefix') + ': ' + data.error;
       return;
     }
@@ -1361,6 +1364,8 @@ async function loadStatus() {
     // Vastuuhenkilö voi puuttua, jos hänet on poistettu Meetskosta eikä muita ylläpitäjiä ollut.
     if (ownerEmail) {
       ownerEl.textContent = t('responsible_person') + ' ' + (ownerName ? `${ownerName} (${ownerEmail})` : ownerEmail);
+      // Vanha rikkomus: vastuuhenkilö ei kuulu projektin omistavaan organisaatioon → vaihdettava.
+      if (data.project.ownerOutsideOrg) ownerEl.insertAdjacentHTML('beforeend', ` <span class="owner-missing-flag">${t('owner_outside_org')}</span>`);
     } else {
       ownerEl.innerHTML = `<span class="owner-missing-flag">${t('owner_missing')}</span>`;
     }
@@ -1619,7 +1624,8 @@ async function loadStatus() {
     const rowsToSend = npRows.filter((r) => r.email.trim() !== '');
     if (rowsToSend.length === 0) { AppDialog.alert(t('error_prefix') + ': ' + t('col_email')); return; }
 
-    const links = [];
+    const sent = [];
+    const notSent = [];
     const errors = [];
     const newDomains = new Set();
 
@@ -1627,11 +1633,15 @@ async function loadStatus() {
       const data = await submitParticipantInvite(r.email.trim(), r.firstName, r.lastName, r.title, r.role);
       if (data.error) { errors.push(`${r.email}: ${data.error}`); continue; }
       (data.newDomains || []).forEach((d) => newDomains.add(d));
-      if (!data.self) links.push(`${t('invite_link_label')} (${r.email}): <a href="${data.inviteLink}" target="_blank">${data.inviteLink}</a>`);
+      if (data.emailSent) sent.push(r.email.trim());
+      else if (!data.self) notSent.push(r.email.trim());
     }
 
     closeModal();
-    document.getElementById('inviteResult').innerHTML = links.join('<br>');
+    // Kutsulinkkiä ei näytetä: onnistuneesta vihreä ilmoitus, epäonnistuneesta punainen
+    // (muistutuksen voi lähettää henkilökortista).
+    if (sent.length) AppNav.toast(t('toast_invites_sent', { emails: sent.join(', ') }));
+    if (notSent.length) AppNav.toast(t('toast_invite_email_failed', { emails: notSent.join(', ') }), 'error');
     // Virheet (esim. sama osoite jo projektissa) näkyvät selvästi omassa ikkunassa.
     if (errors.length) await AppDialog.alert(t('add_participant_errors') + '\n\n' + errors.join('\n'));
     // Uusi domain: IT-yhteyshenkilö tietosuojailmoitusta varten, kuten projektin luonnissa.
@@ -1658,6 +1668,7 @@ async function loadStatus() {
       return;
     }
     closeModal();
+    AppNav.toast(t('toast_self_added'));
     loadStatus();
   }
 
@@ -1776,6 +1787,7 @@ function openGroupModal() {
     if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
     closeModal();
+    AppNav.toast(t('toast_group_created', { name }));
     loadStatus();
   }
 
@@ -1803,16 +1815,12 @@ function openGroupModal() {
       : status === 'email_mismatch' ? 'banner_email_mismatch'
       : 'banner_auth_error';
 
-    const el = document.getElementById('inviteResult');
-    el.textContent = t(msgKey);
-    el.style.color = status === 'ok' ? 'var(--ok)' : 'var(--danger)';
+    AppNav.toast(t(msgKey), status === 'ok' ? 'ok' : 'error');
 
     const clean = new URL(window.location.href);
     clean.searchParams.delete('status');
     clean.searchParams.delete('pid');
     window.history.replaceState({}, '', clean.toString());
-
-    setTimeout(() => { el.textContent = ''; el.style.color = ''; }, 8000);
   }
 
   function openGroupDetail(groupId) {
@@ -1875,6 +1883,7 @@ function openGroupModal() {
     const data = await res.json();
     if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
     closeModal();
+    AppNav.toast(t('toast_group_deleted', { name: g.name }));
     await loadStatus();
   }
 
@@ -2658,10 +2667,7 @@ function openGroupModal() {
   }
 
   function showInlineNote(text) {
-    const el = document.getElementById('inviteResult');
-    el.textContent = text;
-    el.style.color = 'var(--ok)';
-    setTimeout(() => { el.textContent = ''; el.style.color = ''; }, 6000);
+    AppNav.toast(text);
   }
 
   // Palauttaa luonnoksen tapahtuman luonnin tilaksi. Palauttaa false, jos
@@ -4620,13 +4626,15 @@ async function openSettingsModal() {
     const currentOwner = (latestStatus.project.owner_email || '').toLowerCase();
     const ownerIsParticipant = latestStatus.participants.some((p) => p.email.toLowerCase() === currentOwner);
     const placeholder = currentOwner ? escapeHtmlText(latestStatus.project.owner_email) : t('owner_missing_choose');
+    // Organisaation projektissa vastuuhenkilöksi vain omistavan organisaation henkilöt (ei vieraita).
+    const candidates = latestStatus.participants.filter((p) => !p.isGuest || p.email.toLowerCase() === currentOwner);
     const options = (ownerIsParticipant ? [] : [`<option value="" selected>${placeholder}</option>`])
-      .concat(latestStatus.participants.map((p) => `
+      .concat(candidates.map((p) => `
         <option value="${escapeHtmlText(p.email)}" ${p.email.toLowerCase() === currentOwner ? 'selected' : ''}>${escapeHtmlText(nameLabelFor(p))} (${escapeHtmlText(p.email)})</option>
       `)).join('');
     return `
       <label style="margin-top:20px;">${t('owner_change_label')}</label>
-      <p class="empty-note" style="margin-top:-2px;">${t('owner_change_note')}</p>
+      <p class="empty-note" style="margin-top:-2px;">${t('owner_change_note')}${latestStatus.project.organization_id ? ' ' + t('owner_change_org_note') : ''}</p>
       <select id="projectOwnerSelect" style="width:100%;">${options}</select>
       <div class="actions" style="margin-top:8px;">
         <button onclick="saveProjectOwner()">${t('owner_change_btn')}</button>
@@ -4650,6 +4658,7 @@ async function openSettingsModal() {
     });
     const data = await res.json();
     if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
+    AppNav.toast(t('toast_owner_changed'));
 
     await loadStatus();
     renderSettingsModal();
@@ -4682,7 +4691,7 @@ async function openSettingsModal() {
     if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
     await loadStatus();
-    AppDialog.alert(t('project_name_saved'));
+    AppNav.toast(t('project_name_saved'));
   }
 
   async function changeParticipantRole(participantId, role) {
@@ -4691,7 +4700,8 @@ async function openSettingsModal() {
       body: JSON.stringify({ projectId: PROJECT_ID, participantId, role }),
     });
     const data = await res.json();
-    if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); }
+    if (data.error) AppDialog.alert(t('error_prefix') + ': ' + data.error);
+    else AppNav.toast(t('toast_role_changed'));
 
     await loadStatus();
     renderSettingsModal();
@@ -4706,6 +4716,7 @@ async function openSettingsModal() {
     });
     const data = await res.json();
     if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
+    AppNav.toast(t('toast_participant_removed', { name }));
 
     await loadStatus();
     renderSettingsModal();
@@ -4716,6 +4727,7 @@ async function openSettingsModal() {
   async function saveSettingsSubmit() {
     if (!(await persistSettings())) return;
     closeModal();
+    AppNav.toast(t('toast_settings_saved'));
     loadStatus();
   }
 

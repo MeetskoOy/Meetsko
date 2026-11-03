@@ -312,8 +312,9 @@
       } else {
         const statusHtml = inv.emailSent
           ? `<span class="status-pill ok">✓ ${t('email_sent_ok')}</span>`
-          : `<span class="status-pill warn">${t('email_sent_fail')}</span>`;
-        html += `<div class="invite-card"><span class="email">${inv.email}</span><a href="${inv.inviteLink}" target="_blank">${inv.inviteLink}</a><div>${statusHtml}</div></div>`;
+          : `<span class="status-pill warn">${t('email_sent_fail_reminder')}</span>`;
+        // Kutsulinkkiä ei näytetä; jos sähköposti ei lähtenyt, muistutuksen voi lähettää henkilökortista.
+        html += `<div class="invite-card"><span class="email">${inv.email}</span><div>${statusHtml}</div></div>`;
       }
     });
 
@@ -339,7 +340,9 @@
     picker.innerHTML = admins.map((m) => `<option value="${escapeHtmlAttr(m.email)}">${escapeHtmlAttr(m.name ? `${m.name} (${m.email})` : m.email)}</option>`).join('');
     if (admins.some((m) => m.email === previous)) picker.value = previous;
     picker.style.display = admins.length ? '' : 'none';
-    document.getElementById('ownerPickerNote').textContent = admins.length ? t('owner_picker_note') : t('owner_required_error');
+    // Organisaation projektissa vastuuhenkilön pitää kuulua omistavaan organisaatioon (palvelin tarkistaa).
+    const hasOrg = myProfileData && (myProfileData.isSuperadmin ? !!document.getElementById('orgPicker').value : !!myProfileData.memberOrganization);
+    document.getElementById('ownerPickerNote').textContent = (admins.length ? t('owner_picker_note') : t('owner_required_error')) + (hasOrg ? ' ' + t('owner_change_org_note') : '');
     wrap.style.display = '';
   }
 

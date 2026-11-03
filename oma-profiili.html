@@ -29,6 +29,8 @@
   .perm-line button { margin-left: auto; }
   .perm-hint { font-size: 12px; color: var(--text-faint); margin: 4px 0 0; text-align: right; }
   .empty-note { color: var(--text-faint); font-size: 13.5px; margin: 0; }
+  .danger-zone { border-top: 1px solid var(--line-soft); margin-top: 22px; padding-top: 16px; }
+  .danger-zone h3 { font-size: 14px; margin: 0 0 6px; }
 
   @media (max-width: 900px) {
     .profile-layout { grid-template-columns: 1fr; }
@@ -188,6 +190,12 @@
       <div class="btn-row">
         <button onclick="saveProfile()">${t('save_btn')}</button>
       </div>
+      ${data.roleKey === 'role_app_admin' ? '' : `
+      <div class="danger-zone">
+        <h3>${t('delete_profile_heading')}</h3>
+        <p class="empty-note">${t('delete_profile_note')}</p>
+        <div class="btn-row"><button class="danger" type="button" onclick="deleteMyProfile()">${t('delete_profile_btn')}</button></div>
+      </div>`}
     `;
 
     loadProjects();
@@ -367,6 +375,21 @@
     if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
 
     loadProjects();
+  }
+
+  // Oman profiilin poisto (delete-my-profile): kaksi vahvistusta, sen jälkeen uloskirjautuminen
+  // ja paluu myyntisivulle. Organisaation viimeistä pääkäyttäjää ei poisteta (palvelin estää).
+  async function deleteMyProfile() {
+    if (!(await AppDialog.confirm(t('confirm_delete_profile_1'), { danger: true }))) return;
+    if (!(await AppDialog.confirm(t('confirm_delete_profile_2'), { danger: true }))) return;
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-my-profile`, { method: 'POST', headers: authHeaders() });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || data.error) {
+      AppDialog.alert(data.code === 'last_org_admin' ? t('delete_profile_last_admin') : t('error_prefix') + ': ' + (data.error || res.status));
+      return;
+    }
+    await client.auth.signOut();
+    window.location.href = 'https://meetsko.com/' + (getCurrentLanguage() === 'en' ? 'en/' : '');
   }
 
   // Näyttää valtuutuksen tuloksen kun on palattu kirjautumisesta,

@@ -53,7 +53,7 @@
   }
 </style>
 </head>
-<body>
+<body class="access-pending">
 
 <div id="appNav"></div>
 
@@ -143,15 +143,16 @@
 
   async function loadOrganization() {
     const data = await AppNav.api('get-my-organization', requestedOrgId ? { organizationId: requestedOrgId } : {});
-    if (data.error) {
-      document.getElementById('content').innerHTML = `<div class="empty-state">${t('error_prefix')}: ${escapeHtml(data.error)}</div>`;
+    const isSuperadmin = myProfileData && myProfileData.isSuperadmin;
+    // Ei organisaatiota tai toisen organisaation sivu: yleinen "Ei pääsyä" -näkymä.
+    if (data.error || (!data.organization && !isSuperadmin)) {
+      AppNav.showNoAccess();
+      document.body.classList.remove('access-pending');
       return;
     }
+    document.body.classList.remove('access-pending');
     if (!data.organization) {
-      const isSuperadmin = myProfileData && myProfileData.isSuperadmin;
-      document.getElementById('content').innerHTML = isSuperadmin
-        ? `<div class="empty-state">${t('org_superadmin_pick')} <a href="/asiakkaat.html">${t('admin_link_clients')}</a></div>`
-        : `<div class="empty-state">${t('org_none')}</div>`;
+      document.getElementById('content').innerHTML = `<div class="empty-state">${t('org_superadmin_pick')} <a href="/asiakkaat.html">${t('admin_link_clients')}</a></div>`;
       return;
     }
     orgData = data;

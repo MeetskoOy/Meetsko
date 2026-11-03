@@ -147,6 +147,17 @@ button.icon-remove:hover { background: none; border: none; color: #9C2C22; }
 .banner.ok { background: var(--ok-soft); color: #165C5C; }
 .banner.error { background: var(--danger-soft); color: #9C2C22; }
 
+/* ---------- Ilmoitukset ja "Ei pääsyä" (nav.js: AppNav.toast, AppNav.showNoAccess) ---------- */
+.app-toast-host { position: fixed; top: 72px; left: 50%; transform: translateX(-50%); z-index: 1100; display: flex; flex-direction: column; gap: 8px; align-items: center; pointer-events: none; padding: 0 16px; width: max-content; max-width: 100%; box-sizing: border-box; }
+.app-toast { pointer-events: auto; padding: 10px 18px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 8px 24px rgba(14,34,64,0.18); transition: opacity 0.3s, transform 0.3s; max-width: 560px; }
+.app-toast.ok { background: var(--ok-soft); color: #165C5C; border: 1px solid #9ED9CC; }
+.app-toast.error { background: var(--danger-soft); color: #9C2C22; border: 1px solid #E8B4AE; }
+.app-toast.hide { opacity: 0; transform: translateY(-6px); }
+body.access-pending main { visibility: hidden; }
+.no-access { max-width: 480px; margin: 80px auto; text-align: center; padding: 0 16px; }
+.no-access h1 { font-size: 24px; margin: 0 0 10px; }
+.no-access p { color: var(--text-muted); font-size: 15px; line-height: 1.5; margin: 0 0 22px; }
+
 /* ---------- Istunto vanhentunut (nav.js: AppNav.showSessionExpired) ---------- */
 body.session-expired > *:not(.session-expired-backdrop) { filter: blur(4px); pointer-events: none; user-select: none; }
 .session-expired-backdrop { position: fixed; inset: 0; background: rgba(14,34,64,0.35); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 16px; }
