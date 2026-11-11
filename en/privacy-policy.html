@@ -43,7 +43,7 @@
       <p class="eyebrow">Privacy</p>
       <h1>Privacy policy</h1>
       <p>Meetsko shows the free and busy times of a project's participants in one shared view, across organisations. This policy explains what personal data the service processes, why, for how long, and how calendar content is protected.</p>
-      <p class="meta">Version 1.0 · 27 October 2026 · Articles 13 and 14 of the EU General Data Protection Regulation (GDPR)</p>
+      <p class="meta">Version 1.1 · 11 November 2026 · Articles 13 and 14 of the EU General Data Protection Regulation (GDPR)</p>
     </div>
   </div>
 
@@ -103,7 +103,7 @@
             <tr><td>Calendar availability</td><td>Start and end times of busy and free periods (free / busy) for a limited period ahead</td><td>Microsoft, with the user's own authorisation</td></tr>
             <tr><td>Visibility restrictions</td><td>Visibility windows and hidden periods set by the user for each project</td><td>The user</td></tr>
             <tr><td>Calendar connection credentials</td><td>Encrypted refresh token, granted permissions (read / read and write), change notification subscription identifier</td><td>Microsoft</td></tr>
-            <tr><td>Events and drafts created in Meetsko</td><td>Title, message, time, recurrence, organiser, invitees, Teams link, calendar event identifier, cancellation status</td><td>The event's creator; time and cancellation from the organiser's calendar</td></tr>
+            <tr><td>Events and drafts created in Meetsko</td><td>Title, message, time, recurrence, organiser, invitees (including email addresses of attendees outside Meetsko), Teams link, calendar event identifier, cancellation status</td><td>The event's creator; time and cancellation from the organiser's calendar</td></tr>
             <tr><td>Activity log</td><td>Project actions: openings, changes to participants and groups, event creation and cancellation, reminders; who and when</td><td>Recorded automatically by the service</td></tr>
             <tr><td>Technical logs</td><td>Sign-ins, errors, timestamps</td><td>Recorded automatically by the service and its sub-processors</td></tr>
             <tr><td>Emails</td><td>Recipient, message content and delivery status</td><td>The service and the email delivery provider</td></tr>
@@ -129,6 +129,7 @@
           <li><b>The user</b>: profile details, visibility restrictions and choices made in the service.</li>
           <li><b>Microsoft</b>: name, email address and calendar availability, always on the basis of the user's own authorisation.</li>
           <li><b>The inviter or an organisation administrator</b>: the invitee's name and email address.</li>
+          <li><b>The event organiser</b>: email addresses of meeting attendees who do not use Meetsko.</li>
         </ol>
         <p>Inviters must make sure they have grounds to process the invitee's contact details. Before authorising, the invitee sees who invited them and to which project.</p>
 
@@ -155,6 +156,7 @@
           <li><b>Own calendar only.</b> The invitation is created in the organiser's own calendar with their own authorisation, and Outlook sends the invitations as usual. Meetsko never writes to other participants' calendars or uses another user's authorisation.</li>
           <li><b>Only the organiser can make changes.</b> An event created in Meetsko can be cancelled from the app only by its organiser.</li>
           <li><b>Sync.</b> For events created in Meetsko, only the time and cancellation status are read from the organiser's calendar to keep the project's event list up to date. The title, message and attendee list are never read from Outlook.</li>
+          <li><b>Attendees outside Meetsko.</b> The organiser can also invite people who do not use Meetsko (up to 20 per event). Only their email address is stored, and it is shown in the project's event list like the event's other attendees. Their calendars are not read and they get no access to Meetsko. The addresses are deleted together with the events (see section 11).</li>
           <li><b>Visibility.</b> Events are visible to project participants unless the creator chooses not to show the event to others. Drafts are visible only to their author. Invitees' responses (accepted / declined) are not shown.</li>
         </ul>
 

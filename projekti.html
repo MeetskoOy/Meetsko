@@ -70,6 +70,15 @@
   .ev-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); }
   .ev-chip.optional { border-style: dashed; color: var(--text-muted); }
   .ev-chip.organizer { border-color: var(--primary); background: var(--primary-soft); }
+  .ev-chip.external { background: var(--bg); }
+  .ev-chip .ext-mark { font-size: 10.5px; font-weight: 700; color: var(--text-faint); text-transform: uppercase; letter-spacing: 0.04em; }
+  .ext-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; padding: 3px 4px 3px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+  .ext-chip.optional { border-style: dashed; }
+  .ext-chip .ext-role { font-size: 11px; color: var(--text-faint); }
+  .ext-chip .ext-remove { border: 0; background: none; padding: 2px 6px; margin: 0; color: var(--text-muted); cursor: pointer; font-size: 12px; line-height: 1; }
+  .ext-add-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
+  .ext-add-row input { flex: 1 1 220px; min-width: 0; }
+  .ext-add-row select, .ext-add-row button { flex: 0 0 auto; margin: 0; }
   .ev-chip .org-mark { font-size: 10.5px; font-weight: 800; color: var(--primary); text-transform: uppercase; letter-spacing: 0.04em; }
   .ev-row.cancelled .ev-name, .ev-row.cancelled .ev-time { text-decoration: line-through; color: var(--text-faint); }
   .ev-past .ev-day, .ev-past .ev-name, .ev-past .ev-time, .ev-past .ev-chip { color: var(--text-faint); }
@@ -2007,8 +2016,9 @@ function openGroupModal() {
     const groups = (role) => Object.entries(roles.groupRoles).filter(([, r]) => r === role)
       .map(([id]) => (latestStatus.groups || []).find((g) => g.id === id)).filter(Boolean)
       .map((g) => chip(g.name, role));
-    const required = [...people('required'), ...groups('required')];
-    const optional = [...people('optional'), ...groups('optional')];
+    const externals = (role) => (payload.externals || []).filter((a) => (a.type || 'required') === role).map((a) => chip(a.email, role));
+    const required = [...people('required'), ...groups('required'), ...externals('required')];
+    const optional = [...people('optional'), ...groups('optional'), ...externals('optional')];
     const times = intervals.length
       ? intervals.map((iv, i) => `<span>${intervals.length > 1 ? (i + 1) + '. ' : ''}${formatSlotLabel(iv)}</span>`).join('')
       : '–';
@@ -2126,6 +2136,8 @@ function openGroupModal() {
     }
     (e.required_ids || []).forEach((id) => chips.push(`<span class="ev-chip">${escapeHtmlText(participantName(id))}</span>`));
     (e.optional_ids || []).forEach((id) => chips.push(`<span class="ev-chip optional">${escapeHtmlText(participantName(id))}</span>`));
+    (e.external_attendees || []).forEach((a) => chips.push(
+      `<span class="ev-chip external ${a.type === 'optional' ? 'optional' : ''}" title="${t('external_attendee_tip')}"><span class="ext-mark">${t('external_mark')}</span>${escapeHtmlText(a.name || a.email)}</span>`));
     const recurring = e.series_id && e.occurrence_count
       ? `<span class="ev-icon" data-tip="${t('event_recurring_tip', { index: e.occurrence_index, count: e.occurrence_count })}">${RECUR_ICON}</span>`
       : '';
@@ -2226,11 +2238,13 @@ function openGroupModal() {
       calAnchor: toDateStr(zdate(e.startMs)), selStart: e.startMs, selEnd: e.endMs,
       draftId: null, draftRemovedCount: 0,
       inviteTitle: e.title || '', inviteBody: e.body || '', inviteHidden: !!e.hidden,
+      externals: (e.external_attendees || []).map((a) => ({ ...a })),
       editEvent: {
         id: e.id, scope, futureCount, seriesId: e.series_id || null,
         original: {
           startMs: e.startMs, endMs: e.endMs, title: e.title || '', body: e.body || '', hidden: !!e.hidden,
           requiredIds: (e.required_ids || []).slice(), optionalIds: (e.optional_ids || []).slice(),
+          externals: (e.external_attendees || []).map((a) => ({ ...a })),
         },
       },
     };
@@ -2276,6 +2290,17 @@ function openGroupModal() {
       const added = [...after].filter((id) => !before.has(id)).map(participantName);
       const removed = [...before].filter((id) => !after.has(id)).map(participantName);
       summary.push({ label: t('edit_change_attendees'), added, removed });
+    }
+    const extKey = (list) => (list || []).map((a) => `${a.email.toLowerCase()}|${a.type}`).sort().join();
+    if (extKey(s.externals) !== extKey(o.externals)) {
+      changes.externalAttendees = s.externals || [];
+      const before = new Set((o.externals || []).map((a) => a.email.toLowerCase()));
+      const after = new Set((s.externals || []).map((a) => a.email.toLowerCase()));
+      summary.push({
+        label: t('edit_change_external'),
+        added: (s.externals || []).filter((a) => !before.has(a.email.toLowerCase())).map((a) => a.email),
+        removed: (o.externals || []).filter((a) => !after.has(a.email.toLowerCase())).map((a) => a.email),
+      });
     }
     if (!!s.inviteHidden !== o.hidden) {
       changes.hidden = !!s.inviteHidden;
@@ -2327,6 +2352,8 @@ function openGroupModal() {
           <div class="chip-row">${attendeeChipsHtml(required)}</div>
           <label>${t('invite_optional_label')} (${optional.length})</label>
           <div class="chip-row">${attendeeChipsHtml(optional)}</div>
+
+          ${externalAttendeesHtml('refreshEditSummary')}
 
           <label class="hide-from-others">
             <input type="checkbox" ${s.inviteHidden ? 'checked' : ''} onchange="eventModalState.inviteHidden = this.checked; refreshEditSummary()" />
@@ -2626,7 +2653,7 @@ function openGroupModal() {
 
   // Tallennettavat kentät: kaikki tapahtuman luonnissa syötetyt tiedot.
   const DRAFT_FIELDS = ['duration', 'peopleRoles', 'groupRoles', 'rangeFrom', 'rangeTo', 'preferMorning', 'preferMidday',
-    'preferAfternoon', 'mode', 'rec', 'recRule', 'occurrences', 'selStart', 'selEnd', 'inviteTitle', 'inviteBody', 'inviteHidden'];
+    'preferAfternoon', 'mode', 'rec', 'recRule', 'occurrences', 'selStart', 'selEnd', 'inviteTitle', 'inviteBody', 'inviteHidden', 'externals', 'recTotal', 'recFirstTargetMs'];
 
   async function saveAsDraft() {
     const s = eventModalState;
@@ -2718,7 +2745,7 @@ function openGroupModal() {
     if (!restoreDraftState(draftId)) return;
     const s = eventModalState;
     if (!s.results) { renderEventSelectionStep(); return; }
-    if (Object.keys(s.peopleRoles).length + Object.keys(s.groupRoles).length === 0) {
+    if (Object.keys(s.peopleRoles).length + Object.keys(s.groupRoles).length + (s.externals || []).length === 0) {
       AppDialog.alert(t('alert_select_attendee'));
       renderEventSelectionStep();
       return;
@@ -2808,6 +2835,7 @@ function openGroupModal() {
       inviteTitle: '',
       inviteBody: '',
       inviteHidden: false,
+      externals: [],
     };
     renderEventSelectionStep();
   }
@@ -3116,9 +3144,15 @@ function openGroupModal() {
     Object.entries(s.peopleRoles).forEach(([id, role]) => (role === 'required' ? requiredIds.people : optionalIds.people).push(id));
     Object.entries(s.groupRoles).forEach(([id, role]) => (role === 'required' ? requiredIds.groups : optionalIds.groups).push(id));
 
+    // Ilman valittuja Meetsko-osallistujia (esim. kokous vain ulkopuolisten kanssa, jotka
+    // lisätään tarkistusvaiheessa) haetaan aikoja oman kalenterin mukaan.
     if (requiredIds.people.length + requiredIds.groups.length + optionalIds.people.length + optionalIds.groups.length === 0) {
-      AppDialog.alert(t('alert_select_attendee'));
-      return null;
+      const own = latestStatus.participants.find((p) => p.email.toLowerCase() === currentUserEmail);
+      if (!own) {
+        AppDialog.alert(t('alert_select_attendee'));
+        return null;
+      }
+      requiredIds.people.push(own.id);
     }
 
     // Omat luonnokset käsitellään varattuina (vain tekijälle — muut eivät näe niitä).
@@ -3287,6 +3321,10 @@ function openGroupModal() {
     s.recRule = rule;
     s.recCtx = ctx;
     s.occurrences = occurrences;
+    // Älykäs sarja lähetetään yhtenä Outlook-sarjana: sarjan säännön kerrat ja ensimmäinen
+    // kerta talteen, vaikka käyttäjä poistaisi kertoja listasta (create-event poistaa ne sarjasta).
+    s.recTotal = occurrences.length;
+    s.recFirstTargetMs = occurrences[0].targetStartMs;
     return true;
   }
 
@@ -4047,6 +4085,68 @@ function openGroupModal() {
     }
   }
 
+  // Meetskon ulkopuoliset osallistujat (päätetty 11.11.2026): sähköpostiosoite ja
+  // pakollinen/valinnainen, enintään 20. Kutsu lähtee heille Outlookista; heidän
+  // kalenteriaan ei huomioida aikaehdotuksissa. Palvelin tarkistaa saman
+  // (_shared/external-attendees.ts). rerender = tarkistusvaiheen piirtofunktion nimi.
+  const MAX_EXTERNAL_ATTENDEES = 20;
+  const EXTERNAL_EMAIL_RE = /^[^\s@<>(),;:"\[\]]+@[^\s@<>(),;:"\[\]]+\.[^\s@<>(),;:"\[\]]{2,}$/;
+
+  function externalAttendeesHtml(rerender) {
+    const list = eventModalState.externals || [];
+    const chips = list.map((a, i) => `
+      <span class="ext-chip ${a.type === 'optional' ? 'optional' : ''}">${escapeHtmlText(a.email)}
+        <span class="ext-role">${t(a.type === 'optional' ? 'optional_btn' : 'required_btn')}</span>
+        <button type="button" class="ext-remove" aria-label="${t('remove_btn_title')}" onclick="removeExternalAttendee(${i}, '${rerender}')">✕</button>
+      </span>`).join('');
+    return `
+      <label>${t('external_attendees_label')} (${list.length}/${MAX_EXTERNAL_ATTENDEES})</label>
+      ${chips ? `<div class="chip-row">${chips}</div>` : ''}
+      ${list.length < MAX_EXTERNAL_ATTENDEES ? `
+      <div class="ext-add-row">
+        <input type="text" inputmode="email" autocomplete="off" id="extEmailInput" placeholder="${t('external_email_placeholder')}"
+               onkeydown="if (event.key === 'Enter') { event.preventDefault(); addExternalAttendee('${rerender}'); }" />
+        <select id="extTypeSelect">
+          <option value="required">${t('required_btn')}</option>
+          <option value="optional">${t('optional_btn')}</option>
+        </select>
+        <button type="button" class="secondary" onclick="addExternalAttendee('${rerender}')">${t('add_btn')}</button>
+      </div>` : ''}
+      <p class="empty-note" style="margin-top:6px;">${t('external_attendees_note')}</p>
+    `;
+  }
+
+  function addExternalAttendee(rerender) {
+    const s = eventModalState;
+    const input = document.getElementById('extEmailInput');
+    const email = (input ? input.value : '').trim();
+    if (!email) return;
+    const type = document.getElementById('extTypeSelect').value === 'optional' ? 'optional' : 'required';
+    if (!EXTERNAL_EMAIL_RE.test(email)) { AppDialog.alert(t('external_invalid_email', { email })); return; }
+    const key = email.toLowerCase();
+    if (key === currentUserEmail) { AppDialog.alert(t('external_is_you')); return; }
+    const participant = latestStatus.participants.find((p) => p.email.toLowerCase() === key);
+    if (participant) { AppDialog.alert(t('external_is_participant', { email })); return; }
+    const list = s.externals || [];
+    if (list.length >= MAX_EXTERNAL_ATTENDEES) return;
+    if (!list.some((a) => a.email.toLowerCase() === key)) s.externals = [...list, { email, name: null, type }];
+    window[rerender]();
+    const next = document.getElementById('extEmailInput');
+    if (next) next.focus();
+  }
+
+  function removeExternalAttendee(index, rerender) {
+    const s = eventModalState;
+    s.externals = (s.externals || []).filter((_, i) => i !== index);
+    window[rerender]();
+  }
+
+  // Kopioitavaan osoiteriviin myös ulkopuoliset (liitettäväksi Outlookiin itse).
+  function withExternalAddresses(base, type) {
+    const ext = (eventModalState.externals || []).filter((a) => a.type === type).map((a) => a.email);
+    return [base, ...ext].filter(Boolean).join('; ');
+  }
+
   function openInviteConfirmStep() {
     const s = eventModalState;
     if (s.editEvent) { renderEditConfirmStep(); return; }
@@ -4061,9 +4161,8 @@ function openGroupModal() {
     const timeHtml = !recurring
       ? `<div class="invite-time">${formatSlotLabel(selectedSlot())}</div>`
       : s.rec.smart
-        ? `<div class="invite-time">${t('rec_separate_meetings', { count: s.occurrences.length })}</div>
-           <p class="empty-note" style="margin-top:2px;">${recurrenceSummaryText()}</p>
-           <p class="empty-note" style="margin-top:2px;">${t('rec_separate_note')}</p>`
+        ? `<div class="invite-time">${recurrenceSummaryText()}</div>
+           <p class="empty-note" style="margin-top:2px;">${t('rec_smart_series_note', { moved: s.occurrences.filter((o) => o.startMs !== o.targetStartMs).length })}</p>`
         : `<div class="invite-time">${recurrenceSummaryText()}</div>
            <p class="empty-note" style="margin-top:2px;">${t('rec_series_note')}</p>`;
     const backAction = recurring && s.rec.smart ? 'renderOccurrenceListStep()' : 'renderEventResultsStep()';
@@ -4104,7 +4203,7 @@ function openGroupModal() {
           <label>${t('invite_required_label')} (${required.length})</label>
           <div class="chip-row">${attendeeChipsHtml(required)}</div>
           <div class="copy-row">
-            <textarea id="copyRequired" class="copy-box" readonly rows="2">${attendeeAddressString(required)}</textarea>
+            <textarea id="copyRequired" class="copy-box" readonly rows="2">${withExternalAddresses(attendeeAddressString(required), 'required')}</textarea>
             <button type="button" class="secondary copy-btn" id="copyRequiredBtn"
                     onclick="copyInviteField('copyRequired')">${t('copy_btn')}</button>
           </div>
@@ -4112,10 +4211,12 @@ function openGroupModal() {
           <label>${t('invite_optional_label')} (${optional.length})</label>
           <div class="chip-row">${attendeeChipsHtml(optional)}</div>
           <div class="copy-row">
-            <textarea id="copyOptional" class="copy-box" readonly rows="2">${attendeeAddressString(optional)}</textarea>
+            <textarea id="copyOptional" class="copy-box" readonly rows="2">${withExternalAddresses(attendeeAddressString(optional), 'optional')}</textarea>
             <button type="button" class="secondary copy-btn" id="copyOptionalBtn"
                     onclick="copyInviteField('copyOptional')">${t('copy_btn')}</button>
           </div>
+
+          ${externalAttendeesHtml('renderInviteConfirmStep')}
 
           ${flagLegend}
 
@@ -4161,13 +4262,29 @@ function openGroupModal() {
   async function sendInviteOnce() {
     const s = eventModalState;
     const btn = document.getElementById('sendInviteBtn');
-    if (btn) { btn.disabled = true; btn.textContent = t('sending_label'); }
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = t('sending_label');
+      // Microsoft luo kokouksen ja Teams-linkin ja lähettää kutsut: kestää usein 5–20 s.
+      const actions = btn.closest('.actions');
+      if (actions && !document.getElementById('sendingNote')) {
+        actions.insertAdjacentHTML('beforebegin', `<p class="invite-note" id="sendingNote">${t('invite_sending_note')}</p>`);
+      }
+    }
 
     const { required, optional } = buildInviteAttendees();
+    const externals = s.externals || [];
+    if (required.length + optional.length + externals.length === 0) {
+      AppDialog.alert(t('alert_select_attendee'));
+      if (btn) { btn.disabled = false; btn.textContent = t('send_invites_btn'); }
+      document.getElementById('sendingNote')?.remove();
+      return;
+    }
     const payload = {
       projectId: PROJECT_ID,
       requiredIds: required.map((a) => a.id),
       optionalIds: optional.map((a) => a.id),
+      externalAttendees: externals,
       subject: s.inviteTitle,
       body: s.inviteBody || '',
       // Kutsu Outlookiin näyttöaikavyöhykkeessä: toistuva sarja pysyy samassa kellonajassa.
@@ -4177,14 +4294,26 @@ function openGroupModal() {
     const isoOf = (ms) => zdate(ms).toISOString();
 
     if (isRecurringSeries() && s.rec.smart) {
-      // Älykäs aikataulutus: erilliset kokoukset, koska kellonajat voivat vaihdella.
-      payload.occurrences = s.occurrences.map((o) => ({
-        start: localDateTimeString(zdate(o.startMs)),
-        end: localDateTimeString(zdate(o.endMs)),
+      // Älykäs aikataulutus yhtenä Outlook-sarjana (create-event sendSmartSeries): sarja
+      // säännön mukaan, siirretyt kerrat poikkeuksiksi, poistetut kerrat pois sarjasta.
+      const durationMs = s.occurrences[0].endMs - s.occurrences[0].startMs;
+      const firstTarget = s.recFirstTargetMs || Math.min(...s.occurrences.map((o) => o.targetStartMs));
+      payload.start = localDateTimeString(zdate(firstTarget));
+      payload.end = localDateTimeString(zdate(firstTarget + durationMs));
+      payload.startIso = isoOf(firstTarget);
+      payload.endIso = isoOf(firstTarget + durationMs);
+      const total = s.recTotal || (s.rec.endType === 'count' ? Number(s.rec.count) : null);
+      payload.recurrence = {
+        ...s.recRule,
+        ...(s.rec.endType === 'count' ? { count: total || s.occurrences.length } : { endDate: s.rec.endDate }),
+      };
+      payload.smartSeries = s.occurrences.map((o) => ({
+        targetIso: isoOf(o.targetStartMs),
         startIso: isoOf(o.startMs),
         endIso: isoOf(o.endMs),
+        start: localDateTimeString(zdate(o.startMs)),
+        end: localDateTimeString(zdate(o.endMs)),
       }));
-      payload.seriesInfo = { ...s.recRule, smart: true };
     } else {
       const slot = isRecurringSeries() ? s.occurrences[0] : selectedSlot();
       payload.start = localDateTimeString(zdate(slot.startMs));
@@ -4211,6 +4340,7 @@ function openGroupModal() {
       if (data.error) {
         AppDialog.alert(t('invite_send_failed') + ': ' + data.error);
         if (btn) { btn.disabled = false; btn.textContent = t('send_invites_btn'); }
+        document.getElementById('sendingNote')?.remove();
         return;
       }
 
@@ -4224,16 +4354,16 @@ function openGroupModal() {
     } catch (err) {
       AppDialog.alert(t('invite_send_failed') + ': ' + err.message);
       if (btn) { btn.disabled = false; btn.textContent = t('send_invites_btn'); }
+      document.getElementById('sendingNote')?.remove();
     }
   }
 
   function renderInviteSentStep(data) {
     const s = eventModalState;
-    const separate = isRecurringSeries() && s.rec.smart;
-    const bodyText = separate
-      ? t('rec_sent_separate_body', { created: data.createdCount, total: s.occurrences.length, count: data.attendeeCount })
-      : isRecurringSeries()
-        ? t('rec_sent_series_body', { occurrences: s.occurrences.length, count: data.attendeeCount })
+    // Älykäs aikataulutus on nykyään yksi Outlook-sarja (yksi Teams-linkki).
+    const separate = false;
+    const bodyText = isRecurringSeries()
+        ? t('rec_sent_series_body', { occurrences: data.occurrenceCount || s.occurrences.length, count: data.attendeeCount })
         : t('invite_sent_body', { count: data.attendeeCount });
     const failedHtml = (data.failed || []).length
       ? `<p class="invite-note">${t('rec_sent_failed_label')}<br>${data.failed.map((f) => `${formatDateShort(zdate(f.start).getTime())} ${f.start.slice(11, 16)} – ${f.error}`).join('<br>')}</p>`

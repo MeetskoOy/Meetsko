@@ -43,7 +43,7 @@
       <p class="eyebrow">Tietosuoja</p>
       <h1>Tietosuojaseloste</h1>
       <p>Meetsko näyttää projektin osallistujien vapaat ja varatut ajat yhteisessä näkymässä eri organisaatioiden välillä. Tässä selosteessa kerrotaan, mitä henkilötietoja palvelu käsittelee, miksi, kuinka kauan ja miten kalenterien sisältö suojataan.</p>
-      <p class="meta">Versio 1.0 · 27.10.2026 · EU:n yleinen tietosuoja-asetus (GDPR) 13 ja 14 artikla</p>
+      <p class="meta">Versio 1.1 · 11.11.2026 · EU:n yleinen tietosuoja-asetus (GDPR) 13 ja 14 artikla</p>
     </div>
   </div>
 
@@ -103,7 +103,7 @@
             <tr><td>Kalenterin varaustilanne</td><td>Varattujen ja vapaiden jaksojen alku- ja loppuajat (vapaa / varattu) rajatulta ajalta eteenpäin</td><td>Microsoft, käyttäjän omalla valtuutuksella</td></tr>
             <tr><td>Näkyvyysrajaukset</td><td>Käyttäjän asettamat näkyvyysikkunat ja piilotetut jaksot projektikohtaisesti</td><td>Käyttäjä itse</td></tr>
             <tr><td>Kalenteriyhteyden tunnisteet</td><td>Salattu uusintatunniste (refresh token), myönnetyt oikeudet (luku / luku ja kirjoitus), muutosilmoitusten tilaustunniste</td><td>Microsoft</td></tr>
-            <tr><td>Meetskosta luodut tapahtumat ja luonnokset</td><td>Otsikko, viesti, aika, toistosääntö, järjestäjä, kutsutut, Teams-linkki, kalenterin tapahtumatunniste, peruutustieto</td><td>Tapahtuman luoja; aika ja peruutus järjestäjän kalenterista</td></tr>
+            <tr><td>Meetskosta luodut tapahtumat ja luonnokset</td><td>Otsikko, viesti, aika, toistosääntö, järjestäjä, kutsutut (myös Meetskon ulkopuolisten osallistujien sähköpostiosoitteet), Teams-linkki, kalenterin tapahtumatunniste, peruutustieto</td><td>Tapahtuman luoja; aika ja peruutus järjestäjän kalenterista</td></tr>
             <tr><td>Tapahtumaloki</td><td>Projektin toimet: avaukset, osallistujien ja ryhmien muutokset, tapahtumien luonti ja peruminen, muistutukset; tekijä ja aika</td><td>Palvelun automaattinen kirjaus</td></tr>
             <tr><td>Tekniset lokit</td><td>Kirjautumiset, virhetilanteet, aikaleimat</td><td>Palvelun ja alikäsittelijöiden automaattinen kirjaus</td></tr>
             <tr><td>Sähköpostit</td><td>Vastaanottaja, viestin sisältö ja toimitustila</td><td>Palvelu ja sähköpostin välityspalvelu</td></tr>
@@ -129,6 +129,7 @@
           <li><b>Käyttäjältä itseltään</b>: profiilitiedot, näkyvyysrajaukset ja palvelussa tehdyt valinnat.</li>
           <li><b>Microsoftilta</b>: nimi, sähköpostiosoite ja kalenterin varaustilanne, aina käyttäjän oman valtuutuksen perusteella.</li>
           <li><b>Projektin kutsujalta tai organisaation pääkäyttäjältä</b>: kutsuttavan nimi ja sähköpostiosoite.</li>
+          <li><b>Tapahtuman järjestäjältä</b>: kokoukseen kutsuttujen Meetskon ulkopuolisten henkilöiden sähköpostiosoitteet.</li>
         </ol>
         <p>Kutsujan on varmistettava, että hänellä on peruste käsitellä kutsuttavan yhteystietoja. Kutsuttu näkee ennen valtuutusta, kuka hänet on kutsunut ja mihin projektiin.</p>
 
@@ -155,6 +156,7 @@
           <li><b>Vain omaan kalenteriin.</b> Kutsu luodaan järjestäjän omaan kalenteriin hänen omalla valtuutuksellaan, ja Outlook lähettää kutsut tavalliseen tapaan. Meetsko ei koskaan kirjoita muiden osallistujien kalentereihin eikä käytä toisen käyttäjän valtuutusta.</li>
           <li><b>Vain järjestäjä voi muuttaa.</b> Meetskosta luodun tapahtuman voi perua sovelluksesta vain sen järjestäjä.</li>
           <li><b>Synkronointi.</b> Meetskosta luoduista tapahtumista luetaan järjestäjän kalenterista vain aika ja peruutustieto, jotta projektin tapahtumalista pysyy ajan tasalla. Otsikkoa, viestiä ja osallistujalistaa ei koskaan lueta Outlookista.</li>
+          <li><b>Meetskon ulkopuoliset osallistujat.</b> Järjestäjä voi kutsua kokoukseen myös henkilöitä, jotka eivät käytä Meetskoa (enintään 20 tapahtumaa kohden). Heistä tallennetaan vain sähköpostiosoite, joka näkyy projektin tapahtumalistassa samoin kuin muut tapahtuman osallistujat. Heidän kalentereitaan ei lueta, eivätkä he saa pääsyä Meetskoon. Osoitteet poistuvat tapahtumien mukana (ks. kohta 11).</li>
           <li><b>Näkyvyys.</b> Tapahtumat näkyvät projektin osallistujille, ellei luoja valitse, ettei tapahtumaa näytetä muille. Luonnokset näkyvät vain niiden tekijälle. Kutsuttujen vastauksia (hyväksytty / hylätty) ei näytetä.</li>
         </ul>
 
