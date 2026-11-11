@@ -76,6 +76,9 @@
   .ext-chip.optional { border-style: dashed; }
   .ext-chip .ext-role { font-size: 11px; color: var(--text-faint); }
   .ext-chip .ext-remove { border: 0; background: none; padding: 2px 6px; margin: 0; color: var(--text-muted); cursor: pointer; font-size: 12px; line-height: 1; }
+  .ext-toggle { display: inline-flex; align-items: center; gap: 6px; margin: 16px 0 0; padding: 0; border: 0; background: none; font: inherit; font-weight: 600; font-size: 13px; color: var(--text); cursor: pointer; }
+  .ext-toggle .chevron { display: inline-flex; color: var(--text-muted); transition: transform 0.15s; }
+  .ext-toggle .chevron.open { transform: rotate(90deg); }
   .ext-add-row { display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap; }
   .ext-add-row input { flex: 1 1 220px; min-width: 0; }
   .ext-add-row select, .ext-add-row button { flex: 0 0 auto; margin: 0; }
@@ -4099,8 +4102,14 @@ function openGroupModal() {
         <span class="ext-role">${t(a.type === 'optional' ? 'optional_btn' : 'required_btn')}</span>
         <button type="button" class="ext-remove" aria-label="${t('remove_btn_title')}" onclick="removeExternalAttendee(${i}, '${rerender}')">✕</button>
       </span>`).join('');
+    // Oletuksena kiinni; auki, jos ulkopuolisia on jo (luonnos, muokkaus) tai käyttäjä avasi.
+    const open = externalsOpen(eventModalState);
     return `
-      <label>${t('external_attendees_label')} (${list.length}/${MAX_EXTERNAL_ATTENDEES})</label>
+      <button type="button" class="ext-toggle" aria-expanded="${open}" onclick="toggleExternalAttendees('${rerender}')">
+        <span class="chevron ${open ? 'open' : ''}"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="m4.5 2.5 3.5 3.5-3.5 3.5"/></svg></span>
+        ${t('external_attendees_label')}${list.length ? ` (${list.length})` : ''}
+      </button>
+      ${!open ? '' : `
       ${chips ? `<div class="chip-row">${chips}</div>` : ''}
       ${list.length < MAX_EXTERNAL_ATTENDEES ? `
       <div class="ext-add-row">
@@ -4111,9 +4120,22 @@ function openGroupModal() {
           <option value="optional">${t('optional_btn')}</option>
         </select>
         <button type="button" class="secondary" onclick="addExternalAttendee('${rerender}')">${t('add_btn')}</button>
-      </div>` : ''}
-      <p class="empty-note" style="margin-top:6px;">${t('external_attendees_note')}</p>
+      </div>` : ''}`}
     `;
+  }
+
+  function externalsOpen(s) {
+    return typeof s.externalsOpen === 'boolean' ? s.externalsOpen : (s.externals || []).length > 0;
+  }
+
+  function toggleExternalAttendees(rerender) {
+    const s = eventModalState;
+    s.externalsOpen = !externalsOpen(s);
+    window[rerender]();
+    if (s.externalsOpen) {
+      const input = document.getElementById('extEmailInput');
+      if (input) input.focus();
+    }
   }
 
   function addExternalAttendee(rerender) {
@@ -4248,6 +4270,15 @@ function openGroupModal() {
   // kesken lähetyksen). Palvelinpuolen idempotenssi: CLAUDE.md, turvakaiteet.
   let inviteSendInFlight = false;
 
+  // Kutsut lähetetään taustalla: kuittausikkuna heti, ja tulos kerrotaan, kun Microsoft on
+  // käsitellyt kutsun (vihreä ilmoitus ja tapahtumalista päivittyy Teams-linkkeineen;
+  // virheessä ikkuna, josta kutsun voi avata uudelleen). Sivulta poistuttaessa varoitetaan,
+  // jos lähetys on kesken.
+  let backgroundSends = 0;
+  window.addEventListener('beforeunload', (e) => {
+    if (backgroundSends > 0) { e.preventDefault(); e.returnValue = ''; }
+  });
+
   async function sendInvite() {
     if (inviteSendInFlight) return;
     inviteSendInFlight = true;
@@ -4261,23 +4292,10 @@ function openGroupModal() {
 
   async function sendInviteOnce() {
     const s = eventModalState;
-    const btn = document.getElementById('sendInviteBtn');
-    if (btn) {
-      btn.disabled = true;
-      btn.textContent = t('sending_label');
-      // Microsoft luo kokouksen ja Teams-linkin ja lähettää kutsut: kestää usein 5–20 s.
-      const actions = btn.closest('.actions');
-      if (actions && !document.getElementById('sendingNote')) {
-        actions.insertAdjacentHTML('beforebegin', `<p class="invite-note" id="sendingNote">${t('invite_sending_note')}</p>`);
-      }
-    }
-
     const { required, optional } = buildInviteAttendees();
     const externals = s.externals || [];
     if (required.length + optional.length + externals.length === 0) {
       AppDialog.alert(t('alert_select_attendee'));
-      if (btn) { btn.disabled = false; btn.textContent = t('send_invites_btn'); }
-      document.getElementById('sendingNote')?.remove();
       return;
     }
     const payload = {
@@ -4330,62 +4348,58 @@ function openGroupModal() {
       }
     }
 
+    // Tila talteen, jotta epäonnistunut kutsu voidaan avata uudelleen.
+    const snapshot = JSON.parse(JSON.stringify(s));
+    const title = (s.inviteTitle || '').trim();
+    eventModalState = null;
+    renderInviteQueuedStep(title);
+    sendInviteInBackground(payload, snapshot, title);
+  }
+
+  async function sendInviteInBackground(payload, snapshot, title) {
+    backgroundSends++;
+    let error = null;
     try {
       const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/create-event`, {
         method: 'POST',
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-
       if (data.error) {
-        AppDialog.alert(t('invite_send_failed') + ': ' + data.error);
-        if (btn) { btn.disabled = false; btn.textContent = t('send_invites_btn'); }
-        document.getElementById('sendingNote')?.remove();
-        return;
+        error = data.error;
+      } else {
+        loadProjectEvents();
+        // Julkaistu luonnos poistetaan luonnoslistalta.
+        if (snapshot.draftId) {
+          await deleteDraftRequest(snapshot.draftId);
+          loadDrafts();
+        }
+        AppNav.toast(t('toast_invites_sent_bg', { title }) + (data.dryRun ? ' ' + t('invite_dry_run_note') : ''));
+        if ((data.failed || []).length) {
+          AppDialog.alert(t('rec_sent_failed_label') + '\n' + data.failed.map((f) => `${formatDateShort(zdate(f.start).getTime())} ${f.start.slice(11, 16)} – ${f.error}`).join('\n'));
+        }
       }
-
-      loadProjectEvents();
-      // Julkaistu luonnos poistetaan luonnoslistalta.
-      if (s.draftId) {
-        await deleteDraftRequest(s.draftId);
-        loadDrafts();
-      }
-      renderInviteSentStep(data);
     } catch (err) {
-      AppDialog.alert(t('invite_send_failed') + ': ' + err.message);
-      if (btn) { btn.disabled = false; btn.textContent = t('send_invites_btn'); }
-      document.getElementById('sendingNote')?.remove();
+      error = err.message;
+    } finally {
+      backgroundSends--;
+    }
+    if (error) {
+      AppNav.toast(t('invite_send_failed') + ': ' + error, 'error');
+      if (await AppDialog.confirm(t('invite_bg_failed_reopen', { title, error }))) {
+        eventModalState = snapshot;
+        renderInviteConfirmStep();
+      }
     }
   }
 
-  function renderInviteSentStep(data) {
-    const s = eventModalState;
-    // Älykäs aikataulutus on nykyään yksi Outlook-sarja (yksi Teams-linkki).
-    const separate = false;
-    const bodyText = isRecurringSeries()
-        ? t('rec_sent_series_body', { occurrences: data.occurrenceCount || s.occurrences.length, count: data.attendeeCount })
-        : t('invite_sent_body', { count: data.attendeeCount });
-    const failedHtml = (data.failed || []).length
-      ? `<p class="invite-note">${t('rec_sent_failed_label')}<br>${data.failed.map((f) => `${formatDateShort(zdate(f.start).getTime())} ${f.start.slice(11, 16)} – ${f.error}`).join('<br>')}</p>`
-      : '';
-    // Erillisillä kokouksilla jokaisella on oma Teams-linkki — ne löytyvät kalenterista.
-    const teamsHtml = !separate && data.teamsUrl
-      ? `<p class="empty-note" style="margin-top:10px;">${t('teams_link_label')}:<br>
-           <a href="${data.teamsUrl}" target="_blank" style="color:var(--primary); word-break:break-all;">${data.teamsUrl}</a></p>`
-      : '';
-    const openHtml = !separate && data.webLink
-      ? `<p style="margin-top:10px;"><a href="${data.webLink}" target="_blank" style="color:var(--primary);">${t('open_in_calendar')}</a></p>`
-      : '';
-
+  // Kuittaus heti lähetyksen jälkeen (informatiivinen ikkuna: sulkeutuu myös ulkoklikkauksella).
+  function renderInviteQueuedStep(title) {
     document.getElementById('modalHost').innerHTML = `
       <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
         <div class="modal">
-          <h3>${t('invite_sent_heading')}</h3>
-          <p class="sub">${bodyText}</p>
-          ${data.dryRun ? `<p class="invite-note">${t('invite_dry_run_note')}</p>` : ''}
-          ${failedHtml}
-          ${teamsHtml}
-          ${openHtml}
+          <h3>${t('invite_queued_heading')}</h3>
+          <p class="sub">${t('invite_queued_body', { title: escapeHtmlText(title) })}</p>
           <div class="actions">
             <button onclick="closeModal()">${t('close')}</button>
           </div>
@@ -4394,9 +4408,7 @@ function openGroupModal() {
     `;
   }
 
-
-  
-async function openSettingsModal() {
+  async function openSettingsModal() {
     settingsActiveTab = 'own';
 
     // Pääkäyttäjä tai superadmin ilman osallistumista: vain projektin asetukset.
