@@ -94,6 +94,8 @@
   .ev-details .dd-actions button { margin: 0; padding: 6px 12px; font-size: 13px; }
   .past-link { background: none; border: none; padding: 0; margin: 18px 0 4px; color: var(--text-faint); font-size: 13.5px; font-weight: 600; text-decoration: underline; cursor: pointer; }
   .past-link:hover { background: none; border: none; color: var(--text-muted); }
+  .ev-filter { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 13.5px; font-weight: 600; color: var(--text-muted); cursor: pointer; }
+  .ev-filter input { margin: 0; width: auto; }
   /* Ajanvalitsin (päivämäärä + kellonaika samassa näkymässä) */
   .dt-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; background: var(--surface); color: var(--text); border: 1px solid #D0D5DD; border-radius: 8px; padding: 9px 11px; margin: 0; font: inherit; font-size: 14px; font-weight: 500; text-align: left; cursor: pointer; box-sizing: border-box; }
   .dt-field:hover { background: var(--surface-muted); border-color: #D0D5DD; }
@@ -423,12 +425,9 @@
   .copy-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 4px; }
   .copy-box { flex: 1; padding: 7px; border: 1px solid var(--line); border-radius: 7px; font-size: 12px; font-family: ui-monospace, Menlo, monospace; background: #F8F9FA; resize: vertical; box-sizing: border-box; }
   .copy-btn { margin: 0; padding: 7px 12px; font-size: 12.5px; white-space: nowrap; }
-  .invite-legend { display: flex; gap: 16px; font-size: 11.5px; color: var(--text-muted); margin-top: 10px; }
-  .flag-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
-  .flag-dot.conflict { background: var(--danger-soft); border: 1px solid #E8938A; }
-  .flag-dot.nocal { background: #F2F3F5; border: 1px solid #C9CFD7; }
   .modal label.hide-from-others { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--text); font-size: 13.5px; }
   .invite-note { font-size: 12.5px; color: var(--text-muted); background: #F8F9FA; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-top: 12px; }
+  .invite-note.past { color: var(--danger); background: var(--danger-soft); border-color: #F1C4BE; }
 </style>
 </head>
 <body>
@@ -441,7 +440,7 @@
   <div class="project-head">
     <div>
       <div class="title-row">
-        <h1 id="projectName">Ladataan projektia…</h1>
+        <h1 id="projectName" data-i18n="loading_project"></h1>
         <span class="role-badge" id="myRoleBadge" style="display:none;"></span>
       </div>
       <p class="project-meta">
@@ -1052,7 +1051,7 @@ function bufferDates(anchor) {
     if (status.viewerAccess) return !!status.viewerAccess.canManage;
     if ((status.project.owner_email || '').toLowerCase() === currentUserEmail) return true;
     return status.participants.some(
-      (p) => p.email.toLowerCase() === currentUserEmail && p.role === 'admin' && p.status === 'authorized'
+      (p) => p.email.toLowerCase() === currentUserEmail && p.role === 'admin'
     );
   }
 
@@ -1263,6 +1262,7 @@ function bufferDates(anchor) {
 async function loadStatus() {
     if (AppNav.noAccess) return; // "Ei pääsyä" -näkymä: ei automaattista päivitystä
     if (!PROJECT_ID) {
+      document.getElementById('projectName').removeAttribute('data-i18n');
       document.getElementById('projectName').textContent = t('error_project_id_missing');
       return;
     }
@@ -1276,6 +1276,7 @@ async function loadStatus() {
     if (data.error) {
       // Ei pääsyä tai projektia ei ole: sama näkymä (ei paljasteta, onko projektia olemassa).
       if (res.status === 403 || res.status === 404) { AppNav.showNoAccess(); return; }
+      document.getElementById('projectName').removeAttribute('data-i18n');
       document.getElementById('projectName').textContent = t('error_prefix') + ': ' + data.error;
       return;
     }
@@ -1330,7 +1331,7 @@ async function loadStatus() {
     if (!el) return;
     const browserZone = MeetskoTZ.browserZone();
     el.textContent = t('tz_indicator', { zone: MeetskoTZ.label(zone) })
-      + (browserZone !== zone ? ' · ' + t('tz_indicator_browser', { zone: browserZone.replace(/_/g, ' ') }) : '');
+      + (browserZone !== zone ? ' · ' + t('tz_indicator_browser', { zone: MeetskoTZ.label(browserZone) }) : '');
   }
 
   // Osallistujat aakkosjärjestykseen etunimen mukaan (ilman nimeä sähköpostin mukaan) kaikissa
@@ -1367,6 +1368,7 @@ async function loadStatus() {
     const data = latestStatus;
     if (!data) return;
 
+    document.getElementById('projectName').removeAttribute('data-i18n');
     document.getElementById('projectName').textContent = data.project.name;
     // Vastuuhenkilö nimellä ja sähköpostilla, jos hän on osallistuja (nimi profiilista).
     const ownerEmail = data.project.owner_email || '';
@@ -2081,6 +2083,22 @@ function openGroupModal() {
   let projectEvents = [];
   let expandedEventId = null;
   let showPastEvents = false;
+  // "Näytä vain omat tapahtumat": tapahtumat, joissa katsoja on järjestäjä tai kutsuttu.
+  // Valinta muistetaan selaimessa (kaikki projektit).
+  const OWN_EVENTS_KEY = 'meetsko_ownEventsOnly';
+  let ownEventsOnly = false;
+  try { ownEventsOnly = localStorage.getItem(OWN_EVENTS_KEY) === '1'; } catch (e) {}
+
+  function toggleOwnEventsOnly(checked) {
+    ownEventsOnly = !!checked;
+    try { localStorage.setItem(OWN_EVENTS_KEY, ownEventsOnly ? '1' : '0'); } catch (e) {}
+    renderEventsPanel();
+  }
+
+  function isOwnEvent(e) {
+    return [e.organizer_participant_id, ...(e.required_ids || []), ...(e.optional_ids || [])]
+      .some((id) => id && isOwnParticipantId(id));
+  }
 
   async function loadProjectEvents() {
     try {
@@ -2324,7 +2342,8 @@ function openGroupModal() {
     const { required, optional } = buildInviteAttendees();
     const { summary, calendarChange } = editEventChanges();
     const sendState = inviteSendState();
-    const canSend = summary.length > 0 && (!calendarChange || sendState === 'ready');
+    const past = eventStartsInPast();
+    const canSend = summary.length > 0 && (!calendarChange || sendState === 'ready') && !past;
     const futureNote = ed.scope === 'future' && ed.futureCount > 1
       ? `<p class="invite-note">${t('edit_future_note', { count: ed.futureCount })}</p>` : '';
     const summaryHtml = summary.length === 0
@@ -2366,6 +2385,7 @@ function openGroupModal() {
           <label>${t('edit_changes_label')}</label>
           <div id="editSummary">${summaryHtml}</div>
           ${futureNote}
+          ${past ? `<p class="invite-note past">${t('edit_note_past')}</p>` : ''}
           ${calendarChange && sendState !== 'ready' ? `<p class="invite-note">${t(sendState === 'google' ? 'invite_note_google' : 'invite_note_noauth')}</p>` : ''}
 
           <div class="actions">
@@ -2399,6 +2419,7 @@ function openGroupModal() {
     const ed = s.editEvent;
     const { changes, calendarChange } = editEventChanges();
     if (Object.keys(changes).length === 0) return;
+    if (eventStartsInPast()) { renderEditConfirmStep(); return; }
     // Kalenteriin kirjoittava muutos lähetetään taustalla kuten kutsut (Microsoft päivittää
     // kerran kerrallaan, tahdistettuna); pelkkä näkyvyyden muutos tallennetaan heti.
     if (calendarChange) {
@@ -2574,16 +2595,24 @@ function openGroupModal() {
   function eventsListHtml() {
     if (!projectEvents.length) return `<p class="panel-note">${t('events_empty')}</p>`;
     const now = Date.now();
-    const segments = projectEvents.flatMap(eventDaySegments);
+    // Suodatin vain projektin osallistujalle (pääkäyttäjällä ilman osallistumista ei omia tapahtumia).
+    const isParticipant = latestStatus && latestStatus.participants.some((p) => p.email.toLowerCase() === currentUserEmail);
+    const filterOn = isParticipant && ownEventsOnly;
+    const filterHtml = isParticipant
+      ? `<label class="ev-filter"><input type="checkbox" ${filterOn ? 'checked' : ''} onchange="toggleOwnEventsOnly(this.checked)" /> ${t('events_own_only')}</label>`
+      : '';
+    const events = filterOn ? projectEvents.filter(isOwnEvent) : projectEvents;
+    if (!events.length) return filterHtml + `<p class="panel-note">${t('events_own_empty')}</p>`;
+    const segments = events.flatMap(eventDaySegments);
     const upcoming = segments.filter((g) => g.endMs >= now).sort((a, b) => a.startMs - b.startMs);
     // Menneet päivät uusimmasta vanhimpaan; laskuriin tapahtumat (ei päiviä).
     const past = segments.filter((g) => g.endMs < now).sort((a, b) => b.startMs - a.startMs);
     const pastEventCount = new Set(past.map((g) => g.event.id)).size;
     const shownDetails = new Set();
 
-    let html = upcoming.length
+    let html = filterHtml + (upcoming.length
       ? `<div class="ev-scroll"><div class="ev-list">${eventDayGroupsHtml(upcoming, shownDetails)}</div></div>`
-      : `<p class="panel-note">${t('events_no_upcoming')}</p>`;
+      : `<p class="panel-note">${t(filterOn ? 'events_own_no_upcoming' : 'events_no_upcoming')}</p>`);
     if (past.length) {
       html += `<button type="button" class="past-link" onclick="togglePastEvents()">${showPastEvents ? t('hide_past_events') : t('past_events_link', { count: pastEventCount })}</button>`;
       if (showPastEvents) html += `<div class="ev-scroll ev-past"><div class="ev-list">${eventDayGroupsHtml(past, shownDetails)}</div></div>`;
@@ -4119,6 +4148,22 @@ function openGroupModal() {
   }
 
   // 'google' | 'noauth' | 'ready'
+  // Ei lähetystä menneeseen aikaan (UAT 11.11.2026; myös luonnoksen julkaisu). Uusi tapahtuma:
+  // aikaisin todellinen alkamisaika. Muokkaus: vain, jos aikaa muutetaan. create-event
+  // tarkistaa saman palvelimella (5 min pelivara).
+  function eventStartsInPast() {
+    const s = eventModalState;
+    if (!s) return false;
+    const now = Date.now();
+    if (s.editEvent) {
+      const slot = selectedSlot();
+      const o = s.editEvent.original;
+      return (slot.startMs !== o.startMs || slot.endMs !== o.endMs) && slot.startMs < now;
+    }
+    const starts = isRecurringSeries() ? s.occurrences.map((o) => o.startMs) : [selectedSlot().startMs];
+    return starts.some((ms) => typeof ms === 'number' && ms < now);
+  }
+
   function inviteSendState() {
     if (currentAuthProvider === 'google') return 'google';
     if (!canWriteCalendar) return 'noauth';
@@ -4246,19 +4291,15 @@ function openGroupModal() {
     const backAction = recurring && s.rec.smart ? 'renderOccurrenceListStep()' : 'renderEventResultsStep()';
 
     const sendState = inviteSendState();
-    const sendDisabled = sendState !== 'ready';
-    const noteHtml = sendState === 'google'
+    const past = eventStartsInPast();
+    const sendDisabled = sendState !== 'ready' || past;
+    const noteHtml = past
+      ? `<p class="invite-note past">${t('invite_note_past')}</p>`
+      : sendState === 'google'
       ? `<p class="invite-note">${t('invite_note_google')}</p>`
       : sendState === 'noauth'
         ? `<p class="invite-note">${t('invite_note_noauth')}</p>`
         : '';
-
-    const flagLegend = (required.concat(optional)).some((a) => a.conflict || a.noCalendar)
-      ? `<div class="invite-legend">
-           <span><span class="flag-dot conflict"></span>${t('invite_flag_conflict')}</span>
-           <span><span class="flag-dot nocal"></span>${t('invite_flag_nocal')}</span>
-         </div>`
-      : '';
 
     document.getElementById('modalHost').innerHTML = `
       <div class="modal-overlay">
@@ -4296,7 +4337,6 @@ function openGroupModal() {
 
           ${externalAttendeesHtml('renderInviteConfirmStep')}
 
-          ${flagLegend}
 
           <label class="hide-from-others">
             <input type="checkbox" ${s.inviteHidden ? 'checked' : ''} onchange="eventModalState.inviteHidden = this.checked" />
@@ -4348,6 +4388,8 @@ function openGroupModal() {
 
   async function sendInviteOnce() {
     const s = eventModalState;
+    // Aika voi mennä ohi, kun tarkistusvaihe on auki.
+    if (eventStartsInPast()) { renderInviteConfirmStep(); return; }
     const { required, optional } = buildInviteAttendees();
     const externals = s.externals || [];
     if (required.length + optional.length + externals.length === 0) {
