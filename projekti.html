@@ -428,6 +428,9 @@
   .modal label.hide-from-others { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: var(--text); font-size: 13.5px; }
   .invite-note { font-size: 12.5px; color: var(--text-muted); background: #F8F9FA; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-top: 12px; }
   .invite-note.past { color: var(--danger); background: var(--danger-soft); border-color: #F1C4BE; }
+  .modal label.edit-smart { display: flex; align-items: flex-start; gap: 8px; margin-top: 12px; color: var(--text); font-size: 13.5px; line-height: 1.4; }
+  .modal label.edit-smart input { margin-top: 2px; }
+  .edit-smart-explain { color: var(--text-muted); font-size: 12.5px; }
 </style>
 </head>
 <body>
@@ -2246,9 +2249,12 @@ function openGroupModal() {
     const peopleRoles = {};
     (e.required_ids || []).filter(exists).forEach((id) => { peopleRoles[id] = 'required'; });
     (e.optional_ids || []).filter(exists).forEach((id) => { if (!peopleRoles[id]) peopleRoles[id] = 'optional'; });
-    const futureCount = scope === 'future' && e.series_id
-      ? projectEvents.filter((x) => x.series_id === e.series_id && x.status === 'scheduled' && x.startMs >= e.startMs).length
-      : 1;
+    // Sarjan tämä ja tulevat kerrat (voimassa olevat), aikajärjestyksessä.
+    const seriesRows = scope === 'future' && e.series_id
+      ? projectEvents.filter((x) => x.series_id === e.series_id && x.status === 'scheduled' && x.startMs >= e.startMs)
+        .sort((a, b) => a.startMs - b.startMs)
+      : [e];
+    const futureCount = seriesRows.length;
 
     eventModalState = {
       duration: Math.max(5, Math.round((e.endMs - e.startMs) / 60000)),
@@ -2260,8 +2266,12 @@ function openGroupModal() {
       draftId: null, draftRemovedCount: 0,
       inviteTitle: e.title || '', inviteBody: e.body || '', inviteHidden: !!e.hidden,
       externals: (e.external_attendees || []).map((a) => ({ ...a })),
+      editSmart: false, seriesPlan: null,
       editEvent: {
         id: e.id, scope, futureCount, seriesId: e.series_id || null,
+        // Sarjan siirto (tämä ja tulevat): kertojen nykyiset ajat ja toistosääntö.
+        seriesRows: seriesRows.map((x) => ({ id: x.id, startMs: x.startMs, endMs: x.endMs })),
+        rule: e.recurrence && e.recurrence.freq ? e.recurrence : null,
         original: {
           startMs: e.startMs, endMs: e.endMs, title: e.title || '', body: e.body || '', hidden: !!e.hidden,
           requiredIds: (e.required_ids || []).slice(), optionalIds: (e.optional_ids || []).slice(),
@@ -2272,12 +2282,100 @@ function openGroupModal() {
     renderEventResultsStep({ scroll: 'selection' });
   }
 
-  // Muokattavan tapahtuman oma aika ei ole "varattu" uutta aikaa haettaessa.
+  // Muokattavan tapahtuman (sarjassa kaikkien muokattavien kertojen) oma aika ei ole
+  // "varattu" uutta aikaa haettaessa.
   function withoutEditedEvent(intervals) {
     const ed = eventModalState && eventModalState.editEvent;
     if (!ed) return intervals;
-    const o = ed.original;
-    return intervals.filter((b) => !(Math.abs(b.startMs - o.startMs) < 60000 && Math.abs(b.endMs - o.endMs) < 60000));
+    const own = ed.seriesRows && ed.seriesRows.length ? ed.seriesRows : [ed.original];
+    return intervals.filter((b) => !own.some((o) => Math.abs(b.startMs - o.startMs) < 60000 && Math.abs(b.endMs - o.endMs) < 60000));
+  }
+
+  // Sarjan siirto: tämä ja tulevat kerrat, kun kertoja on useampi.
+  function isSeriesEdit() {
+    const ed = eventModalState && eventModalState.editEvent;
+    return !!ed && ed.scope === 'future' && ed.futureCount > 1;
+  }
+
+  function editTimeChanged() {
+    const s = eventModalState;
+    const o = s.editEvent.original;
+    return s.selStart !== o.startMs || s.selEnd !== o.endMs;
+  }
+
+  // Sääntöpäivä, johon kerta kuuluu: kerran oma päivä tai lähin säännön mukainen päivä
+  // (älykäs aikataulutus siirtää kuukausittaisia ja vuosittaisia kertoja ±3 päivää).
+  function nearestRuleDate(rule, ms) {
+    const day = recStartOfDay(zdate(ms));
+    for (const d of [0, -1, 1, -2, 2, -3, 3]) {
+      const c = recAddDays(day, d);
+      if (recMatchesRule(c, rule)) return c;
+    }
+    return null;
+  }
+
+  // Sarjan uudet ajat (päätetty 12.11.2026): uusi aika ja viikonpäivä määrittävät säännön
+  // kuten luonnissa. Jokainen kerta säilyttää paikkansa säännössä (väliin jääneet, perutut
+  // tai poistetut kerrat pysyvät pois). Ilman älykästä aikataulutusta kaikki kerrat
+  // valittuun aikaan; älykkäässä varatut kerrat lähimpään vapaaseen aikaan.
+  function buildSeriesEditOccurrences() {
+    const s = eventModalState;
+    const ed = s.editEvent;
+    if (!ed.rule) { s.seriesPlan = null; return true; } // vanha sarja ilman sääntöä: siirto samalla erotuksella
+    const oldRule = ed.rule;
+    const anchors = ed.seriesRows.map((r) => nearestRuleDate(oldRule, r.startMs));
+    const oldDates = anchors[0] ? recOccurrenceDates(oldRule, anchors[0], { count: RECURRENCE_MAX_OCCURRENCES + 1 }) : [];
+    const sameDay = (a, b) => a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+    const positions = anchors.map((a) => (a ? oldDates.findIndex((d) => sameDay(d, a)) : -1));
+    if (positions.some((p) => p < 0) || new Set(positions).size !== positions.length || positions[0] !== 0) {
+      AppDialog.alert(t('edit_series_mismatch'));
+      return false;
+    }
+    const firstDate = zdate(s.selStart);
+    const rule = recDeriveRuleFromDate({ freq: oldRule.freq }, firstDate);
+    if (!recMatchesRule(firstDate, rule)) { AppDialog.alert(t('rec_alert_weekday_only')); return false; }
+    const total = Math.max(...positions) + 1;
+    if (total > RECURRENCE_MAX_OCCURRENCES) { AppDialog.alert(t('rec_alert_too_many')); return false; }
+
+    const busy = collectEventBusy();
+    if (!busy) return false;
+    const ctx = { ...busy, horizonMs: scheduleHorizonMs(), nowMs: Date.now() };
+    const built = recBuildOccurrences({
+      rule, firstStartMs: s.selStart, durationMs: s.selEnd - s.selStart, count: total, smart: s.editSmart,
+    }, ctx);
+    if (built.length < total) { AppDialog.alert(t('edit_series_mismatch')); return false; }
+
+    s.recRule = rule;
+    s.recCtx = ctx;
+    s.occurrences = positions.map((pos, i) => ({ ...built[pos], eventId: ed.seriesRows[i].id }));
+    s.seriesPlan = { rule, total, smart: !!s.editSmart };
+    return true;
+  }
+
+  function continueEdit() {
+    const s = eventModalState;
+    s.seriesPlan = null;
+    if (isSeriesEdit() && editTimeChanged()) {
+      if (!buildSeriesEditOccurrences()) return;
+      if (s.seriesPlan && s.seriesPlan.smart) { renderOccurrenceListStep(); return; }
+    }
+    renderEditConfirmStep();
+  }
+
+  function editConfirmBack() {
+    const s = eventModalState;
+    if (s.seriesPlan && s.seriesPlan.smart) renderOccurrenceListStep();
+    else renderEventResultsStep();
+  }
+
+  // Sarjan kerrat, joiden aika muuttuu.
+  function seriesChangedCount() {
+    const s = eventModalState;
+    const rows = new Map(s.editEvent.seriesRows.map((r) => [r.id, r]));
+    return s.occurrences.filter((o) => {
+      const r = rows.get(o.eventId);
+      return !r || r.startMs !== o.startMs || r.endMs !== o.endMs;
+    }).length;
   }
 
   // Muutokset alkuperäiseen verrattuna; palvelimelle lähetetään vain muuttuneet kentät,
@@ -2299,6 +2397,29 @@ function openGroupModal() {
       changes.startIso = zdate(slot.startMs).toISOString();
       changes.endIso = zdate(slot.endMs).toISOString();
       summary.push({ label: t('edit_change_time'), from: formatEventSpan(o.startMs, o.endMs), to: formatEventSpan(slot.startMs, slot.endMs) });
+      if (s.seriesPlan && s.occurrences) {
+        // Sarjan siirto: jokaisen kerran uusi aika (update-project-event siirtää Outlook-sarjan
+        // kokonaisuutena ja vain poikkeavat kerrat erikseen).
+        const isoOf = (ms) => zdate(ms).toISOString();
+        const local = (ms) => localDateTimeString(zdate(ms));
+        changes.seriesTimes = {
+          timeZone: MeetskoTZ.getViewZone(),
+          rule: s.seriesPlan.rule,
+          total: s.seriesPlan.total,
+          smart: s.seriesPlan.smart,
+          first: { start: local(slot.startMs), end: local(slot.endMs), startIso: isoOf(slot.startMs) },
+          occurrences: s.occurrences.map((x) => ({
+            eventId: x.eventId, targetIso: isoOf(x.targetStartMs), startIso: isoOf(x.startMs), endIso: isoOf(x.endMs),
+            start: local(x.startMs), end: local(x.endMs),
+          })),
+        };
+        const moved = s.occurrences.filter((x) => x.startMs !== x.targetStartMs).length;
+        summary.push({
+          label: t('edit_change_series'),
+          to: t('edit_series_changed_count', { changed: seriesChangedCount(), total: s.occurrences.length })
+            + (moved ? ' · ' + t('edit_series_moved_count', { moved }) : ''),
+        });
+      }
     }
     const title = (s.inviteTitle || '').trim();
     if (title !== o.title) { changes.title = title; summary.push({ label: t('edit_change_title'), from: o.title, to: title }); }
@@ -2344,8 +2465,8 @@ function openGroupModal() {
     const sendState = inviteSendState();
     const past = eventStartsInPast();
     const canSend = summary.length > 0 && (!calendarChange || sendState === 'ready') && !past;
-    const futureNote = ed.scope === 'future' && ed.futureCount > 1
-      ? `<p class="invite-note">${t('edit_future_note', { count: ed.futureCount })}</p>` : '';
+    const futureNote = ed.scope === 'future' && ed.futureCount > 1 && calendarChange
+      ? `<p class="invite-note">${s.seriesPlan ? t('edit_series_note') : t('edit_future_note', { count: ed.futureCount })}</p>` : '';
     const summaryHtml = summary.length === 0
       ? `<p class="empty-note">${t('edit_no_changes')}</p>`
       : `<ul class="edit-summary">${summary.map((c) => `
@@ -2389,7 +2510,7 @@ function openGroupModal() {
           ${calendarChange && sendState !== 'ready' ? `<p class="invite-note">${t(sendState === 'google' ? 'invite_note_google' : 'invite_note_noauth')}</p>` : ''}
 
           <div class="actions">
-            <button class="secondary" onclick="renderEventResultsStep()">${t('back_btn')}</button>
+            <button class="secondary" onclick="editConfirmBack()">${t('back_btn')}</button>
             <button id="sendInviteBtn" ${canSend ? '' : 'disabled'} onclick="sendInvite()">${calendarChange ? t('edit_send_update_btn') : t('save_btn')}</button>
           </div>
         </div>
@@ -2859,7 +2980,7 @@ function openGroupModal() {
   }
 
   function refetchOccurrenceTimes() {
-    if (!buildRecurringOccurrences()) return;
+    if (!(eventModalState.editEvent ? buildSeriesEditOccurrences() : buildRecurringOccurrences())) return;
     renderOccurrenceListStep();
   }
 
@@ -3430,7 +3551,7 @@ function openGroupModal() {
         <span class="occ-label">${formatSlotLabel(o)}</span>
         <button type="button" class="secondary occ-move-btn" onclick="editOccurrenceTime(${idx})">${t('occ_move_btn')}</button>
         <span class="occ-badge occ-${o.status}">${t('occ_status_' + o.status)}</span>
-        <button type="button" class="remove-x" title="${t('remove_btn_title')}" onclick="removeOccurrence(${idx})">✕</button>
+        ${s.editEvent ? '' : `<button type="button" class="remove-x" title="${t('remove_btn_title')}" onclick="removeOccurrence(${idx})">✕</button>`}
       </div>
     `).join('');
 
@@ -3441,12 +3562,12 @@ function openGroupModal() {
           <h3>${t('rec_occurrences_heading')}</h3>
           ${draftEditNoteHtml()}
           <p class="rec-hint">${recurrenceSummaryText()}</p>
-          <p class="rec-hint">${t('rec_occ_hint')}</p>
+          <p class="rec-hint">${t(s.editEvent ? 'edit_occ_hint' : 'rec_occ_hint')}</p>
           <div class="occ-list">${rows}</div>
           <div class="actions">
             <button class="secondary" onclick="renderEventResultsStep()">${t('back_btn')}</button>
             <button class="secondary" onclick="refetchOccurrenceTimes()">${t('rec_refetch_btn')}</button>
-            <button onclick="openInviteConfirmStep()">${eventModalState.draftId ? t('save_draft_btn') : t('rec_create_invites_btn')}</button>
+            <button onclick="${s.editEvent ? 'renderEditConfirmStep()' : 'openInviteConfirmStep()'}">${s.editEvent ? t('edit_continue_btn') : eventModalState.draftId ? t('save_draft_btn') : t('rec_create_invites_btn')}</button>
           </div>
         </div>
       </div>
@@ -3975,6 +4096,11 @@ function openGroupModal() {
 
           <label>${t('selected_time_label')}</label>
           <button type="button" class="dt-field" id="selTimeField" onclick="openDtp('sel')">${CAL_ICON_HTML}<span style="flex:1;">${formatEventSpan(s.selStart, s.selEnd)}</span></button>
+          ${s.editEvent && !s.occEdit && isSeriesEdit() ? `
+          <label class="edit-smart">
+            <input type="checkbox" ${s.editSmart ? 'checked' : ''} onchange="eventModalState.editSmart = this.checked" />
+            <span><strong>${t('rec_smart_label')}</strong><br><span class="edit-smart-explain">${t('edit_smart_explain')}</span></span>
+          </label>` : ''}
 
           <div class="event-mini-board">
             <div class="dual-pane">
@@ -3991,7 +4117,7 @@ function openGroupModal() {
                            <button onclick="finishOccurrenceEdit(true)">${t('occ_move_apply_btn')}</button>` : `
             <button class="secondary" onclick="closeModal()">${t('close')}</button>
             ${s.editEvent ? `<button class="secondary" onclick="renderEventSelectionStep()">${t('edit_find_times_btn')}</button>
-                             <button onclick="openInviteConfirmStep()">${t('edit_continue_btn')}</button>` :
+                             <button onclick="continueEdit()">${t('edit_continue_btn')}</button>` :
             s.mode === 'recurring'
               ? `<button onclick="continueRecurring()">${s.rec.smart ? t('rec_find_other_times_btn') : (s.draftId ? t('save_draft_btn') : t('create_invite_btn'))}</button>`
               : `<button onclick="openInviteConfirmStep()">${s.draftId ? t('save_draft_btn') : t('create_invite_btn')}</button>`}`}
@@ -4158,7 +4284,9 @@ function openGroupModal() {
     if (s.editEvent) {
       const slot = selectedSlot();
       const o = s.editEvent.original;
-      return (slot.startMs !== o.startMs || slot.endMs !== o.endMs) && slot.startMs < now;
+      if (slot.startMs === o.startMs && slot.endMs === o.endMs) return false;
+      const starts = s.seriesPlan && s.occurrences ? s.occurrences.map((x) => x.startMs) : [slot.startMs];
+      return starts.some((ms) => ms < now);
     }
     const starts = isRecurringSeries() ? s.occurrences.map((o) => o.startMs) : [selectedSlot().startMs];
     return starts.some((ms) => typeof ms === 'number' && ms < now);
