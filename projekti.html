@@ -2206,7 +2206,7 @@ function openGroupModal() {
   // ja kirjoitusoikeudella (update-project-event tarkistaa saman).
   // Julkaisukytkin: update-project-event julkaistaan vasta turvakaiteiden kanssa
   // (CLAUDE.md). Vaihda true, kun funktio on deployattu ja testattu testitileillä.
-  const EVENT_EDITING_ENABLED = false;
+  const EVENT_EDITING_ENABLED = true;
 
   function eventEditButtonsHtml(e) {
     if (!EVENT_EDITING_ENABLED) return '';
@@ -2399,8 +2399,18 @@ function openGroupModal() {
     const ed = s.editEvent;
     const { changes, calendarChange } = editEventChanges();
     if (Object.keys(changes).length === 0) return;
+    // Kalenteriin kirjoittava muutos lähetetään taustalla kuten kutsut (Microsoft päivittää
+    // kerran kerrallaan, tahdistettuna); pelkkä näkyvyyden muutos tallennetaan heti.
+    if (calendarChange) {
+      const snapshot = JSON.parse(JSON.stringify(s));
+      const title = (s.inviteTitle || '').trim();
+      eventModalState = null;
+      renderUpdateQueuedStep(title);
+      sendEventUpdateInBackground({ projectId: PROJECT_ID, eventId: ed.id, scope: ed.scope, changes }, snapshot, title);
+      return;
+    }
     const btn = document.getElementById('sendInviteBtn');
-    if (btn) { btn.disabled = true; btn.textContent = calendarChange ? t('sending_label') : t('saving_label'); }
+    if (btn) { btn.disabled = true; btn.textContent = t('saving_label'); }
     try {
       const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-project-event`, {
         method: 'POST',
@@ -2418,6 +2428,52 @@ function openGroupModal() {
       AppDialog.alert(t('edit_failed') + ': ' + err.message);
       if (btn) { btn.disabled = false; btn.textContent = calendarChange ? t('edit_send_update_btn') : t('save_btn'); }
     }
+  }
+
+  async function sendEventUpdateInBackground(body, snapshot, title) {
+    backgroundSends++;
+    let error = null;
+    try {
+      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-project-event`, {
+        method: 'POST',
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (data.error) {
+        error = data.error;
+      } else {
+        await loadProjectEvents();
+        AppNav.toast(t('toast_update_sent', { title }) + (data.dryRun ? ' ' + t('invite_dry_run_note') : ''));
+        if ((data.failed || []).length) {
+          AppDialog.alert(t('edit_partial', { updated: data.updated, failed: data.failed.length }));
+        }
+      }
+    } catch (err) {
+      error = err.message;
+    } finally {
+      backgroundSends--;
+    }
+    if (error) {
+      AppNav.toast(t('edit_failed') + ': ' + error, 'error');
+      if (await AppDialog.confirm(t('update_bg_failed_reopen', { title, error }))) {
+        eventModalState = snapshot;
+        renderEditConfirmStep();
+      }
+    }
+  }
+
+  function renderUpdateQueuedStep(title) {
+    document.getElementById('modalHost').innerHTML = `
+      <div class="modal-overlay" onclick="if(event.target===this) closeModal()">
+        <div class="modal">
+          <h3>${t('update_queued_heading')}</h3>
+          <p class="sub">${t('update_queued_body', { title: escapeHtmlText(title) })}</p>
+          <div class="actions">
+            <button onclick="closeModal()">${t('close')}</button>
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   function renderEventUpdatedStep(data, calendarChange) {
