@@ -24,7 +24,6 @@
   .card .day-toggle { margin-top: 0; }
   .ranges { margin: 8px 0 4px 24px; }
   .range-row, .blackout-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; flex-wrap: wrap; }
-  .form-scope .range-row input[type=time], .form-scope .blackout-row input[type=datetime-local] { padding: 6px 8px; font-size: 13px; }
   .card .remove-x { color: var(--danger); background: none; border: none; cursor: pointer; padding: 0 4px; width: auto; margin: 0; font-weight: 400; }
   .card .remove-x:hover { background: none; }
   .card .add-range-btn { width: auto; padding: 6px 12px; font-size: 12.5px; margin: 4px 0 0; font-weight: 500; }
@@ -64,6 +63,7 @@
 <script src="/translations.js"></script>
 <script src="/timezone.js"></script>
 <script src="/dialogs.js"></script>
+<script src="/dt-picker.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = "https://nrrhvbxvkizvkcwwglck.supabase.co";
@@ -136,6 +136,9 @@
     // lukuoikeuden jälkeen voi antaa vielä kirjoitusoikeuden samasta näkymästä.
     if (inviteInfo.needsRegistration) {
       renderRegistrationStep();
+    } else if (inviteInfo.joined && !status) {
+      // Jo liittynyt: kutsulinkki (sähköposti) vie suoraan projektiin (UAT 11/2026 kohta 4).
+      window.location.replace(`/projekti.html?id=${encodeURIComponent(inviteInfo.projectId)}`);
     } else {
       renderProjectStep(status);
     }
@@ -418,6 +421,31 @@
     settingsState.blackouts[idx][field] = value;
   }
 
+  // Näkyvyysrajausten ajanvalitsin (dt-picker.js, sama ulkoasu kuin tapahtuman luonnissa).
+  function openSettingsRangePicker(day, idx, field) {
+    const r = settingsState.windowsByDay[day][idx];
+    DtPicker.open(`rng_${day}_${idx}_${field}`, r[field], {
+      mode: 'time', endOfDay: field === 'end',
+      onChange: (v) => updateSettingsRangeField(day, idx, field, v),
+    });
+  }
+
+  function openBlackoutPicker(idx, field) {
+    const b = settingsState.blackouts[idx];
+    DtPicker.open(`blk_${idx}_${field}`, b[field], {
+      defaultTime: field === 'endAt' ? '17:00' : '09:00',
+      onChange: (v) => {
+        updateBlackoutField(idx, field, v);
+        // Uuden jakson loppu esitäytetään tunnin päähän alusta.
+        if (field === 'startAt' && v && !b.endAt) {
+          b.endAt = DtPicker.addMinutes(v, 60);
+          const end = document.getElementById(`blk_${idx}_endAt`);
+          if (end) end.outerHTML = DtPicker.fieldHtml(`blk_${idx}_endAt`, b.endAt, { compact: true, onclick: `openBlackoutPicker(${idx}, 'endAt')` });
+        }
+      },
+    });
+  }
+
   function renderSettingsInline() {
     const wdShort = weekdayShortArr();
     let daysHtml = '';
@@ -426,9 +454,9 @@
       const enabled = ranges.length > 0;
       const rangesHtml = ranges.map((r, idx) => `
         <div class="range-row">
-          <input type="time" value="${r.start}" onchange="updateSettingsRangeField(${d}, ${idx}, 'start', this.value)" />
+          ${DtPicker.fieldHtml(`rng_${d}_${idx}_start`, r.start, { mode: 'time', compact: true, onclick: `openSettingsRangePicker(${d}, ${idx}, 'start')` })}
           <span>–</span>
-          <input type="time" value="${r.end}" onchange="updateSettingsRangeField(${d}, ${idx}, 'end', this.value)" />
+          ${DtPicker.fieldHtml(`rng_${d}_${idx}_end`, r.end, { mode: 'time', endOfDay: true, compact: true, onclick: `openSettingsRangePicker(${d}, ${idx}, 'end')` })}
           <button type="button" class="remove-x" onclick="removeSettingsRange(${d}, ${idx})">✕</button>
         </div>
       `).join('');
@@ -446,9 +474,9 @@
 
     const blackoutsHtml = settingsState.blackouts.map((b, idx) => `
       <div class="blackout-row">
-        <input type="datetime-local" value="${b.startAt}" onchange="updateBlackoutField(${idx}, 'startAt', this.value)" />
+        ${DtPicker.fieldHtml(`blk_${idx}_startAt`, b.startAt, { compact: true, onclick: `openBlackoutPicker(${idx}, 'startAt')` })}
         <span>–</span>
-        <input type="datetime-local" value="${b.endAt}" onchange="updateBlackoutField(${idx}, 'endAt', this.value)" />
+        ${DtPicker.fieldHtml(`blk_${idx}_endAt`, b.endAt, { compact: true, onclick: `openBlackoutPicker(${idx}, 'endAt')` })}
         <button type="button" class="remove-x" onclick="removeBlackout(${idx})">✕</button>
       </div>
     `).join('') || `<p class="empty-note">${t('no_blackouts')}</p>`;
@@ -531,6 +559,18 @@
     if (settingsState) {
       const saved = await saveSettingsInline();
       if (!saved) return;
+    }
+    // Liittyminen kirjataan (participants.joined_at); sen jälkeen projektisivu ja kutsulinkki
+    // avautuvat suoraan projektiin.
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/accept-invite`, {
+        method: 'POST', headers: authHeaders(), body: JSON.stringify({ participantId: PID }),
+      });
+      const data = await res.json();
+      if (data.error) { AppDialog.alert(t('error_prefix') + ': ' + data.error); return; }
+    } catch (err) {
+      AppDialog.alert(t('error_prefix') + ': ' + err.message);
+      return;
     }
     window.location.href = `/projekti.html?id=${inviteInfo.projectId}`;
   }

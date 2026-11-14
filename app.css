@@ -177,3 +177,40 @@ body.session-expired > *:not(.session-expired-backdrop) { filter: blur(4px); poi
   .nav-links { display: none; }
   .brand { font-size: 15px; }
 }
+
+/* Ajanvalitsin (päivämäärä + kellonaika samassa näkymässä): tapahtuman luonti (projekti.html)
+   ja näkyvyysrajaukset (dt-picker.js: projektin asetukset, kutsusivu). */
+.dt-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; background: var(--surface); color: var(--text); border: 1px solid #D0D5DD; border-radius: 8px; padding: 9px 11px; margin: 0; font: inherit; font-size: 14px; font-weight: 500; text-align: left; cursor: pointer; box-sizing: border-box; }
+.dt-field:hover { background: var(--surface-muted); border-color: #D0D5DD; }
+.dt-field.empty { color: var(--text-faint); }
+.dt-field svg { width: 16px; height: 16px; color: var(--text-faint); flex: none; }
+.dtp-pop { position: fixed; z-index: 60; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 36px rgba(14,34,64,0.18); padding: 14px; display: flex; flex-direction: column; gap: 12px; font-size: 13.5px; }
+.dtp-ends { display: flex; gap: 8px; }
+.dtp-end-btn { flex: 1; background: var(--surface-muted); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; margin: 0; font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
+.dtp-end-btn:hover { background: var(--surface-muted); border-color: var(--primary); }
+.dtp-end-btn.active { border-color: var(--primary); background: var(--primary-soft); }
+.dtp-end-btn b { display: block; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.dtp-body { display: flex; gap: 14px; }
+.dtp-cal { width: 252px; }
+.dtp-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 700; }
+.dtp-cal-head button { background: none; border: 1px solid var(--line); color: var(--text); width: 28px; height: 28px; padding: 0; margin: 0; border-radius: 6px; }
+.dtp-cal-head button:hover { background: var(--surface-muted); border-color: var(--line); }
+.dtp-grid { display: grid; grid-template-columns: repeat(7, 36px); gap: 0; }
+.dtp-wd { font-size: 11px; color: var(--text-faint); text-align: center; padding: 4px 0; font-weight: 600; }
+.dtp-day { height: 32px; background: none; border: none; margin: 0; padding: 0; color: var(--text); font: inherit; font-size: 13px; border-radius: 6px; cursor: pointer; }
+.dtp-day:hover { background: var(--surface-muted); border: none; }
+.dtp-day.other { color: var(--text-faint); }
+.dtp-day.today { font-weight: 800; }
+.dtp-day.in-range { background: var(--primary-soft); border-radius: 0; }
+.dtp-day.sel, .dtp-day.sel:hover { background: var(--primary); color: #fff; border-radius: 6px; }
+.dtp-times { width: 92px; display: flex; flex-direction: column; gap: 6px; }
+.dtp-times input { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #D0D5DD; border-radius: 6px; font: inherit; font-size: 13px; }
+.dtp-time-list { position: relative; height: 230px; overflow-y: auto; border: 1px solid var(--line-soft); border-radius: 8px; }
+.dtp-time { display: block; width: 100%; background: none; border: none; margin: 0; padding: 6px 10px; text-align: left; font: inherit; font-size: 13px; color: var(--text); border-radius: 0; cursor: pointer; }
+.dtp-time:hover { background: var(--surface-muted); border: none; }
+.dtp-time.sel, .dtp-time.sel:hover { background: var(--primary); color: #fff; }
+.dtp-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.dtp-foot button { margin: 0; padding: 6px 12px; font-size: 13px; }
+.dtp-error { color: var(--danger); font-size: 12px; }
+.dt-field.compact { width: auto; min-width: 0; padding: 5px 9px; font-size: 13px; gap: 6px; }
+.dt-field.compact svg { width: 14px; height: 14px; }

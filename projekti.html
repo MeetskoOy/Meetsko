@@ -96,41 +96,9 @@
   .past-link:hover { background: none; border: none; color: var(--text-muted); }
   .ev-filter { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 12px; font-size: 13.5px; font-weight: 600; color: var(--text-muted); cursor: pointer; }
   .ev-filter input { margin: 0; width: auto; }
-  /* Ajanvalitsin (päivämäärä + kellonaika samassa näkymässä) */
-  .dt-field { display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%; background: var(--surface); color: var(--text); border: 1px solid #D0D5DD; border-radius: 8px; padding: 9px 11px; margin: 0; font: inherit; font-size: 14px; font-weight: 500; text-align: left; cursor: pointer; box-sizing: border-box; }
-  .dt-field:hover { background: var(--surface-muted); border-color: #D0D5DD; }
-  .dt-field.empty { color: var(--text-faint); }
-  .dt-field svg { width: 16px; height: 16px; color: var(--text-faint); flex: none; }
+  /* Ajanvalitsimen tyylit (.dt-field, .dtp-*) ovat app.css:ssä (yhteinen dt-picker.js:n kanssa). */
   .dt-range-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .dt-range-grid label { margin-top: 10px; }
-  .dtp-pop { position: fixed; z-index: 60; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 36px rgba(14,34,64,0.18); padding: 14px; display: flex; flex-direction: column; gap: 12px; font-size: 13.5px; }
-  .dtp-ends { display: flex; gap: 8px; }
-  .dtp-end-btn { flex: 1; background: var(--surface-muted); color: var(--text); border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; margin: 0; font: inherit; font-size: 12.5px; text-align: left; cursor: pointer; }
-  .dtp-end-btn:hover { background: var(--surface-muted); border-color: var(--primary); }
-  .dtp-end-btn.active { border-color: var(--primary); background: var(--primary-soft); }
-  .dtp-end-btn b { display: block; font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
-  .dtp-body { display: flex; gap: 14px; }
-  .dtp-cal { width: 252px; }
-  .dtp-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-weight: 700; }
-  .dtp-cal-head button { background: none; border: 1px solid var(--line); color: var(--text); width: 28px; height: 28px; padding: 0; margin: 0; border-radius: 6px; }
-  .dtp-cal-head button:hover { background: var(--surface-muted); border-color: var(--line); }
-  .dtp-grid { display: grid; grid-template-columns: repeat(7, 36px); gap: 0; }
-  .dtp-wd { font-size: 11px; color: var(--text-faint); text-align: center; padding: 4px 0; font-weight: 600; }
-  .dtp-day { height: 32px; background: none; border: none; margin: 0; padding: 0; color: var(--text); font: inherit; font-size: 13px; border-radius: 6px; cursor: pointer; }
-  .dtp-day:hover { background: var(--surface-muted); border: none; }
-  .dtp-day.other { color: var(--text-faint); }
-  .dtp-day.today { font-weight: 800; }
-  .dtp-day.in-range { background: var(--primary-soft); border-radius: 0; }
-  .dtp-day.sel, .dtp-day.sel:hover { background: var(--primary); color: #fff; border-radius: 6px; }
-  .dtp-times { width: 92px; display: flex; flex-direction: column; gap: 6px; }
-  .dtp-times input { width: 100%; box-sizing: border-box; padding: 6px 8px; border: 1px solid #D0D5DD; border-radius: 6px; font: inherit; font-size: 13px; }
-  .dtp-time-list { position: relative; height: 230px; overflow-y: auto; border: 1px solid var(--line-soft); border-radius: 8px; }
-  .dtp-time { display: block; width: 100%; background: none; border: none; margin: 0; padding: 6px 10px; text-align: left; font: inherit; font-size: 13px; color: var(--text); border-radius: 0; cursor: pointer; }
-  .dtp-time:hover { background: var(--surface-muted); border: none; }
-  .dtp-time.sel, .dtp-time.sel:hover { background: var(--primary); color: #fff; }
-  .dtp-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
-  .dtp-foot button { margin: 0; padding: 6px 12px; font-size: 13px; }
-  .dtp-error { color: var(--danger); font-size: 12px; }
   .draft-flag { font-size: 11.5px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--line-soft); color: var(--text-muted); }
   .draft-flag.warn { background: var(--danger-soft); color: #9C2C22; }
   .draft-flag.info { background: #FBF0D9; color: #91600C; }
@@ -522,6 +490,7 @@
 <script src="/timezone.js"></script>
 <script src="/dialogs.js"></script>
 <script src="/recurrence.js"></script>
+<script src="/dt-picker.js"></script>
 <script src="/nav.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -1281,6 +1250,13 @@ async function loadStatus() {
       if (res.status === 403 || res.status === 404) { AppNav.showNoAccess(); return; }
       document.getElementById('projectName').removeAttribute('data-i18n');
       document.getElementById('projectName').textContent = t('error_prefix') + ': ' + data.error;
+      return;
+    }
+
+    // Kutsuttu, mutta ei vielä liittynyt: liittyminen aina kutsusivun kautta (näkyvyysrajaukset,
+    // kalenterin valtuutus; UAT 11/2026 kohta 4).
+    if (data.viewerAccess && data.viewerAccess.isParticipant && data.viewerAccess.joined === false && data.viewerAccess.participantId) {
+      window.location.replace(`/kutsu.html?pid=${encodeURIComponent(data.viewerAccess.participantId)}`);
       return;
     }
 
@@ -2166,7 +2142,7 @@ function openGroupModal() {
       ? `<span class="ev-icon" data-tip="${t('event_recurring_tip', { index: e.occurrence_index, count: e.occurrence_count })}">${RECUR_ICON}</span>`
       : '';
     const cancelled = e.status === 'cancelled' ? `<span class="ev-pill cancel">${t('event_cancelled')}</span>` : '';
-    const hidden = e.hidden ? `<span class="ev-pill">${t('draft_visibility_hidden')}</span>` : '';
+    const hidden = e.hidden ? `<span class="ev-pill">${t('event_private_pill')}</span>` : '';
     return `
       <div class="ev-row ${e.status === 'cancelled' ? 'cancelled' : ''}">
         <div class="ev-main">
@@ -3401,17 +3377,39 @@ function openGroupModal() {
       preferWindows,
     });
 
-    if (results.length === 0) {
+    const kept = keepsSelection(searchStart.getTime(), searchEnd.getTime());
+    if (results.length === 0 && !kept) {
       AppDialog.alert(t('alert_no_slots_found'));
       return;
     }
 
-    s.results = results;
-    s.selectedResultIdx = 0;
-    s.selStart = results[0].startMs;
-    s.selEnd = results[0].endMs;
-    s.calAnchor = toDateStr(zdate(results[0].startMs));
+    applySearchResults(results, kept);
     renderEventResultsStep();
+  }
+
+  // Valittu aika säilyy uudessa haussa (UAT 11/2026: palattiin lisäämään osallistujia), jos se
+  // on hakuvälillä eikä menneisyydessä; muut vapaat ajat näkyvät listana.
+  function keepsSelection(searchStartMs, searchEndMs) {
+    const s = eventModalState;
+    return !!(s.selStart && s.selEnd && s.selStart > Date.now() && s.selStart >= searchStartMs && s.selStart < searchEndMs);
+  }
+
+  function applySearchResults(results, kept) {
+    const s = eventModalState;
+    const minutes = Number(s.duration) || 30;
+    s.results = results;
+    if (kept) {
+      // Valintavaiheessa muutettu kesto koskee myös säilytettyä aikaa.
+      if (s.searchedDuration !== undefined && s.searchedDuration !== minutes) s.selEnd = s.selStart + minutes * 60000;
+      s.selectedResultIdx = results.findIndex((r) => r.startMs === s.selStart && r.endMs === s.selEnd);
+      s.calAnchor = toDateStr(zdate(s.selStart));
+    } else {
+      s.selectedResultIdx = 0;
+      s.selStart = results[0].startMs;
+      s.selEnd = results[0].endMs;
+      s.calAnchor = toDateStr(zdate(results[0].startMs));
+    }
+    s.searchedDuration = minutes;
   }
 
   // Kalenteridata haetaan 3 kk eteenpäin (ks. kalenterien päivitys) —
@@ -3488,11 +3486,7 @@ function openGroupModal() {
       results = [{ startMs: start.getTime(), endMs: start.getTime() + durationMinutes * 60000 }];
     }
 
-    s.results = results;
-    s.selectedResultIdx = 0;
-    s.selStart = results[0].startMs;
-    s.selEnd = results[0].endMs;
-    s.calAnchor = toDateStr(zdate(results[0].startMs));
+    applySearchResults(results, keepsSelection(searchStart.getTime(), searchEnd.getTime()));
     s.occurrences = null;
     renderEventResultsStep();
   }
@@ -4859,6 +4853,31 @@ function openGroupModal() {
     settingsState.blackouts[idx][field] = value;
   }
 
+  // Näkyvyysrajausten ajanvalitsin (dt-picker.js, sama ulkoasu kuin tapahtuman luonnissa).
+  function openSettingsRangePicker(day, idx, field) {
+    const r = settingsState.windowsByDay[day][idx];
+    DtPicker.open(`rng_${day}_${idx}_${field}`, r[field], {
+      mode: 'time', endOfDay: field === 'end',
+      onChange: (v) => updateSettingsRangeField(day, idx, field, v),
+    });
+  }
+
+  function openBlackoutPicker(idx, field) {
+    const b = settingsState.blackouts[idx];
+    DtPicker.open(`blk_${idx}_${field}`, b[field], {
+      defaultTime: field === 'endAt' ? '17:00' : '09:00',
+      onChange: (v) => {
+        updateBlackoutField(idx, field, v);
+        // Uuden jakson loppu esitäytetään tunnin päähän alusta.
+        if (field === 'startAt' && v && !b.endAt) {
+          b.endAt = DtPicker.addMinutes(v, 60);
+          const end = document.getElementById(`blk_${idx}_endAt`);
+          if (end) end.outerHTML = DtPicker.fieldHtml(`blk_${idx}_endAt`, b.endAt, { compact: true, onclick: `openBlackoutPicker(${idx}, 'endAt')` });
+        }
+      },
+    });
+  }
+
    function switchSettingsTab(tab) {
     settingsActiveTab = tab;
     renderSettingsModal();
@@ -4892,6 +4911,14 @@ function openGroupModal() {
     `;
   }
 
+  // Kuuluuko katsoja projektin asiakasorganisaatioon (tekstit "oma organisaatiosi" vs. "asiakasorganisaatio").
+  function viewerInProjectOrg() {
+    const va = latestStatus.viewerAccess || {};
+    if (va.isOrgSuperuser) return true;
+    const mine = latestStatus.participants.find((p) => p.email.toLowerCase() === currentUserEmail);
+    return !!mine && !mine.isGuest;
+  }
+
   function renderOwnSettingsTabHtml() {
     let daysHtml = '';
     const wdShort = weekdayShortArr();
@@ -4900,9 +4927,9 @@ function openGroupModal() {
       const enabled = ranges.length > 0;
       const rangesHtml = ranges.map((r, idx) => `
         <div class="range-row">
-          <input type="time" value="${r.start}" onchange="updateSettingsRangeField(${d}, ${idx}, 'start', this.value)" />
+          ${DtPicker.fieldHtml(`rng_${d}_${idx}_start`, r.start, { mode: 'time', compact: true, onclick: `openSettingsRangePicker(${d}, ${idx}, 'start')` })}
           <span>–</span>
-          <input type="time" value="${r.end}" onchange="updateSettingsRangeField(${d}, ${idx}, 'end', this.value)" />
+          ${DtPicker.fieldHtml(`rng_${d}_${idx}_end`, r.end, { mode: 'time', endOfDay: true, compact: true, onclick: `openSettingsRangePicker(${d}, ${idx}, 'end')` })}
           <button type="button" class="remove-x" onclick="removeSettingsRange(${d}, ${idx})">✕</button>
         </div>
       `).join('');
@@ -4920,9 +4947,9 @@ function openGroupModal() {
 
     const blackoutsHtml = settingsState.blackouts.map((b, idx) => `
       <div class="blackout-row">
-        <input type="datetime-local" value="${b.startAt}" onchange="updateBlackoutField(${idx}, 'startAt', this.value)" />
+        ${DtPicker.fieldHtml(`blk_${idx}_startAt`, b.startAt, { compact: true, onclick: `openBlackoutPicker(${idx}, 'startAt')` })}
         <span>–</span>
-        <input type="datetime-local" value="${b.endAt}" onchange="updateBlackoutField(${idx}, 'endAt', this.value)" />
+        ${DtPicker.fieldHtml(`blk_${idx}_endAt`, b.endAt, { compact: true, onclick: `openBlackoutPicker(${idx}, 'endAt')` })}
         <button type="button" class="remove-x" onclick="removeBlackout(${idx})">✕</button>
       </div>
     `).join('') || `<p class="empty-note">${t('no_blackouts')}</p>`;
@@ -5002,7 +5029,7 @@ function openGroupModal() {
       `)).join('');
     return `
       <label style="margin-top:20px;">${t('owner_change_label')}</label>
-      <p class="empty-note" style="margin-top:-2px;">${t('owner_change_note')}${latestStatus.project.organization_id ? ' ' + t('owner_change_org_note') : ''}</p>
+      <p class="empty-note" style="margin-top:-2px;">${t('owner_change_note')}${latestStatus.project.organization_id ? ' ' + t(viewerInProjectOrg() ? 'owner_change_org_note_own' : 'owner_change_org_note') : ''}</p>
       <select id="projectOwnerSelect" style="width:100%;">${options}</select>
       <div class="actions" style="margin-top:8px;">
         <button onclick="saveProjectOwner()">${t('owner_change_btn')}</button>

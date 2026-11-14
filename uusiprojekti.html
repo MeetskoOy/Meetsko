@@ -340,9 +340,9 @@
     picker.innerHTML = admins.map((m) => `<option value="${escapeHtmlAttr(m.email)}">${escapeHtmlAttr(m.name ? `${m.name} (${m.email})` : m.email)}</option>`).join('');
     if (admins.some((m) => m.email === previous)) picker.value = previous;
     picker.style.display = admins.length ? '' : 'none';
-    // Organisaation projektissa vastuuhenkilön pitää kuulua omistavaan organisaatioon (palvelin tarkistaa).
+    // Organisaation projektissa vastuuhenkilön pitää kuulua projektin asiakasorganisaatioon (palvelin tarkistaa).
     const hasOrg = myProfileData && (myProfileData.isSuperadmin ? !!document.getElementById('orgPicker').value : !!myProfileData.memberOrganization);
-    document.getElementById('ownerPickerNote').textContent = (admins.length ? t('owner_picker_note') : t('owner_required_error')) + (hasOrg ? ' ' + t('owner_change_org_note') : '');
+    document.getElementById('ownerPickerNote').textContent = (admins.length ? t('owner_picker_note') : t('owner_required_error')) + (hasOrg ? ' ' + t(myProfileData.isSuperadmin ? 'owner_change_org_note' : 'owner_change_org_note_own') : '');
     wrap.style.display = '';
   }
 
