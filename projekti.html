@@ -487,6 +487,7 @@
 <div id="modalHost"></div>
 
 <script src="/translations.js"></script>
+<script src="/edge-functions.js"></script>
 <script src="/timezone.js"></script>
 <script src="/dialogs.js"></script>
 <script src="/recurrence.js"></script>
@@ -628,7 +629,7 @@ const paramsUrl = new URLSearchParams(window.location.search);
   async function setLanguagePref(lang) {
     setCurrentLanguage(lang);
     if (myProfileData) {
-      await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
+      await AppNav.fetch(MeetskoFunctions.url('update-my-profile'), {
         method: 'POST',
         body: JSON.stringify({
           firstName: myProfileData.firstName,
@@ -644,7 +645,7 @@ const paramsUrl = new URLSearchParams(window.location.search);
   }
 
   async function loadMyProfileAndTranslations() {
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/get-my-profile`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('get-my-profile'), {
       method: 'POST',
     });
     const data = await res.json();
@@ -1239,7 +1240,7 @@ async function loadStatus() {
       return;
     }
 
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/get-project-status`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('get-project-status'), {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
@@ -1606,7 +1607,7 @@ async function loadStatus() {
   }
 
   async function submitParticipantInvite(email, firstName, lastName, title, role) {
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/invite-participant`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('invite-participant'), {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID, email, firstName, lastName, title, role }),
     });
@@ -1648,7 +1649,7 @@ async function loadStatus() {
       const contact = (await AppDialog.prompt(t('new_domain_prompt_project', { domain }))) || '';
       entries.push({ domain, itContactEmail: contact.trim() });
     }
-    await AppNav.fetch(`${SUPABASE_URL}/functions/v1/register-domain-contacts`, {
+    await AppNav.fetch(MeetskoFunctions.url('register-domain-contacts'), {
       method: 'POST',
       body: JSON.stringify({ entries, context: `project:${PROJECT_ID}` }),
     });
@@ -1676,7 +1677,7 @@ async function loadStatus() {
   }
 
   async function refreshSchedulesInner() {
-    const statusRes = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/get-project-status`, {
+    const statusRes = await AppNav.fetch(MeetskoFunctions.url('get-project-status'), {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
@@ -1697,7 +1698,7 @@ async function loadStatus() {
     const startTime = localStart.toISOString().slice(0, 19);
     const endTime = localEnd.toISOString().slice(0, 19);
 
-    await AppNav.fetch(`${SUPABASE_URL}/functions/v1/get-schedule`, {
+    await AppNav.fetch(MeetskoFunctions.url('get-schedule'), {
       method: 'POST',
       body: JSON.stringify({ participantIds: authorizedIds, startTime, endTime }),
     });
@@ -1767,7 +1768,7 @@ function openGroupModal() {
     if (!name) { AppDialog.alert(t('alert_group_name_required')); return; }
     if (newGroupState.selectedIds.size === 0) { AppDialog.alert(t('alert_group_member_required')); return; }
 
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/create-group`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('create-group'), {
       method: 'POST',
       body: JSON.stringify({
         projectId: PROJECT_ID,
@@ -1869,7 +1870,7 @@ function openGroupModal() {
     const g = (latestStatus.groups || []).find((x) => x.id === groupId);
     if (!g) return;
     if (!(await AppDialog.confirm(t('confirm_delete_group', { name: g.name }), { danger: true }))) return;
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/delete-group`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('delete-group'), {
       method: 'POST',
       body: JSON.stringify({ groupId }),
     });
@@ -1881,7 +1882,7 @@ function openGroupModal() {
   }
 
   async function callUpdateGroupMembers(groupId, participantId, action) {
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-group-members`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('update-group-members'), {
       method: 'POST',
       body: JSON.stringify({ groupId, participantId, action }),
     });
@@ -1959,7 +1960,7 @@ function openGroupModal() {
     const btn = document.getElementById('reminderBtn');
     const status = document.getElementById('reminderStatus');
     btn.disabled = true;
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/send-authorization-reminder`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('send-authorization-reminder'), {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID, participantId }),
     });
@@ -2081,7 +2082,7 @@ function openGroupModal() {
 
   async function loadProjectEvents() {
     try {
-      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/list-project-events`, {
+      const res = await AppNav.fetch(MeetskoFunctions.url('list-project-events'), {
         method: 'POST',
         body: JSON.stringify({ projectId: PROJECT_ID }),
       });
@@ -2530,7 +2531,7 @@ function openGroupModal() {
     const btn = document.getElementById('sendInviteBtn');
     if (btn) { btn.disabled = true; btn.textContent = t('saving_label'); }
     try {
-      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-project-event`, {
+      const res = await AppNav.fetch(MeetskoFunctions.url('update-project-event'), {
         method: 'POST',
         body: JSON.stringify({ projectId: PROJECT_ID, eventId: ed.id, scope: ed.scope, changes }),
       });
@@ -2552,7 +2553,7 @@ function openGroupModal() {
     backgroundSends++;
     let error = null;
     try {
-      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-project-event`, {
+      const res = await AppNav.fetch(MeetskoFunctions.url('update-project-event'), {
         method: 'POST',
         body: JSON.stringify(body),
       });
@@ -2622,7 +2623,7 @@ function openGroupModal() {
     const key = scope === 'future' ? 'confirm_cancel_future' : 'confirm_cancel_event';
     if (!(await AppDialog.confirm(t(key, { title: e.title, time: formatDayHeading(e.startMs) + ' ' + formatTimeRange(e.startMs, e.endMs) }), { danger: true }))) return;
     try {
-      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/cancel-project-event`, {
+      const res = await AppNav.fetch(MeetskoFunctions.url('cancel-project-event'), {
         method: 'POST',
         body: JSON.stringify({ projectId: PROJECT_ID, eventId, scope }),
       });
@@ -2719,7 +2720,7 @@ function openGroupModal() {
 
   async function loadDrafts() {
     try {
-      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/event-drafts`, {
+      const res = await AppNav.fetch(MeetskoFunctions.url('event-drafts'), {
         method: 'POST',
         body: JSON.stringify({ action: 'list', projectId: PROJECT_ID }),
       });
@@ -2850,7 +2851,7 @@ function openGroupModal() {
     if (btn) btn.disabled = true;
 
     try {
-      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/event-drafts`, {
+      const res = await AppNav.fetch(MeetskoFunctions.url('event-drafts'), {
         method: 'POST',
         body: JSON.stringify({
           action: 'save',
@@ -2947,7 +2948,7 @@ function openGroupModal() {
   }
 
   async function deleteDraftRequest(draftId) {
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/event-drafts`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('event-drafts'), {
       method: 'POST',
       body: JSON.stringify({ action: 'delete', projectId: PROJECT_ID, draftId }),
     });
@@ -4580,7 +4581,7 @@ function openGroupModal() {
     backgroundSends++;
     let error = null;
     try {
-      const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/create-event`, {
+      const res = await AppNav.fetch(MeetskoFunctions.url('create-event'), {
         method: 'POST',
         body: JSON.stringify(payload),
       });
@@ -4640,7 +4641,7 @@ function openGroupModal() {
       return;
     }
 
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/get-participant-settings`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('get-participant-settings'), {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
@@ -4750,7 +4751,7 @@ function openGroupModal() {
   async function revokeCalendarAuth() {
     if (!(await AppDialog.confirm(t('confirm_revoke_auth'), { danger: true }))) return;
 
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/revoke-calendar-authorization`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('revoke-calendar-authorization'), {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
@@ -4804,7 +4805,7 @@ function openGroupModal() {
   async function leaveProjectConfirm() {
     if (!(await AppDialog.confirm(t('confirm_leave_project'), { danger: true }))) return;
 
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/leave-project`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('leave-project'), {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
@@ -5047,7 +5048,7 @@ function openGroupModal() {
     if (!ownerEmail || ownerEmail.toLowerCase() === (latestStatus.project.owner_email || '').toLowerCase()) return;
     if (!(await AppDialog.confirm(t('confirm_owner_change', { email: ownerEmail })))) return;
 
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-project`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('update-project'), {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID, ownerEmail }),
     });
@@ -5064,7 +5065,7 @@ function openGroupModal() {
     if (!(await AppDialog.confirm(t('confirm_delete_project_1', { name }), { danger: true }))) return;
     if (!(await AppDialog.confirm(t('confirm_delete_project_2', { name }), { danger: true }))) return;
 
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/delete-project`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('delete-project'), {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID }),
     });
@@ -5078,7 +5079,7 @@ function openGroupModal() {
     const name = document.getElementById('projectNameEditInput').value.trim();
     if (!name) return;
 
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-project`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('update-project'), {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID, name }),
     });
@@ -5090,7 +5091,7 @@ function openGroupModal() {
   }
 
   async function changeParticipantRole(participantId, role) {
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-participant-role`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('update-participant-role'), {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID, participantId, role }),
     });
@@ -5105,7 +5106,7 @@ function openGroupModal() {
   async function removeParticipantFromProject(participantId, name) {
     if (!(await AppDialog.confirm(t('confirm_remove_participant', { name }), { danger: true }))) return;
 
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/remove-participant-from-project`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('remove-participant-from-project'), {
       method: 'POST',
       body: JSON.stringify({ projectId: PROJECT_ID, participantId }),
     });
@@ -5150,7 +5151,7 @@ function openGroupModal() {
     const blackouts = filledBlackouts
       .map((b) => ({ startAt: MeetskoTZ.localInputToIso(b.startAt, tz), endAt: MeetskoTZ.localInputToIso(b.endAt, tz) }));
 
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-participant-settings`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('update-participant-settings'), {
       method: 'POST',
       body: JSON.stringify({
         projectId: PROJECT_ID,

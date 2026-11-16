@@ -75,6 +75,7 @@
 </main>
 
 <script src="/translations.js"></script>
+<script src="/edge-functions.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
   const SUPABASE_URL = "https://nrrhvbxvkizvkcwwglck.supabase.co";
@@ -99,7 +100,7 @@
     const { data: { session } } = await client.auth.getSession();
     sessionToken = session.access_token;
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/check-app-access`, {
+    const res = await fetch(MeetskoFunctions.url('check-app-access'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -115,7 +116,7 @@
       return;
     }
 
-    const profileRes = await fetch(`${SUPABASE_URL}/functions/v1/get-my-profile`, {
+    const profileRes = await fetch(MeetskoFunctions.url('get-my-profile'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -172,7 +173,7 @@
       return;
     }
 
-    await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
+    await fetch(MeetskoFunctions.url('update-my-profile'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

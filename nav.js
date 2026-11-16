@@ -136,7 +136,7 @@ const AppNav = {
   // Edge Function -kutsu. Palauttaa vastauksen JSONina; 401 avaa istuntoikkunan.
   async api(fn, body) {
     const headers = await AppNav.authHeaders();
-    const res = await fetch(`${AppNav._session.url}/functions/v1/${fn}`, {
+    const res = await fetch(MeetskoFunctions.url(fn), {
       method: 'POST',
       headers,
       body: JSON.stringify(body || {}),

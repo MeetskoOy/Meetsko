@@ -58,6 +58,7 @@
 </main>
 
 <script src="/translations.js"></script>
+<script src="/edge-functions.js"></script>
 <script src="/dialogs.js"></script>
 <script src="/nav.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -85,7 +86,7 @@
   async function setLanguagePref(lang) {
     setCurrentLanguage(lang);
     if (myProfileData) {
-      await AppNav.fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
+      await AppNav.fetch(MeetskoFunctions.url('update-my-profile'), {
         method: 'POST',
         body: JSON.stringify({
           firstName: myProfileData.firstName,
@@ -101,7 +102,7 @@
   }
 
   async function loadMyProfileAndTranslations() {
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/get-my-profile`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('get-my-profile'), {
       method: 'POST',
     });
     const data = await res.json();
@@ -123,7 +124,7 @@
   }
 
   async function loadPeople() {
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/list-all-people`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('list-all-people'), {
       method: 'POST',
     });
     const data = await res.json();
@@ -212,7 +213,7 @@
     const secondConfirm = (await AppDialog.confirm(t('confirm_delete_user_2', { email }), { danger: true }));
     if (!secondConfirm) return;
 
-    const res = await AppNav.fetch(`${SUPABASE_URL}/functions/v1/delete-person-everywhere`, {
+    const res = await AppNav.fetch(MeetskoFunctions.url('delete-person-everywhere'), {
       method: 'POST',
       body: JSON.stringify({ email }),
     });

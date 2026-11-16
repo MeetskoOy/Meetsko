@@ -63,6 +63,7 @@
 </main>
 
 <script src="/translations.js"></script>
+<script src="/edge-functions.js"></script>
 <script src="/timezone.js"></script>
 <script src="/dialogs.js"></script>
 <script src="/nav.js"></script>
@@ -93,7 +94,7 @@
   async function setLanguagePref(lang) {
     setCurrentLanguage(lang);
     if (loadedProfile) {
-      await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
+      await fetch(MeetskoFunctions.url('update-my-profile'), {
         method: 'POST',
         headers: authHeaders(),
         body: JSON.stringify({
@@ -129,7 +130,7 @@
   }
 
   async function loadProfile() {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-my-profile`, {
+    const res = await fetch(MeetskoFunctions.url('get-my-profile'), {
       method: 'POST',
       headers: authHeaders(),
     });
@@ -216,7 +217,7 @@
       return;
     }
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/update-my-profile`, {
+    const res = await fetch(MeetskoFunctions.url('update-my-profile'), {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify(body),
@@ -247,7 +248,7 @@
   }
 
   async function loadProjects() {
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/get-my-projects`, {
+    const res = await fetch(MeetskoFunctions.url('get-my-projects'), {
       method: 'POST',
       headers: authHeaders(),
     });
@@ -366,7 +367,7 @@
   async function revokeAuth(projectId) {
     if (!(await AppDialog.confirm(t('confirm_revoke_auth'), { danger: true }))) return;
 
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/revoke-calendar-authorization`, {
+    const res = await fetch(MeetskoFunctions.url('revoke-calendar-authorization'), {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify({ projectId }),
@@ -382,7 +383,7 @@
   async function deleteMyProfile() {
     if (!(await AppDialog.confirm(t('confirm_delete_profile_1'), { danger: true }))) return;
     if (!(await AppDialog.confirm(t('confirm_delete_profile_2'), { danger: true }))) return;
-    const res = await fetch(`${SUPABASE_URL}/functions/v1/delete-my-profile`, { method: 'POST', headers: authHeaders() });
+    const res = await fetch(MeetskoFunctions.url('delete-my-profile'), { method: 'POST', headers: authHeaders() });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || data.error) {
       AppDialog.alert(data.code === 'last_org_admin' ? t('delete_profile_last_admin') : t('error_prefix') + ': ' + (data.error || res.status));
