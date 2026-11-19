@@ -326,6 +326,7 @@
   .member-manage-row:first-child { border-top: none; }
   .member-manage-row .mm-name { font-size: 13.5px; flex: 1; min-width: 0; }
   .member-manage-row select { padding: 5px 6px; border: 1px solid var(--line); border-radius: 6px; font-size: 12.5px; }
+  #projectOwnerSelect { padding: 7px 8px; border: 1px solid var(--line); border-radius: 7px; font-size: 13px; font-family: inherit; color: var(--text); background: var(--surface, #fff); box-sizing: border-box; }
 
   .event-two-col { display: flex; gap: 16px; }
   .event-two-col > div { flex: 1; min-width: 0; }
@@ -500,7 +501,7 @@
   // aikavyöhyke otetaan muistista heti, ja tilakysely (viewerTimeZone) vahvistaa sen.
   const zdate = MeetskoTZ.zdate;
   const VIEW_TZ_KEY = 'meetsko_view_tz';
-  try { MeetskoTZ.setViewZone(localStorage.getItem(VIEW_TZ_KEY)); } catch (e) {}
+  try { MeetskoTZ.setViewZone(AppNav.storageGet(VIEW_TZ_KEY)); } catch (e) {}
 AppNav.mount('projects');
 const paramsUrl = new URLSearchParams(window.location.search);
   const PROJECT_ID = paramsUrl.get('id');
@@ -558,7 +559,8 @@ const paramsUrl = new URLSearchParams(window.location.search);
   }
 
   function loadViewPrefsFromStorage() {
-    const viewPrefs = JSON.parse(localStorage.getItem('yhteisikkuna_viewPrefs') || '{}');
+    let viewPrefs = {};
+    try { viewPrefs = JSON.parse(AppNav.storageGet('yhteisikkuna_viewPrefs') || '{}'); } catch (e) {}
     dayRangeMode = viewPrefs.dayRangeMode || 'full';
     hideWeekends = !!viewPrefs.hideWeekends;
     computeHoursWindow();
@@ -566,7 +568,7 @@ const paramsUrl = new URLSearchParams(window.location.search);
   loadViewPrefsFromStorage();
 
   function saveViewPrefs() {
-    localStorage.setItem('yhteisikkuna_viewPrefs', JSON.stringify({ dayRangeMode, hideWeekends }));
+    AppNav.storageSet('yhteisikkuna_viewPrefs', JSON.stringify({ dayRangeMode, hideWeekends }));
   }
 
   function setDayRangeMode(mode) {
@@ -603,7 +605,7 @@ const paramsUrl = new URLSearchParams(window.location.search);
   // muistetaan projektikohtaisesti selaimessa (kuten laajennetut ryhmät).
   const SECTIONS_KEY = 'meetsko_sections_' + PROJECT_ID;
   let sectionCollapsed = { people: null, owngroups: null, projectgroups: null };
-  try { Object.assign(sectionCollapsed, JSON.parse(localStorage.getItem(SECTIONS_KEY) || '{}')); } catch (e) {}
+  try { Object.assign(sectionCollapsed, JSON.parse(AppNav.storageGet(SECTIONS_KEY) || '{}')); } catch (e) {}
   const sectionCounts = {};
 
   function isSectionCollapsed(section) {
@@ -1306,7 +1308,7 @@ async function loadStatus() {
   function applyViewTimeZone(tz) {
     const zone = MeetskoTZ.isValid(tz) ? tz : MeetskoTZ.browserZone();
     MeetskoTZ.setViewZone(zone);
-    try { localStorage.setItem(VIEW_TZ_KEY, zone); } catch (e) {}
+    AppNav.storageSet(VIEW_TZ_KEY, zone);
     const el = document.getElementById('tzIndicator');
     if (!el) return;
     const browserZone = MeetskoTZ.browserZone();
@@ -1326,7 +1328,7 @@ async function loadStatus() {
 
   function toggleSection(section) {
     sectionCollapsed[section] = !isSectionCollapsed(section);
-    try { localStorage.setItem(SECTIONS_KEY, JSON.stringify(sectionCollapsed)); } catch (e) {}
+    AppNav.storageSet(SECTIONS_KEY, JSON.stringify(sectionCollapsed));
     renderAll();
   }
 
@@ -1502,11 +1504,11 @@ async function loadStatus() {
   // Laajennetut ryhmät (jäsenet omina riveinään ryhmän alla), muistetaan projektikohtaisesti.
   const EXPANDED_GROUPS_KEY = 'meetsko_expandedGroups_' + PROJECT_ID;
   let expandedGroups = new Set();
-  try { expandedGroups = new Set(JSON.parse(localStorage.getItem(EXPANDED_GROUPS_KEY) || '[]')); } catch (e) {}
+  try { expandedGroups = new Set(JSON.parse(AppNav.storageGet(EXPANDED_GROUPS_KEY) || '[]')); } catch (e) {}
 
   function toggleGroupExpanded(groupId) {
     if (expandedGroups.has(groupId)) expandedGroups.delete(groupId); else expandedGroups.add(groupId);
-    try { localStorage.setItem(EXPANDED_GROUPS_KEY, JSON.stringify([...expandedGroups])); } catch (e) {}
+    AppNav.storageSet(EXPANDED_GROUPS_KEY, JSON.stringify([...expandedGroups]));
     const col = document.getElementById('mainTimelineCol');
     const scroll = col ? col.scrollLeft : null;
     renderAll();
@@ -2067,11 +2069,11 @@ function openGroupModal() {
   // Valinta muistetaan selaimessa (kaikki projektit).
   const OWN_EVENTS_KEY = 'meetsko_ownEventsOnly';
   let ownEventsOnly = false;
-  try { ownEventsOnly = localStorage.getItem(OWN_EVENTS_KEY) === '1'; } catch (e) {}
+  ownEventsOnly = AppNav.storageGet(OWN_EVENTS_KEY) === '1';
 
   function toggleOwnEventsOnly(checked) {
     ownEventsOnly = !!checked;
-    try { localStorage.setItem(OWN_EVENTS_KEY, ownEventsOnly ? '1' : '0'); } catch (e) {}
+    AppNav.storageSet(OWN_EVENTS_KEY, ownEventsOnly ? '1' : '0');
     renderEventsPanel();
   }
 
@@ -2226,6 +2228,8 @@ function openGroupModal() {
     const peopleRoles = {};
     (e.required_ids || []).filter(exists).forEach((id) => { peopleRoles[id] = 'required'; });
     (e.optional_ids || []).filter(exists).forEach((id) => { if (!peopleRoles[id]) peopleRoles[id] = 'optional'; });
+    // Järjestäjä ei ole tapahtuman osallistujalistoilla; oma kalenteri aikahakuun oletuksena.
+    Object.entries(defaultPeopleRoles()).forEach(([id, role]) => { if (!peopleRoles[id]) peopleRoles[id] = role; });
     // Sarjan tämä ja tulevat kerrat (voimassa olevat), aikajärjestyksessä.
     const seriesRows = scope === 'future' && e.series_id
       ? projectEvents.filter((x) => x.series_id === e.series_id && x.status === 'scheduled' && x.startMs >= e.startMs)
@@ -2264,8 +2268,28 @@ function openGroupModal() {
   function withoutEditedEvent(intervals) {
     const ed = eventModalState && eventModalState.editEvent;
     if (!ed) return intervals;
-    const own = ed.seriesRows && ed.seriesRows.length ? ed.seriesRows : [ed.original];
+    const key = ed.seriesId || ed.id;
+    const own = [
+      ...(ed.seriesRows && ed.seriesRows.length ? ed.seriesRows : [ed.original]),
+      ...recentlyMovedFrom.filter((m) => m.key === key && m.until > Date.now()),
+    ];
     return intervals.filter((b) => !own.some((o) => Math.abs(b.startMs - o.startMs) < 60000 && Math.abs(b.endMs - o.endMs) < 60000));
+  }
+
+  // Juuri siirretyn tapahtuman vanhat ajat (10 min): osallistujien Outlook-kalenterin tiedot
+  // päivittyvät Meetskoon 1–2 minuutin viiveellä, joten heti uudelleen muokattaessa vanhaa
+  // aikaa (myös sarjan perutun kerran, jonka Exchange voi palauttaa) ei tulkita varatuksi.
+  const RECENT_MOVE_MS = 10 * 60 * 1000;
+  let recentlyMovedFrom = [];
+  function rememberMovedFrom(ed) {
+    if (!ed) return;
+    const now = Date.now();
+    const key = ed.seriesId || ed.id;
+    const rows = ed.seriesId
+      ? projectEvents.filter((x) => x.series_id === ed.seriesId && x.startMs >= ed.original.startMs)
+      : [ed.original];
+    recentlyMovedFrom = recentlyMovedFrom.filter((m) => m.until > now);
+    rows.forEach((r) => recentlyMovedFrom.push({ key, startMs: r.startMs, endMs: r.endMs, until: now + RECENT_MOVE_MS }));
   }
 
   // Sarjan siirto: tämä ja tulevat kerrat, kun kertoja on useampi.
@@ -2523,6 +2547,7 @@ function openGroupModal() {
     if (calendarChange) {
       const snapshot = JSON.parse(JSON.stringify(s));
       const title = (s.inviteTitle || '').trim();
+      if (changes.startIso || changes.endIso) rememberMovedFrom(ed);
       eventModalState = null;
       renderUpdateQueuedStep(title);
       sendEventUpdateInBackground({ projectId: PROJECT_ID, eventId: ed.id, scope: ed.scope, changes }, snapshot, title);
@@ -2561,7 +2586,9 @@ function openGroupModal() {
       if (data.error) {
         error = data.error;
       } else {
-        await loadProjectEvents();
+        // Tapahtumat ja osallistujien kalenterit heti uudelleen, jotta seuraava muokkaus
+        // ei käytä vanhaa aikaa (kalenteritiedot tarkentuvat vielä synkronoinnissa).
+        await Promise.all([loadProjectEvents(), loadStatus()]);
         AppNav.toast(t('toast_update_sent', { title }) + (data.dryRun ? ' ' + t('invite_dry_run_note') : ''));
         if ((data.failed || []).length) {
           AppDialog.alert(t('edit_partial', { updated: data.updated, failed: data.failed.length }));
@@ -2811,7 +2838,7 @@ function openGroupModal() {
       const flags = [];
       if (isPast) flags.push(`<span class="draft-flag warn">${t('draft_past')}</span>`);
       if (intervals.length > 1) flags.push(`<span class="draft-flag">${t('draft_recurring', { count: intervals.length })}</span>`);
-      const attendeeCount = Object.keys(roles.peopleRoles).length + Object.keys(roles.groupRoles).length;
+      const attendeeCount = Object.keys(roles.peopleRoles).filter((id) => !isOwnParticipantId(id)).length + Object.keys(roles.groupRoles).length;
       flags.push(`<span class="draft-flag">${t('draft_attendees', { count: attendeeCount })}</span>`);
       if (!isPast) {
         const c = draftConflicts(payload, roles, d.id);
@@ -2982,7 +3009,7 @@ function openGroupModal() {
     openCreateEventModal();
     const s = eventModalState;
     s.mode = 'single';
-    s.peopleRoles = who.personId ? { [who.personId]: 'required' } : {};
+    s.peopleRoles = { ...defaultPeopleRoles(), ...(who.personId ? { [who.personId]: 'required' } : {}) };
     s.groupRoles = who.groupId ? { [who.groupId]: 'required' } : {};
     const durationMs = (Number(s.duration) || 30) * 60000;
     s.selStart = clicked;
@@ -2993,13 +3020,26 @@ function openGroupModal() {
     renderEventResultsStep({ scroll: 'selection' });
   }
 
+  // Katsojan oma osallistujarivi (null, jos katsoja ei ole projektin osallistuja).
+  function ownParticipant() {
+    return (latestStatus && latestStatus.participants.find((p) => p.email.toLowerCase() === currentUserEmail)) || null;
+  }
+
+  // Uuden tapahtuman oletus (päätetty 19.11.2026): oma osallistuminen valmiiksi pakollisena,
+  // jotta oma kalenteri huomioidaan aikahaussa. Valinnan voi poistaa (esim. projektipäällikkö
+  // varaa palaverin, johon ei itse osallistu) tai muuttaa valinnaiseksi.
+  function defaultPeopleRoles() {
+    const own = ownParticipant();
+    return own ? { [own.id]: 'required' } : {};
+  }
+
   function openCreateEventModal() {
     if (!latestStatus) return;
     // Luonnoksen muokkauksen jälkeen uusi tapahtuma aloitetaan puhtaalta pöydältä.
     if (eventModalState && (eventModalState.draftId || eventModalState.editEvent)) eventModalState = null;
     eventModalState = {
       duration: (eventModalState && eventModalState.duration) || 30,
-      peopleRoles: (eventModalState && eventModalState.peopleRoles) || {},
+      peopleRoles: (eventModalState && eventModalState.peopleRoles) || defaultPeopleRoles(),
       groupRoles: (eventModalState && eventModalState.groupRoles) || {},
       rangeFrom: (eventModalState && eventModalState.rangeFrom) || '',
       rangeTo: (eventModalState && eventModalState.rangeTo) || '',
@@ -3163,8 +3203,11 @@ function openGroupModal() {
   function renderEventSelectionStep() {
     const s = eventModalState;
 
-    const peopleRows = latestStatus.participants.map((p) => {
-      const label = nameLabelFor(p);
+    // Oma rivi aina ylimpänä (muut aakkosjärjestyksessä) merkinnällä "(sinä)".
+    const own = ownParticipant();
+    const people = own ? [own, ...latestStatus.participants.filter((p) => p.id !== own.id)] : latestStatus.participants;
+    const peopleRows = people.map((p) => {
+      const label = nameLabelFor(p) + (own && p.id === own.id ? ' ' + t('org_me') : '');
       const role = s.peopleRoles[p.id];
       return `
         <div class="group-select-row ${role ? 'selected' : ''}">
@@ -3333,7 +3376,7 @@ function openGroupModal() {
     // Ilman valittuja Meetsko-osallistujia (esim. kokous vain ulkopuolisten kanssa, jotka
     // lisätään tarkistusvaiheessa) haetaan aikoja oman kalenterin mukaan.
     if (requiredIds.people.length + requiredIds.groups.length + optionalIds.people.length + optionalIds.groups.length === 0) {
-      const own = latestStatus.participants.find((p) => p.email.toLowerCase() === currentUserEmail);
+      const own = ownParticipant();
       if (!own) {
         AppDialog.alert(t('alert_select_attendee'));
         return null;
@@ -4869,9 +4912,12 @@ function openGroupModal() {
       defaultTime: field === 'endAt' ? '17:00' : '09:00',
       onChange: (v) => {
         updateBlackoutField(idx, field, v);
-        // Uuden jakson loppu esitäytetään tunnin päähän alusta.
-        if (field === 'startAt' && v && !b.endAt) {
+        if (field === 'endAt') { b.endAuto = false; return; }
+        // Loppu seuraa alkua (alku + 60 min), kunnes käyttäjä muuttaa loppua itse, eikä
+        // jää koskaan alun eteen (päivän klikkaus ja sen jälkeen kellonajan valinta).
+        if (v && (!b.endAt || b.endAuto || b.endAt <= v)) {
           b.endAt = DtPicker.addMinutes(v, 60);
+          b.endAuto = true;
           const end = document.getElementById(`blk_${idx}_endAt`);
           if (end) end.outerHTML = DtPicker.fieldHtml(`blk_${idx}_endAt`, b.endAt, { compact: true, onclick: `openBlackoutPicker(${idx}, 'endAt')` });
         }
@@ -4938,7 +4984,7 @@ function openGroupModal() {
       daysHtml += `
         <div class="day-block">
           <label class="day-toggle">
-            <input type="checkbox" ${enabled ? 'checked' : ''} onchange="toggleSettingsDay(${d}, this.checked)" />
+            <input type="checkbox" ${enabled ? 'checked' : ''} aria-label="${t(WEEKDAY_FULL_KEYS[d])}" onchange="toggleSettingsDay(${d}, this.checked)" />
             ${wdShort[d]}
           </label>
           ${enabled ? `<div class="ranges">${rangesHtml}<button type="button" class="secondary add-range-btn" onclick="addSettingsRange(${d})">${t('add_time_range')}</button></div>` : ''}

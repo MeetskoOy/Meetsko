@@ -16,6 +16,32 @@
 // Sivut siirtyvät tähän sitä mukaa kuin niitä muutenkin muokataan.
 
 const AppNav = {
+  // Selaimen muistit (näkymävalinnat) käyttäjäkohtaisesti: avaimeen lisätään kirjautuneen
+  // käyttäjän tunniste, jottei valinta siirry toiselle käyttäjälle samassa selaimessa.
+  // Supabase-istunto on localStoragessa jo sivun latautuessa. Vanha yhteinen avain
+  // siirretään kerran ensimmäiselle käyttäjälle ja poistetaan.
+  userStorageKey(base) {
+    try {
+      const k = Object.keys(localStorage).find((key) => /^sb-.*-auth-token$/.test(key));
+      const id = k && JSON.parse(localStorage.getItem(k))?.user?.id;
+      return id ? `${base}__${id}` : base;
+    } catch (e) { return base; }
+  },
+  storageGet(base) {
+    try {
+      const key = AppNav.userStorageKey(base);
+      let value = localStorage.getItem(key);
+      if (value === null && key !== base) {
+        value = localStorage.getItem(base);
+        if (value !== null) { localStorage.setItem(key, value); localStorage.removeItem(base); }
+      }
+      return value;
+    } catch (e) { return null; }
+  },
+  storageSet(base, value) {
+    try { localStorage.setItem(AppNav.userStorageKey(base), value); } catch (e) {}
+  },
+
   mount(active) {
     const host = document.getElementById('appNav');
     if (!host) return;

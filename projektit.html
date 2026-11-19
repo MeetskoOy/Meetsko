@@ -103,14 +103,20 @@
   let ownOrganizationId = null;
 
   // Osioiden pienennys nuolesta. Oletuksena "Oman organisaation kaikki projektit" on
-  // pienennetty; käyttäjän valinta muistetaan selaimessa.
+  // pienennetty, jos käyttäjällä on omia projekteja (ilman omia projekteja auki, ettei sivu
+  // näytä tyhjältä); käyttäjän valinta muistetaan selaimessa käyttäjäkohtaisesti.
   const SECTIONS_KEY = 'meetsko_projectSections';
-  const sectionCollapsed = { own: false, all: false, orgall: true };
-  try { Object.assign(sectionCollapsed, JSON.parse(localStorage.getItem(SECTIONS_KEY) || '{}')); } catch (e) {}
+  const sectionCollapsed = { own: false, all: false, orgall: null };
+  let ownProjectCount = 0;
+  function isSectionCollapsed(key) {
+    const v = sectionCollapsed[key];
+    return v === null || v === undefined ? (key === 'orgall' && ownProjectCount > 0) : !!v;
+  }
+  try { Object.assign(sectionCollapsed, JSON.parse(AppNav.storageGet(SECTIONS_KEY) || '{}')); } catch (e) {}
 
   function toggleSection(key) {
-    sectionCollapsed[key] = !sectionCollapsed[key];
-    try { localStorage.setItem(SECTIONS_KEY, JSON.stringify(sectionCollapsed)); } catch (e) {}
+    sectionCollapsed[key] = !isSectionCollapsed(key);
+    AppNav.storageSet(SECTIONS_KEY, JSON.stringify(sectionCollapsed));
     const el = document.querySelector(`.project-section[data-section="${key}"]`);
     if (!el) return;
     el.classList.toggle('collapsed', sectionCollapsed[key]);
@@ -152,7 +158,7 @@
   }
 
   function sectionHtml(key, title, projects, showBadge, emptyText, emptyWithButton) {
-    const collapsed = !!sectionCollapsed[key];
+    const collapsed = isSectionCollapsed(key);
     let body;
     if (projects.length === 0) {
       const btn = emptyWithButton && canCreateProjects() ? `<a class="btn secondary" href="/uusiprojekti.html">${t('new_project_link')}</a>` : '';
@@ -197,6 +203,7 @@
     const own = [...(data.groupOwnInvolved || []), ...(data.groupOtherOrgsInvolved || [])]
       .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
     const orgAll = data.groupOwnOrgAll || [];
+    ownProjectCount = own.length;
     document.getElementById('pageSub').textContent = t('meta_projects_count', { count: own.length });
 
     // Ei yhtään projektia eikä luontioikeutta: kerrotaan, miten pääsee mukaan.

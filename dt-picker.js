@@ -95,10 +95,12 @@ const DtPicker = (() => {
     set(`${ds}T${time}`);
   }
 
+  // Kellonajan valinta (listasta tai kirjoittamalla + Enter) päättää valinnan, joten valitsin
+  // sulkeutuu. Päivän valinta jättää valitsimen auki kellonajan valintaa varten.
   function pickTime(min) {
-    if (st.mode === 'time') { set(hhmm(min)); return; }
-    const ds = st.value ? st.value.split('T')[0] : todayStr();
-    set(`${ds}T${hhmm(min)}`);
+    if (st.mode === 'time') set(hhmm(min));
+    else set(`${st.value ? st.value.split('T')[0] : todayStr()}T${hhmm(min)}`);
+    close();
   }
 
   // Kirjoitettu aika: "13", "13.10", "13:10" tai "1310"; päivän loppuun myös "24".

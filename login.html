@@ -200,12 +200,15 @@
     await checkAccessAndRedirect();
   }
 
+  // prompt=select_account: Microsoft näyttää aina tilivalinnan. Meetskosta uloskirjautuminen ei
+  // kirjaa ulos Microsoftista, joten ilman tätä Microsoft kirjaisi automaattisesti edellisellä tilillä.
   function loginWithMicrosoft() {
     client.auth.signInWithOAuth({
       provider: 'azure',
       options: {
         scopes: 'email',
         redirectTo: window.location.origin + '/login.html',
+        queryParams: { prompt: 'select_account' },
       },
     });
   }

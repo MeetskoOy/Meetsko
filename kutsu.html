@@ -155,12 +155,15 @@
     `;
   }
 
+  // prompt=select_account: tilivalinta aina, jotta "Väärä tili" -tilanteesta pääsee toiselle tilille
+  // (Meetskon uloskirjautuminen ei kirjaa ulos Microsoftista).
   function loginWithMicrosoft() {
     client.auth.signInWithOAuth({
       provider: 'azure',
       options: {
         scopes: 'email',
         redirectTo: window.location.origin + '/kutsu.html?pid=' + PID,
+        queryParams: { prompt: 'select_account' },
       },
     });
   }
@@ -437,9 +440,12 @@
       defaultTime: field === 'endAt' ? '17:00' : '09:00',
       onChange: (v) => {
         updateBlackoutField(idx, field, v);
-        // Uuden jakson loppu esitäytetään tunnin päähän alusta.
-        if (field === 'startAt' && v && !b.endAt) {
+        if (field === 'endAt') { b.endAuto = false; return; }
+        // Loppu seuraa alkua (alku + 60 min), kunnes käyttäjä muuttaa loppua itse, eikä
+        // jää koskaan alun eteen (päivän klikkaus ja sen jälkeen kellonajan valinta).
+        if (v && (!b.endAt || b.endAuto || b.endAt <= v)) {
           b.endAt = DtPicker.addMinutes(v, 60);
+          b.endAuto = true;
           const end = document.getElementById(`blk_${idx}_endAt`);
           if (end) end.outerHTML = DtPicker.fieldHtml(`blk_${idx}_endAt`, b.endAt, { compact: true, onclick: `openBlackoutPicker(${idx}, 'endAt')` });
         }
@@ -465,7 +471,7 @@
       daysHtml += `
         <div class="day-block">
           <label class="day-toggle">
-            <input type="checkbox" ${enabled ? 'checked' : ''} onchange="toggleSettingsDay(${d}, this.checked)" />
+            <input type="checkbox" ${enabled ? 'checked' : ''} aria-label="${t(WEEKDAY_FULL_KEYS[d])}" onchange="toggleSettingsDay(${d}, this.checked)" />
             ${wdShort[d]}
           </label>
           ${enabled ? `<div class="ranges">${rangesHtml}<button type="button" class="secondary add-range-btn" onclick="addSettingsRange(${d})">${t('add_time_range')}</button></div>` : ''}
@@ -541,6 +547,7 @@
     settingsState.blackouts = settingsState.blackouts.map((b) => ({
       startAt: b.startAt ? MeetskoTZ.isoToLocalInput(MeetskoTZ.localInputToIso(b.startAt, oldTz), newTz) : '',
       endAt: b.endAt ? MeetskoTZ.isoToLocalInput(MeetskoTZ.localInputToIso(b.endAt, oldTz), newTz) : '',
+      endAuto: b.endAuto,
     }));
     settingsState.timeZone = newTz;
     renderSettingsInline();
@@ -579,6 +586,7 @@
   // Kielivalitsin kuten kirjautumissivulla; valinta piirtää nykyisen vaiheen uudelleen.
   function updateFlagActiveState() {
     const lang = getCurrentLanguage();
+    document.documentElement.lang = lang;
     document.getElementById('flagFi').classList.toggle('active', lang === 'fi');
     document.getElementById('flagEn').classList.toggle('active', lang === 'en');
   }

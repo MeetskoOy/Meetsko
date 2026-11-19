@@ -323,7 +323,7 @@ const TRANSLATIONS = {
     rec_sent_series_body: "Toistuva sarja ({{occurrences}} kertaa) on luotu kalenteriisi ja kutsu lähetettiin {{count}} osallistujalle.",
     rec_sent_separate_body: "{{created}}/{{total}} kokousta luotiin kalenteriisi ja kutsut lähetettiin {{count}} osallistujalle.",
     rec_sent_failed_label: "Näitä kertoja ei voitu luoda:",
-    blackout_end_before_start: "Rajoitusjakson lopun täytyy olla alun jälkeen.",
+    blackout_end_before_start: "Piilotusjakson lopun täytyy olla alun jälkeen.",
     hide_calendar_fully: "Rajoita kalenterini näkyminen projektille",
     save_btn: "Tallenna",
     leave_project_btn: "Poistu projektista",
@@ -737,7 +737,7 @@ const TRANSLATIONS = {
     project_group_label: "Project group",
     prompt_participant_email: "Participant's email:",
     invite_link_label: "Invite link",
-    alert_no_authorized: "No authorized participants yet.",
+    alert_no_authorized: "No authorised participants yet.",
     error_prefix: "Error",
     error_project_id_missing: "Error: project id missing from address",
         new_participant_modal_heading: "Add participant",
@@ -764,13 +764,13 @@ const TRANSLATIONS = {
     alert_group_member_required: "Select at least one member.",
 
     title_label: "Title",
-    organization_label: "Organization",
+    organization_label: "Organisation",
     email_label: "Email",
     role_label: "Role",
     calendar_status_label: "Calendar status",
     role_admin: "Project administrator",
     role_guest: "Project member",
-    cal_status_authorized: "Authorized",
+    cal_status_authorized: "Authorised",
     cal_status_expired: "Expired",
     cal_status_pending: "Pending",
     calendar_tooltip_ok: "Calendar data is up to date",
@@ -803,7 +803,7 @@ const TRANSLATIONS = {
     // Invitation review step
     create_invite_btn: "Create invitation",
     modal_invite_confirm: "Review invitation",
-    invite_organizer_is_you: "Organizer: you",
+    invite_organizer_is_you: "Organiser: you",
     invite_subject_label: "Subject",
     invite_body_label: "Message",
     invite_required_label: "Required attendees",
@@ -843,8 +843,8 @@ const TRANSLATIONS = {
     hide_weekends_label: "Hide weekends",
     last_updated_label: "Last updated",
     revoke_auth_btn: "Remove calendar read access",
-    calendar_expired_warn: "The authorization has expired.",
-    retry_auth_btn: "Reauthorize",
+    calendar_expired_warn: "The authorisation has expired.",
+    retry_auth_btn: "Reauthorise",
     grant_calendar_access: "Grant calendar read access",
     show_calendar_to_others: "Hide my calendar at these times",
     show_calendar_note: "Hidden time is shown to other project participants as busy. Choose a day and times; an end time of 24:00 means the end of the day.",
@@ -995,7 +995,7 @@ const TRANSLATIONS = {
     rec_sent_series_body: "The recurring series ({{occurrences}} occurrences) was created in your calendar and invitations were sent to {{count}} attendees.",
     rec_sent_separate_body: "{{created}}/{{total}} meetings were created in your calendar and invitations were sent to {{count}} attendees.",
     rec_sent_failed_label: "These occurrences could not be created:",
-    blackout_end_before_start: "A blackout period must end after it starts.",
+    blackout_end_before_start: "A hidden period must end after it starts.",
     hide_calendar_fully: "Restrict my calendar from being visible to the project",
     save_btn: "Save",
     leave_project_btn: "Leave project",
@@ -1040,7 +1040,7 @@ const TRANSLATIONS = {
     confirm_leave_project: "Are you sure you want to leave this project? This cannot be undone.",
 
     modal_calendar_expired: "Calendar read access has expired",
-    calendar_expired_body: "Calendar read access for project {{projectName}} has expired. Reauthorize it below.",
+    calendar_expired_body: "Calendar read access for project {{projectName}} has expired. Reauthorise it below.",
 
     weekday_short_mon: "Mon", weekday_short_tue: "Tue", weekday_short_wed: "Wed", weekday_short_thu: "Thu",
     weekday_short_fri: "Fri", weekday_short_sat: "Sat", weekday_short_sun: "Sun",
@@ -1059,7 +1059,7 @@ const TRANSLATIONS = {
     login_google_btn: "Log in with Google",
 
     heading_clients: "Clients",
-    sub_clients: "Manage client organizations (superadmin only)",
+    sub_clients: "Manage client organisations (superadmin only)",
     new_client_link: "+ New client",
     badge_domain: "Whole domain",
     badge_restricted: "Listed only",
@@ -1114,15 +1114,15 @@ const TRANSLATIONS = {
     heading_my_profile: "My profile",
     first_name_label: "First name",
     last_name_label: "Last name",
-    heading_calendar_by_project: "Calendar authorizations by project",
+    heading_calendar_by_project: "Calendar authorisations by project",
     alert_profile_saved: "Details saved.",
     empty_no_projects_involved: "You're not part of any project yet.",
-    cal_status_not_authorized: "Not authorized",
+    cal_status_not_authorized: "Not authorised",
 
     heading_new_project: "New project",
     project_name_label: "Project name",
     project_name_placeholder: "e.g. Spring coordination",
-    heading_client_orgs: "Client organizations",
+    heading_client_orgs: "Client organisations",
     client_name_placeholder: "End client's name, e.g. Nokia",
     heading_project_members: "Project members",
     col_first_name: "First name",
@@ -1133,8 +1133,8 @@ const TRANSLATIONS = {
     create_project_btn: "Create new project",
     creating_label: "Creating...",
     alert_project_name_required: "Project name is required.",
-    new_org_heading: "New organization joining the app",
-    new_org_note: "The following email domains haven't been part of the app before. Many organizations require IT approval before calendar data can be shared. You can optionally give an IT contact email for each new domain — a privacy notice and instructions will be sent there later. You can also leave this blank and continue.",
+    new_org_heading: "New organisation joining the app",
+    new_org_note: "The following email domains haven't been part of the app before. Many organisations require IT approval before calendar data can be shared. You can optionally give an IT contact email for each new domain — a privacy notice and instructions will be sent there later. You can also leave this blank and continue.",
     it_contact_label: "IT contact email (optional)",
     skip_btn: "Skip",
     save_and_continue_btn: "Save and continue",
@@ -1154,9 +1154,9 @@ const TRANSLATIONS = {
     join_project_heading: "Join project",
     join_project_body: "You've been invited to project {{projectName}}. Set your project-specific settings and join.",
     join_project_btn: "Join project",
-    banner_auth_ok: "Calendar authorization succeeded.",
-    banner_auth_denied: "Authorization was cancelled.",
-    banner_auth_error: "Authorization failed, please try again.",
+    banner_auth_ok: "Calendar authorisation succeeded.",
+    banner_auth_denied: "Authorisation was cancelled.",
+    banner_auth_error: "Authorisation failed, please try again.",
     banner_email_mismatch: "You authorised the calendar with a different Microsoft account than the user added to the project. Sign in with the same account you use for Meetsko and try again.",
     invite_not_found: "Invitation not found",
     team_label: "Function / team",
@@ -1180,10 +1180,10 @@ const TRANSLATIONS = {
     empty_no_projects: "You don't have any projects yet — create your first one above.",
     section_own_projects: "My projects",
     section_org_all_projects: "all projects",
-    section_other_orgs_projects: "Other organizations' projects",
+    section_other_orgs_projects: "Other organisations' projects",
     other_org_project: "Other organisation’s project: {{org}}",
     empty_not_involved: "You're not part of any project yet.",
-    empty_org_no_projects: "This organization has no projects yet.",
+    empty_org_no_projects: "This organisation has no projects yet.",
     involved_badge: "You're involved",
     new_invite_badge: "New invitation",
     created_label: "Created",
@@ -1440,7 +1440,11 @@ function t(key, vars) {
 }
 
 // Kääntää kaikki [data-i18n="avain"] -merkityt staattiset elementit sivulla.
+// Viikonpäivien täydet nimet (aria-label lyhenteiden rinnalle), ma = 0.
+const WEEKDAY_FULL_KEYS = ['weekday_full_mon', 'weekday_full_tue', 'weekday_full_wed', 'weekday_full_thu', 'weekday_full_fri', 'weekday_full_sat', 'weekday_full_sun'];
+
 function applyStaticTranslations() {
+  document.documentElement.lang = getCurrentLanguage();
   document.querySelectorAll('[data-i18n]').forEach((el) => {
     el.textContent = t(el.getAttribute('data-i18n'));
   });
