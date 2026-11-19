@@ -782,12 +782,18 @@ function bufferDates(anchor) {
 
   function busyBlocksHtml(items, anchor, who) {
     const dates = bufferDates(anchor);
+    // Vain piirrettävän jakson (puskuripäivät ± 1 vrk) varaukset: kalenterissa on ~3 kk
+    // varauksia, ja kellonaikojen muotoilu kaikille teki ison projektin piirrosta hitaan
+    // (kuormitustesti 19.11.2026: 150 hlö 8,5 s → 0,5 s, 300 hlö 16,3 s → 0,8 s).
+    const winStart = zdate(dates[0] + 'T00:00:00').getTime() - 86400000;
+    const winEnd = zdate(dates[dates.length - 1] + 'T00:00:00').getTime() + 2 * 86400000;
     const locale = getCurrentLanguage() === 'en' ? 'en-GB' : 'fi-FI';
     let html = '';
     (items || []).forEach((item) => {
       if (item.status !== 'busy') return;
       const start = zdate(item.start.dateTime + 'Z');
       const end = zdate(item.end.dateTime + 'Z');
+      if (end.getTime() <= winStart || start.getTime() >= winEnd) return;
       const startLabel = start.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
       const endLabel = end.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
       const tip = who
